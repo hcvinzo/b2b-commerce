@@ -9,8 +9,8 @@ backend/
 ├── src/
 │   ├── B2BCommerce.Backend.Domain/           # Domain Layer (✅ Complete)
 │   ├── B2BCommerce.Backend.Application/      # Application Layer (✅ Interfaces & DTOs Complete)
-│   ├── B2BCommerce.Backend.Infrastructure/   # Infrastructure Layer (⚙️ In Progress)
-│   └── B2BCommerce.Backend.API/              # API Layer (⏳ Pending)
+│   ├── B2BCommerce.Backend.Infrastructure/   # Infrastructure Layer (✅ Complete)
+│   └── B2BCommerce.Backend.API/              # API Layer (✅ Configuration Complete)
 │
 ├── tests/
 │   ├── B2BCommerce.Backend.Domain.Tests/
@@ -100,34 +100,74 @@ backend/
 **Service Interfaces:**
 - ✅ IProductService (basic interface created)
 
-### ⚙️ In Progress
+#### 3. Infrastructure Layer (B2BCommerce.Backend.Infrastructure) - Complete & Building ✅
 
-#### Infrastructure Layer (B2BCommerce.Backend.Infrastructure)
-- ✅ NuGet packages installed (EF Core 8, PostgreSQL, Identity)
-- ⏳ ApplicationDbContext (needs implementation)
-- ⏳ Entity Configurations (Fluent API)
-- ⏳ Repository Implementations
-- ⏳ Unit of Work Implementation
-- ⏳ Identity (ApplicationUser, ApplicationRole, JwtTokenService)
+**Data Access:**
+- ✅ ApplicationDbContext with all DbSets and audit handling
+- ✅ 11 Entity Configurations using Fluent API
+- ✅ GenericRepository<T> base implementation
+- ✅ 8 Specific Repository implementations
+- ✅ UnitOfWork with transaction management
+
+**Entity Configurations:**
+- ✅ Value objects as owned types (Money, Address)
+- ✅ Value object conversions (Email, PhoneNumber, TaxNumber)
+- ✅ JSON columns for collections (ImageUrls, Specifications, SerialNumbers)
+- ✅ Proper relationships with cascade behaviors
+- ✅ Indexes for performance (unique and composite)
+- ✅ Soft delete filtering
+
+**Repositories:**
+- ✅ ProductRepository (SKU search, category filter, advanced search)
+- ✅ OrderRepository (order number lookup, customer orders, pending orders)
+- ✅ CustomerRepository (email/tax number lookup, unapproved customers)
+- ✅ CategoryRepository, BrandRepository, PaymentRepository, ShipmentRepository
+- ✅ CurrencyRateRepository (with historical date filtering)
+
+**Identity:**
+- ✅ ApplicationUser (custom properties: FirstName, LastName, CustomerId, RefreshToken)
+- ✅ ApplicationRole (with Description)
+- ✅ Identity configuration (password policies, lockout settings)
+
+**Service Registration:**
+- ✅ DependencyInjection class
+- ✅ PostgreSQL with retry logic
+- ✅ All repositories registered as scoped services
+
+#### 4. API Layer (B2BCommerce.Backend.API) - Configuration Complete ✅
+
+**Configuration:**
+- ✅ Program.cs with complete setup (DI, middleware, auth, Swagger)
+- ✅ appsettings.json with all configurations
+- ✅ JWT Authentication with Bearer token support
+- ✅ Serilog structured logging (Console + File)
+- ✅ Swagger/OpenAPI with JWT authentication UI
+- ✅ CORS policy for frontend
+- ✅ Health checks with EF Core
+- ✅ ASP.NET Core Identity integration
+
+**NuGet Packages:**
+- ✅ Microsoft.AspNetCore.Authentication.JwtBearer 8.0.11
+- ✅ Serilog.AspNetCore 8.0.3
+- ✅ AutoMapper.Extensions.Microsoft.DependencyInjection 12.0.1
+- ✅ FluentValidation.AspNetCore 11.3.0
+- ✅ Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore 8.0.11
+- ✅ Swashbuckle.AspNetCore 6.6.2
 
 ### ⏳ Pending
 
-#### API Layer (B2BCommerce.Backend.API)
+#### API Layer - Controllers & Business Logic
 - ⏳ Controllers (Products, Orders, Customers, Auth, etc.)
-- ⏳ Program.cs configuration
-- ⏳ Middleware (Exception handling, Logging, etc.)
-- ⏳ Swagger/OpenAPI configuration
-- ⏳ appsettings.json configuration
+- ⏳ Application Services (ProductService, OrderService, etc.)
+- ⏳ Global exception handling middleware
 
 #### Cross-Cutting Concerns
-- ⏳ FluentValidation validators
-- ⏳ AutoMapper profiles
-- ⏳ JWT Authentication configuration
-- ⏳ Global exception handling
-- ⏳ Logging (Serilog)
+- ⏳ FluentValidation validators for DTOs
+- ⏳ AutoMapper profiles for entity-DTO mappings
+- ⏳ JWT Token Service implementation (generation, validation, refresh)
 
 #### Database & Data
-- ⏳ EF Core migrations
+- ✅ EF Core migrations (InitialCreate with PostgreSQL types)
 - ⏳ Seed data
 
 ## Key Business Features Implemented
@@ -164,42 +204,70 @@ backend/
 
 ## Database Schema
 
-The domain model includes:
+The EF Core migration creates the following 18 tables:
+
+**Business Entities:**
 - **Products**: 50+ fields including pricing, stock, images, specifications
+- **Categories**: Hierarchical categories with parent-child relationships
+- **Brands**: Brand information with logos and website URLs
 - **Customers**: Credit management, addresses, approval status
+- **CustomerAddresses**: Multiple addresses per customer with default flag
 - **Orders**: Financial tracking, approval workflow, shipping details
+- **OrderItems**: Line items with pricing, tax, discounts, serial numbers
 - **Payments**: Multiple payment methods, gateway integration
 - **Shipments**: Carrier tracking, delivery status
+- **CurrencyRates**: Historical currency exchange rates
+- **SystemConfigurations**: System-wide configuration settings
+
+**ASP.NET Core Identity Tables:**
+- **Users**: Application users with custom properties (FirstName, LastName, CustomerId, RefreshToken)
+- **Roles**: Application roles with descriptions
+- **UserRoles**: User-role assignments
+- **UserClaims**: User claims
+- **RoleClaims**: Role claims
+- **UserLogins**: External login providers
+- **UserTokens**: Authentication tokens
+
+All tables include:
+- Audit fields (CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
+- Soft delete support (IsDeleted, DeletedAt, DeletedBy)
+- Optimized indexes for queries
+- Proper foreign key relationships with cascade behaviors
 
 ## Next Steps
 
 To continue development:
 
-1. **Complete Infrastructure Layer:**
-   - Implement ApplicationDbContext with all DbSets
-   - Create Entity Configurations for all entities
-   - Implement Repository classes
-   - Implement UnitOfWork
-   - Configure ASP.NET Core Identity
+1. **Configure Database Connection:**
+   - Update the password in [appsettings.json](src/B2BCommerce.Backend.API/appsettings.json)
+   - Replace `YOUR_PASSWORD_HERE` with your actual Supabase PostgreSQL password
+   - Also update the JWT Key with a secure 32+ character secret
 
-2. **Create Database Migrations:**
+2. **Apply Database Migrations:**
    ```bash
-   dotnet ef migrations add InitialCreate --project src/B2BCommerce.Backend.Infrastructure --startup-project src/B2BCommerce.Backend.API
+   dotnet ef database update --project src/B2BCommerce.Backend.Infrastructure --startup-project src/B2BCommerce.Backend.API
    ```
 
-3. **Implement API Layer:**
-   - Configure Program.cs (DI, middleware, auth, Swagger)
-   - Implement controllers
-   - Add global exception handling middleware
+3. **Implement Application Services:**
+   - ProductService with business logic
+   - OrderService with approval workflow
+   - CustomerService with credit management
+   - AuthService with JWT token generation
 
-4. **Add Validators & Mappers:**
+3. **Add Validators & Mappers:**
    - FluentValidation validators for all DTOs
    - AutoMapper profiles for entity-DTO mappings
 
-5. **Configure appsettings.json:**
-   - Connection strings (PostgreSQL)
-   - JWT settings
-   - External services (AWS S3, Email, etc.)
+4. **Implement API Controllers:**
+   - ProductsController (CRUD + search)
+   - OrdersController (CRUD + approval)
+   - CustomersController (CRUD + credit management)
+   - AuthController (login, register, refresh token)
+   - CategoriesController, BrandsController, etc.
+
+5. **Add Middleware:**
+   - Global exception handling middleware
+   - Request/Response logging enhancements
 
 ## Database Connection
 

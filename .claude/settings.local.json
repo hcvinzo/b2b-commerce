@@ -6,7 +6,13 @@
       "Bash(dotnet sln:*)",
       "Bash(dotnet sln add:*)",
       "Bash(dotnet add:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(dotnet tool list:*)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet ef migrations remove:*)",
+      "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet ef database update:*)",
+      "Bash(find:*)",
+      "Bash(npm run build:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
