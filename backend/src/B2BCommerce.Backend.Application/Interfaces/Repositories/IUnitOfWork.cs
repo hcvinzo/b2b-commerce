@@ -46,6 +46,21 @@ public interface IUnitOfWork : IDisposable
     ICurrencyRateRepository CurrencyRates { get; }
 
     /// <summary>
+    /// Gets the API client repository
+    /// </summary>
+    IApiClientRepository ApiClients { get; }
+
+    /// <summary>
+    /// Gets the API key repository
+    /// </summary>
+    IApiKeyRepository ApiKeys { get; }
+
+    /// <summary>
+    /// Gets the API key usage log repository
+    /// </summary>
+    IApiKeyUsageLogRepository ApiKeyUsageLogs { get; }
+
+    /// <summary>
     /// Saves all changes made in this unit of work to the database
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>

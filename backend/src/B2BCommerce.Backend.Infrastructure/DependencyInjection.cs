@@ -2,8 +2,10 @@ using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Infrastructure.Data;
 using B2BCommerce.Backend.Infrastructure.Data.Repositories;
+using B2BCommerce.Backend.Infrastructure.Data.Repositories.Integration;
 using B2BCommerce.Backend.Infrastructure.Identity;
 using B2BCommerce.Backend.Infrastructure.Services;
+using B2BCommerce.Backend.Infrastructure.Services.Integration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -64,6 +66,11 @@ public static class DependencyInjection
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
         services.AddScoped<ICurrencyRateRepository, CurrencyRateRepository>();
 
+        // Integration Repositories
+        services.AddScoped<IApiClientRepository, ApiClientRepository>();
+        services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
+        services.AddScoped<IApiKeyUsageLogRepository, ApiKeyUsageLogRepository>();
+
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -72,6 +79,11 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IOrderService, OrderService>();
+
+        // Integration Services
+        services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
+        services.AddScoped<IApiClientService, ApiClientService>();
+        services.AddScoped<IApiKeyService, ApiKeyService>();
 
         return services;
     }

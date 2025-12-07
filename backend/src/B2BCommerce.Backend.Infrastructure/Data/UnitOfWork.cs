@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Infrastructure.Data.Repositories;
+using B2BCommerce.Backend.Infrastructure.Data.Repositories.Integration;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace B2BCommerce.Backend.Infrastructure.Data;
@@ -21,6 +22,11 @@ public class UnitOfWork : IUnitOfWork
     private IPaymentRepository? _payments;
     private IShipmentRepository? _shipments;
     private ICurrencyRateRepository? _currencyRates;
+
+    // Integration repositories
+    private IApiClientRepository? _apiClients;
+    private IApiKeyRepository? _apiKeys;
+    private IApiKeyUsageLogRepository? _apiKeyUsageLogs;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -50,6 +56,16 @@ public class UnitOfWork : IUnitOfWork
 
     public ICurrencyRateRepository CurrencyRates =>
         _currencyRates ??= new CurrencyRateRepository(_context);
+
+    // Integration repositories
+    public IApiClientRepository ApiClients =>
+        _apiClients ??= new ApiClientRepository(_context);
+
+    public IApiKeyRepository ApiKeys =>
+        _apiKeys ??= new ApiKeyRepository(_context);
+
+    public IApiKeyUsageLogRepository ApiKeyUsageLogs =>
+        _apiKeyUsageLogs ??= new ApiKeyUsageLogRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

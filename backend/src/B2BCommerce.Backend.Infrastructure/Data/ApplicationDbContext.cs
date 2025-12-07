@@ -1,4 +1,5 @@
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Entities.Integration;
 using B2BCommerce.Backend.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<SystemConfiguration> SystemConfigurations => Set<SystemConfiguration>();
     public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
+
+    // Integration API entities
+    public DbSet<ApiClient> ApiClients => Set<ApiClient>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<ApiKeyPermission> ApiKeyPermissions => Set<ApiKeyPermission>();
+    public DbSet<ApiKeyIpWhitelist> ApiKeyIpWhitelist => Set<ApiKeyIpWhitelist>();
+    public DbSet<ApiKeyUsageLog> ApiKeyUsageLogs => Set<ApiKeyUsageLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
