@@ -3,7 +3,6 @@ using B2BCommerce.Backend.Application;
 using B2BCommerce.Backend.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using Serilog;
 
 // Configure Serilog
@@ -75,40 +74,33 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
-        options.SwaggerDoc("v1", new OpenApiInfo
+        options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
         {
             Title = "B2B E-Commerce API",
             Version = "v1",
             Description = "RESTful API for B2B E-Commerce Platform with multi-tier pricing, credit management, and order approval workflow",
-            Contact = new OpenApiContact
+            Contact = new Microsoft.OpenApi.OpenApiContact
             {
                 Name = "B2B Commerce Team"
             }
         });
 
         // Add JWT Authentication to Swagger
-        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
         {
             Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
             Name = "Authorization",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.ApiKey,
+            In = Microsoft.OpenApi.ParameterLocation.Header,
+            Type = Microsoft.OpenApi.SecuritySchemeType.ApiKey,
             Scheme = "Bearer"
         });
 
-        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        options.AddSecurityRequirement(doc =>
         {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
+            var requirement = new Microsoft.OpenApi.OpenApiSecurityRequirement();
+            var schemeReference = new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", doc);
+            requirement[schemeReference] = new List<string>();
+            return requirement;
         });
     });
 

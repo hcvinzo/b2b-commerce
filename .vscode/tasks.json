@@ -30,6 +30,18 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "build-integration-api",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/backend/src/B2BCommerce.Backend.IntegrationAPI/B2BCommerce.Backend.IntegrationAPI.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary;ForceNoAlign"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "watch",
       "command": "dotnet",
       "type": "process",
@@ -38,6 +50,19 @@
         "run",
         "--project",
         "${workspaceFolder}/backend/src/B2BCommerce.Backend.API/B2BCommerce.Backend.API.csproj"
+      ],
+      "problemMatcher": "$msCompile",
+      "isBackground": true
+    },
+    {
+      "label": "watch-integration-api",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/backend/src/B2BCommerce.Backend.IntegrationAPI/B2BCommerce.Backend.IntegrationAPI.csproj"
       ],
       "problemMatcher": "$msCompile",
       "isBackground": true

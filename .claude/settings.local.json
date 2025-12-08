@@ -12,7 +12,12 @@
       "Bash(dotnet ef migrations remove:*)",
       "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet ef database update:*)",
       "Bash(find:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(dotnet tool update:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet nuget list:*)",
+      "Bash(dotnet package search:*)",
+      "Bash(dotnet list:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

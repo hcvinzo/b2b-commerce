@@ -18,4 +18,14 @@ public interface IGenericRepository<T> where T : class
     void RemoveRange(IEnumerable<T> entities);
     Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default);
     Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets an IQueryable for advanced queries with filtering, includes, and pagination
+    /// </summary>
+    IQueryable<T> Query();
+
+    /// <summary>
+    /// Soft deletes an entity by ID
+    /// </summary>
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

@@ -70,7 +70,7 @@ public class AuthService : IAuthService
         }
 
         // Generate tokens
-        var token = GenerateJwtToken(user, customer);
+        var token = await GenerateJwtTokenAsync(user, customer);
         var refreshToken = GenerateRefreshToken();
 
         // Save refresh token
@@ -212,7 +212,7 @@ public class AuthService : IAuthService
         }
 
         // Generate new tokens
-        var token = GenerateJwtToken(user, customer);
+        var token = await GenerateJwtTokenAsync(user, customer);
         var refreshToken = GenerateRefreshToken();
 
         // Save new refresh token
@@ -306,7 +306,7 @@ public class AuthService : IAuthService
         }
     }
 
-    private string GenerateJwtToken(ApplicationUser user, Customer? customer)
+    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, Customer? customer)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -318,6 +318,13 @@ public class AuthService : IAuthService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("userId", user.Id.ToString())
         };
+
+        // Add user roles
+        var roles = await _userManager.GetRolesAsync(user);
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         if (user.CustomerId.HasValue)
         {

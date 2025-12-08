@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
+using B2BCommerce.Backend.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace B2BCommerce.Backend.Infrastructure.Data.Repositories;
@@ -74,5 +75,40 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
     {
         return await _dbSet.AnyAsync(predicate, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets an IQueryable for advanced queries. Filters out soft-deleted entities by default.
+    /// </summary>
+    public virtual IQueryable<T> Query()
+    {
+        // If entity inherits from BaseEntity, filter out soft-deleted records
+        if (typeof(BaseEntity).IsAssignableFrom(typeof(T)))
+        {
+            return _dbSet.Where(e => !((BaseEntity)(object)e).IsDeleted);
+        }
+
+        return _dbSet.AsQueryable();
+    }
+
+    /// <summary>
+    /// Soft deletes an entity by ID (sets IsDeleted = true)
+    /// </summary>
+    public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var entity = await GetByIdAsync(id, cancellationToken);
+        if (entity == null)
+            return;
+
+        if (entity is BaseEntity baseEntity)
+        {
+            baseEntity.IsDeleted = true;
+            baseEntity.DeletedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            // If not a BaseEntity, perform hard delete
+            _dbSet.Remove(entity);
+        }
     }
 }

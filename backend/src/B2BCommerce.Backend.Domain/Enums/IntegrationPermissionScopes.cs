@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace B2BCommerce.Backend.Domain.Enums;
 
 /// <summary>
@@ -5,6 +7,10 @@ namespace B2BCommerce.Backend.Domain.Enums;
 /// </summary>
 public static class IntegrationPermissionScopes
 {
+    // Category Scopes
+    public const string CategoriesRead = "categories:read";
+    public const string CategoriesWrite = "categories:write";
+
     // Product Scopes
     public const string ProductsRead = "products:read";
     public const string ProductsWrite = "products:write";
@@ -37,6 +43,7 @@ public static class IntegrationPermissionScopes
 
     private static readonly HashSet<string> ValidScopes = new(StringComparer.OrdinalIgnoreCase)
     {
+        CategoriesRead, CategoriesWrite,
         ProductsRead, ProductsWrite,
         StockRead, StockWrite,
         PricesRead, PricesWrite,
@@ -45,7 +52,7 @@ public static class IntegrationPermissionScopes
         InvoicesRead, InvoicesWrite,
         WebhooksManage,
         All,
-        "products:*", "stock:*", "prices:*",
+        "categories:*", "products:*", "stock:*", "prices:*",
         "customers:*", "orders:*", "invoices:*"
     };
 
@@ -64,7 +71,7 @@ public static class IntegrationPermissionScopes
     /// </summary>
     public static IEnumerable<string> GetReadOnlyScopes() => new[]
     {
-        ProductsRead, StockRead, PricesRead,
+        CategoriesRead, ProductsRead, StockRead, PricesRead,
         CustomersRead, OrdersRead, InvoicesRead
     };
 
@@ -73,7 +80,7 @@ public static class IntegrationPermissionScopes
     /// </summary>
     public static IEnumerable<string> GetWriteScopes() => new[]
     {
-        ProductsWrite, StockWrite, PricesWrite,
+        CategoriesWrite, ProductsWrite, StockWrite, PricesWrite,
         CustomersWrite, OrdersWrite, InvoicesWrite,
         WebhooksManage
     };

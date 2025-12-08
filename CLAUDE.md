@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-B2B E-Commerce Platform following Clean Architecture principles. A .NET 8 backend API with PostgreSQL (Supabase) for dealer portal, admin panel, and ERP integrations.
+B2B E-Commerce Platform following Clean Architecture principles. A .NET 10 backend API with PostgreSQL (Supabase) for dealer portal, admin panel, and ERP integrations.
 
 ## Build & Run Commands
 
@@ -113,8 +113,8 @@ builder.Property(c => c.Email)
 
 ## Technology Stack
 
-- **.NET 8** (LTS)
-- **Entity Framework Core 8** with PostgreSQL (Npgsql)
+- **.NET 10** (STS - Nov 2025)
+- **Entity Framework Core 10** with PostgreSQL (Npgsql)
 - **ASP.NET Core Identity** for authentication
 - **JWT Bearer** tokens for API auth
 - **AutoMapper** for entity-DTO mapping
