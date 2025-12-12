@@ -8,6 +8,7 @@ B2B E-Commerce Platform following Clean Architecture principles. A .NET 10 backe
 
 ## Build & Run Commands
 
+### Backend
 ```bash
 # Build entire solution (from backend/)
 cd backend && dotnet build
@@ -29,6 +30,20 @@ dotnet ef migrations add <MigrationName> --project src/B2BCommerce.Backend.Infra
 
 # Apply migrations
 ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project src/B2BCommerce.Backend.Infrastructure --startup-project src/B2BCommerce.Backend.API
+```
+
+### Frontend
+```bash
+# Development
+cd frontend && npm run dev
+
+# Build for production
+npm run build
+
+# Build for test environment (uses .env.test)
+npm run build:test
+
+# Output: frontend/out/ (static export)
 ```
 
 ## Architecture

@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<SystemConfiguration> SystemConfigurations => Set<SystemConfiguration>();
     public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
+    public DbSet<NewsletterSubscription> NewsletterSubscriptions => Set<NewsletterSubscription>();
 
     // Integration API entities
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();

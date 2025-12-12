@@ -3,7 +3,7 @@ import type { LoginFormData } from './validations/login.schema'
 import type { AuthResponse, DealerRegistration } from '@/types'
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -54,6 +54,20 @@ export async function refreshToken(refreshToken: string): Promise<AuthResponse> 
 
 export async function logout(): Promise<void> {
   await api.post('/auth/logout')
+}
+
+// Newsletter API
+export interface NewsletterResponse {
+  id: string
+  email: string
+  subscribedAt: string
+  isVerified: boolean
+  message: string
+}
+
+export async function subscribeNewsletter(email: string): Promise<NewsletterResponse> {
+  const response = await api.post<NewsletterResponse>('/newsletter/subscribe', { email })
+  return response.data
 }
 
 export { api }

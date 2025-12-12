@@ -71,6 +71,9 @@ public static class DependencyInjection
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
         services.AddScoped<IApiKeyUsageLogRepository, ApiKeyUsageLogRepository>();
 
+        // Newsletter Repository
+        services.AddScoped<INewsletterSubscriptionRepository, NewsletterSubscriptionRepository>();
+
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

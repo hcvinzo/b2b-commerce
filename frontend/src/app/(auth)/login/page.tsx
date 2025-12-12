@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
-import { Logo } from '@/components/layout/Logo'
+import Image from 'next/image'
 import { Footer } from '@/components/layout/Footer'
 import { loginSchema, LoginFormData } from '@/lib/validations/login.schema'
 import { loginUser } from '@/lib/api'
@@ -47,25 +47,26 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-4xl flex flex-col md:flex-row overflow-hidden">
         {/* Left Side - Hero Image */}
-        <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-primary to-primary-700 items-center justify-center p-8">
-          <div className="text-center text-white">
-            <div className="w-32 h-32 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center">
-              <svg className="w-16 h-16" viewBox="0 0 32 32" fill="currentColor">
-                <path d="M16 2L4 7v9c0 7.732 10.039 11.871 11.627 12.432a1 1 0 00.746 0C17.961 27.871 28 23.732 28 16V7L16 2z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold mb-2">B2B İş Ortağı Portalı</h2>
-            <p className="text-white/80">
-              Güvenilir iş ortaklığınız için dijital çözümler
-            </p>
-          </div>
+        <div className="hidden md:block md:w-1/2 relative">
+          <Image
+            src="/images/login-hero.jpg"
+            alt="Login Hero"
+            fill
+            className="object-cover"
+          />
         </div>
 
         {/* Right Side - Form */}
         <div className="w-full md:w-1/2 p-8 md:p-12">
           {/* Logo */}
           <div className="mb-8">
-            <Logo />
+            <Image
+              src="/images/logo-wb.jpg"
+              alt="Vesmarket Logo"
+              width={180}
+              height={50}
+              priority
+            />
           </div>
 
           {/* Title */}

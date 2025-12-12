@@ -61,6 +61,11 @@ public interface IUnitOfWork : IDisposable
     IApiKeyUsageLogRepository ApiKeyUsageLogs { get; }
 
     /// <summary>
+    /// Gets the newsletter subscription repository
+    /// </summary>
+    INewsletterSubscriptionRepository NewsletterSubscriptions { get; }
+
+    /// <summary>
     /// Saves all changes made in this unit of work to the database
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>

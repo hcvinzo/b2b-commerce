@@ -28,6 +28,9 @@ public class UnitOfWork : IUnitOfWork
     private IApiKeyRepository? _apiKeys;
     private IApiKeyUsageLogRepository? _apiKeyUsageLogs;
 
+    // Newsletter repository
+    private INewsletterSubscriptionRepository? _newsletterSubscriptions;
+
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
@@ -66,6 +69,10 @@ public class UnitOfWork : IUnitOfWork
 
     public IApiKeyUsageLogRepository ApiKeyUsageLogs =>
         _apiKeyUsageLogs ??= new ApiKeyUsageLogRepository(_context);
+
+    // Newsletter repository
+    public INewsletterSubscriptionRepository NewsletterSubscriptions =>
+        _newsletterSubscriptions ??= new NewsletterSubscriptionRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
