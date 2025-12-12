@@ -128,14 +128,24 @@ builder.Property(c => c.Email)
 
 ## Technology Stack
 
+### Backend
 - **.NET 10** (STS - Nov 2025)
 - **Entity Framework Core 10** with PostgreSQL (Npgsql)
 - **ASP.NET Core Identity** for authentication
 - **JWT Bearer** tokens for API auth
+- **MediatR** for CQRS pattern (Commands/Queries)
 - **AutoMapper** for entity-DTO mapping
 - **FluentValidation** for DTO validation
 - **Serilog** for structured logging
 - **xUnit** + FluentAssertions + Moq for testing
+
+### Frontend
+- **Next.js 16** with App Router (static export)
+- **React 19** with TypeScript
+- **Tailwind CSS 4** for styling
+- **react-hook-form** + **Zod** for form validation
+- **Zustand** for state management
+- **Axios** for API calls
 
 ## Business Domain
 
@@ -146,9 +156,27 @@ builder.Property(c => c.Email)
 - Serial number tracking per product
 - Currency conversion with locked exchange rates
 
+## Deployment
+
+### Frontend (AWS EC2 with Nginx)
+- Static export to `frontend/out/`
+- Nginx config provided in `frontend/nginx.conf`
+- Coming-soon redirect handled by Nginx `try_files` directive
+
+```bash
+# Deploy to EC2
+scp -r frontend/out/* ec2-user@your-ec2:/var/www/frontend/out/
+sudo cp frontend/nginx.conf /etc/nginx/conf.d/frontend.conf
+sudo nginx -t && sudo systemctl restart nginx
+```
+
+### Backend
+- Deployed as .NET application
+- Environment variables via `.env` or AWS Parameter Store
+
 ## Documentation
 
-Detailed specifications are in `.docs/`:
+Detailed specifications are in `docs/`:
 - `B2B_Technical_Architecture_Overview.md` - Full system architecture
 - `CSharp_Clean_Architecture_Guide.md` - Implementation patterns
 - `Domain_Application_Layer_Specification.md` - Entity specifications
