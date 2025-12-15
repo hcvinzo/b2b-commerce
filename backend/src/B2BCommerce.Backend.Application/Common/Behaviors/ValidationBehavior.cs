@@ -35,7 +35,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
 
         var failures = validationResults
             .SelectMany(result => result.Errors)
-            .Where(failure => failure != null)
+            .Where(failure => failure is not null)
             .ToList();
 
         if (failures.Count != 0)
@@ -56,7 +56,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
                 var failureMethod = responseType.GetMethod("ValidationFailure",
                     System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
 
-                if (failureMethod != null)
+                if (failureMethod is not null)
                 {
                     return (TResponse)failureMethod.Invoke(null, new object[] { errorDictionary })!;
                 }

@@ -29,10 +29,10 @@ public class SubscribeNewsletterCommandHandler : ICommandHandler<SubscribeNewsle
         // Check if email is already subscribed
         var existingSubscription = await _unitOfWork.NewsletterSubscriptions.GetByEmailAsync(request.Email.ToLowerInvariant(), cancellationToken);
 
-        if (existingSubscription != null)
+        if (existingSubscription is not null)
         {
             // If previously unsubscribed, resubscribe
-            if (existingSubscription.UnsubscribedAt != null)
+            if (existingSubscription.UnsubscribedAt is not null)
             {
                 existingSubscription.Resubscribe();
                 await _unitOfWork.SaveChangesAsync(cancellationToken);

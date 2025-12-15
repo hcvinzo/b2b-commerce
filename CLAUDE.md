@@ -57,17 +57,22 @@ API → Infrastructure → Application → Domain
 | Layer | Project | Responsibility |
 |-------|---------|----------------|
 | **Domain** | `B2BCommerce.Backend.Domain` | Entities, Value Objects, Domain Services, Exceptions. Pure C#, NO external dependencies |
-| **Application** | `B2BCommerce.Backend.Application` | DTOs, Service Interfaces, Repository Interfaces, Validators. Depends only on Domain |
-| **Infrastructure** | `B2BCommerce.Backend.Infrastructure` | EF Core DbContext, Repository implementations, Identity, External API clients. Implements Application interfaces |
-| **API** | `B2BCommerce.Backend.API` | Controllers, Middleware, Auth config. Thin layer, delegates to Application services |
+| **Application** | `B2BCommerce.Backend.Application` | DTOs, Service Interfaces, Repository Interfaces, CQRS Handlers, Validators. Depends only on Domain |
+| **Infrastructure** | `B2BCommerce.Backend.Infrastructure` | EF Core DbContext, Repository implementations, Service implementations, Identity. Implements Application interfaces |
+| **API** | `B2BCommerce.Backend.API` | Controllers, Middleware, Auth config. Thin layer, delegates via MediatR |
+| **IntegrationAPI** | `B2BCommerce.Backend.IntegrationAPI` | External API for ERP integrations. API Key auth, delegates via MediatR |
 
 ### Key Architectural Rules
 
 1. **Domain layer has NO dependencies** - pure business logic
-2. **Application defines interfaces** (e.g., `IProductRepository`) that Infrastructure implements
+2. **Application defines interfaces** (e.g., `IProductRepository`, `ICategoryService`) that Infrastructure implements
 3. **Never expose Domain entities to API** - always use DTOs
 4. **Repositories use soft delete** - filter by `IsDeleted` automatically
 5. **All entities include audit fields**: `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`
+6. **Controllers delegate to Application layer** - use MediatR for CQRS, never use EF Core directly in controllers
+7. **Use pattern matching for null checks** - prefer `is null` / `is not null` over `== null` / `!= null`
+   - **Exception**: Expression trees (AutoMapper, EF Core LINQ) must use `!= null` due to CS8122
+8. **Use domain exceptions** - throw `InvalidOperationDomainException` instead of `System.InvalidOperationException`
 
 ## Domain Entities & Value Objects
 
@@ -85,8 +90,16 @@ API → Infrastructure → Application → Domain
 ### Creating Entities
 Use factory methods on entities, not direct constructors:
 ```csharp
+// Correct - use factory method
 var product = Product.Create(sku, name, categoryId, brandId, listPrice);
+var category = Category.Create(name, description, parentCategoryId, displayOrder);
+var customer = Customer.Create(companyName, taxNumber, email, phone, ...);
+
+// Wrong - direct constructor (marked as [Obsolete])
+var product = new Product(...); // Will generate warning CS0618
 ```
+
+All entities have factory methods: `Product`, `Category`, `Brand`, `Customer`, `Order`, `OrderItem`, `Payment`, `Shipment`, `ApiClient`, `ApiKey`
 
 ### Repository Pattern
 ```csharp
@@ -124,6 +137,56 @@ builder.OwnsOne(e => e.ListPrice, money => {
 // Conversions for Email/Phone/TaxNumber
 builder.Property(c => c.Email)
     .HasConversion(email => email.Value, value => new Email(value));
+```
+
+### CQRS Pattern (Commands & Queries)
+Controllers use MediatR to dispatch commands/queries to handlers:
+```csharp
+// Controller (thin layer)
+[HttpGet("{id:guid}")]
+public async Task<IActionResult> GetCategory(Guid id)
+{
+    var query = new GetCategoryByIdQuery(id);
+    var result = await _mediator.Send(query);
+
+    if (!result.IsSuccess)
+        return NotFoundResponse(result.ErrorMessage);
+
+    return OkResponse(result.Data);
+}
+
+// Query in Application layer
+public record GetCategoryByIdQuery(Guid Id) : IQuery<Result<CategoryDto>>;
+
+// Handler delegates to service
+public class GetCategoryByIdQueryHandler : IQueryHandler<GetCategoryByIdQuery, Result<CategoryDto>>
+{
+    private readonly ICategoryService _categoryService;
+
+    public async Task<Result<CategoryDto>> Handle(GetCategoryByIdQuery request, CancellationToken ct)
+    {
+        return await _categoryService.GetByIdAsync(request.Id, ct);
+    }
+}
+```
+
+### Service Layer Pattern
+Services in Infrastructure implement Application interfaces and contain business logic:
+```csharp
+// Application layer defines interface
+public interface ICategoryService
+{
+    Task<Result<CategoryDto>> GetByIdAsync(Guid id, CancellationToken ct);
+    Task<Result<CategoryDto>> CreateAsync(CreateCategoryDto dto, string? createdBy, CancellationToken ct);
+}
+
+// Infrastructure implements with EF Core
+public class CategoryService : ICategoryService
+{
+    private readonly ICategoryRepository _repository;
+    private readonly IUnitOfWork _unitOfWork;
+    // ... implementation using EF Core
+}
 ```
 
 ## Technology Stack
@@ -174,9 +237,50 @@ sudo nginx -t && sudo systemctl restart nginx
 - Deployed as .NET application
 - Environment variables via `.env` or AWS Parameter Store
 
+## Project Structure
+
+```
+backend/src/
+├── B2BCommerce.Backend.Domain/
+│   ├── Common/              # BaseEntity, audit fields
+│   ├── Entities/            # Product, Category, Order, etc.
+│   ├── ValueObjects/        # Money, Address, Email, etc.
+│   ├── Enums/               # OrderStatus, PaymentStatus, etc.
+│   ├── DomainServices/      # CreditManagementService, OrderValidationService
+│   └── Exceptions/          # InvalidOperationDomainException, etc.
+│
+├── B2BCommerce.Backend.Application/
+│   ├── Common/              # Result<T>, PagedResult<T>, CQRS interfaces
+│   ├── DTOs/                # CategoryDto, ProductDto, etc.
+│   ├── Features/            # CQRS Commands & Queries by feature
+│   │   └── Categories/
+│   │       ├── Commands/    # CreateCategory, UpdateCategory, etc.
+│   │       └── Queries/     # GetCategories, GetCategoryById, etc.
+│   ├── Interfaces/
+│   │   ├── Repositories/    # IProductRepository, ICategoryRepository
+│   │   └── Services/        # ICategoryService, IProductService
+│   ├── Mappings/            # AutoMapper profiles
+│   └── Validators/          # FluentValidation validators
+│
+├── B2BCommerce.Backend.Infrastructure/
+│   ├── Data/                # ApplicationDbContext, Migrations
+│   │   ├── Configurations/  # EF Core entity configurations
+│   │   └── Repositories/    # Repository implementations
+│   ├── Services/            # Service implementations (CategoryService, etc.)
+│   └── Identity/            # ASP.NET Core Identity
+│
+├── B2BCommerce.Backend.API/
+│   └── Controllers/         # MediatR-based controllers (JWT auth)
+│
+└── B2BCommerce.Backend.IntegrationAPI/
+    ├── Controllers/         # MediatR-based controllers (API Key auth)
+    └── DTOs/                # API-specific DTOs (mapped from Application DTOs)
+```
+
 ## Documentation
 
 Detailed specifications are in `docs/`:
+- `00-08` - Architecture specification documents
 - `B2B_Technical_Architecture_Overview.md` - Full system architecture
 - `CSharp_Clean_Architecture_Guide.md` - Implementation patterns
 - `Domain_Application_Layer_Specification.md` - Entity specifications

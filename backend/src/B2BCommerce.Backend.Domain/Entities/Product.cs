@@ -58,6 +58,51 @@ public class Product : BaseEntity, IAggregateRoot
         Specifications = new Dictionary<string, string>();
     }
 
+    /// <summary>
+    /// Creates a new Product instance
+    /// </summary>
+    public static Product Create(
+        string name,
+        string description,
+        string sku,
+        Guid categoryId,
+        Money listPrice,
+        int stockQuantity,
+        int minimumOrderQuantity = 1,
+        decimal taxRate = 0.18m)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Product name cannot be null or empty", nameof(name));
+
+        if (string.IsNullOrWhiteSpace(sku))
+            throw new ArgumentException("Product SKU cannot be null or empty", nameof(sku));
+
+        if (stockQuantity < 0)
+            throw new ArgumentException("Stock quantity cannot be negative", nameof(stockQuantity));
+
+        if (minimumOrderQuantity < 1)
+            throw new ArgumentException("Minimum order quantity must be at least 1", nameof(minimumOrderQuantity));
+
+        var product = new Product
+        {
+            Name = name,
+            Description = description ?? string.Empty,
+            SKU = sku,
+            CategoryId = categoryId,
+            ListPrice = listPrice ?? throw new ArgumentNullException(nameof(listPrice)),
+            StockQuantity = stockQuantity,
+            MinimumOrderQuantity = minimumOrderQuantity,
+            TaxRate = taxRate,
+            IsActive = true,
+            IsSerialTracked = false,
+            ImageUrls = new List<string>(),
+            Specifications = new Dictionary<string, string>()
+        };
+
+        return product;
+    }
+
+    [Obsolete("Use Product.Create() factory method instead")]
     public Product(
         string name,
         string description,

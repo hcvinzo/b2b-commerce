@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Domain.Common;
 using B2BCommerce.Backend.Domain.Enums;
+using B2BCommerce.Backend.Domain.Exceptions;
 using B2BCommerce.Backend.Domain.ValueObjects;
 
 namespace B2BCommerce.Backend.Domain.Entities;
@@ -36,6 +37,24 @@ public class Shipment : BaseEntity, IAggregateRoot
         ShippingAddress = new Address("Street", "City", "State", "Country", "00000");
     }
 
+    /// <summary>
+    /// Creates a new Shipment instance
+    /// </summary>
+    public static Shipment Create(Guid orderId, Address shippingAddress, string? shippingNote = null)
+    {
+        var shipment = new Shipment
+        {
+            OrderId = orderId,
+            ShipmentNumber = GenerateShipmentNumber(),
+            Status = ShipmentStatus.Pending,
+            ShippingAddress = shippingAddress ?? throw new ArgumentNullException(nameof(shippingAddress)),
+            ShippingNote = shippingNote
+        };
+
+        return shipment;
+    }
+
+    [Obsolete("Use Shipment.Create() factory method instead")]
     public Shipment(Guid orderId, Address shippingAddress, string? shippingNote = null)
     {
         OrderId = orderId;
@@ -53,7 +72,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void MarkAsPreparing()
     {
         if (Status != ShipmentStatus.Pending)
-            throw new InvalidOperationException($"Cannot mark shipment as preparing from status {Status}");
+            throw new InvalidOperationDomainException($"Cannot mark shipment as preparing from status {Status}");
 
         Status = ShipmentStatus.Preparing;
     }
@@ -61,7 +80,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void MarkAsReadyToShip()
     {
         if (Status != ShipmentStatus.Preparing)
-            throw new InvalidOperationException($"Cannot mark shipment as ready to ship from status {Status}");
+            throw new InvalidOperationDomainException($"Cannot mark shipment as ready to ship from status {Status}");
 
         Status = ShipmentStatus.ReadyToShip;
     }
@@ -69,7 +88,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void Ship(string carrierName, string trackingNumber, DateTime? estimatedDeliveryDate = null)
     {
         if (Status != ShipmentStatus.ReadyToShip)
-            throw new InvalidOperationException($"Cannot ship from status {Status}");
+            throw new InvalidOperationDomainException($"Cannot ship from status {Status}");
 
         if (string.IsNullOrWhiteSpace(carrierName))
             throw new ArgumentException("Carrier name is required", nameof(carrierName));
@@ -87,7 +106,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void MarkAsInTransit()
     {
         if (Status != ShipmentStatus.Shipped)
-            throw new InvalidOperationException($"Cannot mark as in transit from status {Status}");
+            throw new InvalidOperationDomainException($"Cannot mark as in transit from status {Status}");
 
         Status = ShipmentStatus.InTransit;
     }
@@ -95,7 +114,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void MarkAsOutForDelivery()
     {
         if (Status != ShipmentStatus.InTransit)
-            throw new InvalidOperationException($"Cannot mark as out for delivery from status {Status}");
+            throw new InvalidOperationDomainException($"Cannot mark as out for delivery from status {Status}");
 
         Status = ShipmentStatus.OutForDelivery;
     }
@@ -103,7 +122,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void MarkAsDelivered(string? deliveryNote = null)
     {
         if (Status != ShipmentStatus.OutForDelivery && Status != ShipmentStatus.InTransit)
-            throw new InvalidOperationException($"Cannot mark as delivered from status {Status}");
+            throw new InvalidOperationDomainException($"Cannot mark as delivered from status {Status}");
 
         Status = ShipmentStatus.Delivered;
         DeliveredDate = DateTime.UtcNow;
@@ -113,7 +132,7 @@ public class Shipment : BaseEntity, IAggregateRoot
     public void Cancel()
     {
         if (Status == ShipmentStatus.Delivered)
-            throw new InvalidOperationException("Cannot cancel a delivered shipment");
+            throw new InvalidOperationDomainException("Cannot cancel a delivered shipment");
 
         Status = ShipmentStatus.Cancelled;
     }

@@ -94,7 +94,7 @@ public class ApiClientsController : ControllerBase
 
         if (!result.IsSuccess)
         {
-            if (result.ValidationErrors != null)
+            if (result.ValidationErrors is not null)
             {
                 return BadRequest(new { message = result.ErrorMessage, errors = result.ValidationErrors });
             }
@@ -129,7 +129,7 @@ public class ApiClientsController : ControllerBase
             {
                 return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
             }
-            if (result.ValidationErrors != null)
+            if (result.ValidationErrors is not null)
             {
                 return BadRequest(new { message = result.ErrorMessage, errors = result.ValidationErrors });
             }

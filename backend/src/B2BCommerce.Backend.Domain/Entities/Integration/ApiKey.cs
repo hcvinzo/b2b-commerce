@@ -40,8 +40,51 @@ public class ApiKey : BaseEntity
     }
 
     /// <summary>
-    /// Creates a new API key
+    /// Creates a new API key instance
     /// </summary>
+    public static ApiKey Create(
+        Guid apiClientId,
+        string keyHash,
+        string keyPrefix,
+        string name,
+        int rateLimitPerMinute = 500,
+        DateTime? expiresAt = null,
+        string? createdBy = null)
+    {
+        if (apiClientId == Guid.Empty)
+            throw new DomainException("API Client ID is required");
+
+        if (string.IsNullOrWhiteSpace(keyHash))
+            throw new DomainException("Key hash is required");
+
+        if (string.IsNullOrWhiteSpace(keyPrefix))
+            throw new DomainException("Key prefix is required");
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Key name is required");
+
+        if (rateLimitPerMinute <= 0)
+            throw new DomainException("Rate limit must be positive");
+
+        if (expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
+            throw new DomainException("Expiration date must be in the future");
+
+        var apiKey = new ApiKey
+        {
+            ApiClientId = apiClientId,
+            KeyHash = keyHash,
+            KeyPrefix = keyPrefix,
+            Name = name.Trim(),
+            RateLimitPerMinute = rateLimitPerMinute,
+            ExpiresAt = expiresAt,
+            IsActive = true,
+            CreatedBy = createdBy
+        };
+
+        return apiKey;
+    }
+
+    [Obsolete("Use ApiKey.Create() factory method instead")]
     public ApiKey(
         Guid apiClientId,
         string keyHash,
@@ -173,7 +216,7 @@ public class ApiKey : BaseEntity
     public void RemovePermission(string scope)
     {
         var permission = _permissions.FirstOrDefault(p => p.Scope.Equals(scope, StringComparison.OrdinalIgnoreCase));
-        if (permission != null)
+        if (permission is not null)
         {
             _permissions.Remove(permission);
         }
@@ -216,7 +259,7 @@ public class ApiKey : BaseEntity
     public void RemoveIpFromWhitelist(string ipAddress)
     {
         var ip = _ipWhitelist.FirstOrDefault(x => x.IpAddress.Equals(ipAddress, StringComparison.OrdinalIgnoreCase));
-        if (ip != null)
+        if (ip is not null)
         {
             _ipWhitelist.Remove(ip);
         }
@@ -228,7 +271,7 @@ public class ApiKey : BaseEntity
     public void RemoveIpWhitelistById(Guid whitelistId)
     {
         var ip = _ipWhitelist.FirstOrDefault(x => x.Id == whitelistId);
-        if (ip != null)
+        if (ip is not null)
         {
             _ipWhitelist.Remove(ip);
         }

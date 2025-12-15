@@ -25,7 +25,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -36,7 +36,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<CustomerDto>> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByEmailAsync(email, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -70,7 +70,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<CustomerDto>> UpdateAsync(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -125,7 +125,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<CustomerDto>> ApproveAsync(Guid id, string approvedBy, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -156,7 +156,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<CustomerDto>> UpdateCreditLimitAsync(Guid id, decimal newCreditLimit, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -184,7 +184,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<decimal>> GetAvailableCreditAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<decimal>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -196,7 +196,7 @@ public class CustomerService : ICustomerService
     public async Task<Result<bool>> IsCreditNearLimitAsync(Guid id, decimal thresholdPercentage = 90, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<bool>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -209,7 +209,7 @@ public class CustomerService : ICustomerService
     public async Task<Result> ActivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -226,7 +226,7 @@ public class CustomerService : ICustomerService
     public async Task<Result> DeactivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -243,7 +243,7 @@ public class CustomerService : ICustomerService
     public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }

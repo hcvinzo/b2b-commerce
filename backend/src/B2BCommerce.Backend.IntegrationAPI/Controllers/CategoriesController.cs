@@ -1,9 +1,17 @@
-using B2BCommerce.Backend.Application.Interfaces.Repositories;
-using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Application.Features.Categories.Commands.ActivateCategory;
+using B2BCommerce.Backend.Application.Features.Categories.Commands.CreateCategory;
+using B2BCommerce.Backend.Application.Features.Categories.Commands.DeactivateCategory;
+using B2BCommerce.Backend.Application.Features.Categories.Commands.DeleteCategory;
+using B2BCommerce.Backend.Application.Features.Categories.Commands.UpdateCategory;
+using B2BCommerce.Backend.Application.Features.Categories.Queries.GetCategories;
+using B2BCommerce.Backend.Application.Features.Categories.Queries.GetCategoryById;
+using B2BCommerce.Backend.Application.Features.Categories.Queries.GetCategoryTree;
+using B2BCommerce.Backend.Application.Features.Categories.Queries.GetRootCategories;
+using B2BCommerce.Backend.Application.Features.Categories.Queries.GetSubCategories;
 using B2BCommerce.Backend.IntegrationAPI.DTOs.Categories;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
@@ -12,17 +20,14 @@ namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 /// </summary>
 public class CategoriesController : BaseApiController
 {
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMediator _mediator;
     private readonly ILogger<CategoriesController> _logger;
 
     public CategoriesController(
-        ICategoryRepository categoryRepository,
-        IUnitOfWork unitOfWork,
+        IMediator mediator,
         ILogger<CategoriesController> logger)
     {
-        _categoryRepository = categoryRepository;
-        _unitOfWork = unitOfWork;
+        _mediator = mediator;
         _logger = logger;
     }
 
@@ -34,67 +39,26 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.PagedApiResponse<CategoryListDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories([FromQuery] CategoryFilterDto filter)
     {
-        // Validate and constrain page size
-        filter.PageSize = Math.Clamp(filter.PageSize, 1, 100);
-        filter.PageNumber = Math.Max(1, filter.PageNumber);
+        var query = new GetCategoriesQuery(
+            filter.Search,
+            filter.ParentCategoryId,
+            filter.IsActive,
+            filter.PageNumber,
+            filter.PageSize,
+            filter.SortBy,
+            filter.SortDirection);
 
-        var query = _categoryRepository.Query();
+        var result = await _mediator.Send(query);
 
-        // Apply filters
-        if (!string.IsNullOrWhiteSpace(filter.Search))
+        if (!result.IsSuccess)
         {
-            query = query.Where(c => c.Name.Contains(filter.Search));
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to get categories", result.ErrorCode);
         }
 
-        if (filter.ParentCategoryId.HasValue)
-        {
-            query = query.Where(c => c.ParentCategoryId == filter.ParentCategoryId.Value);
-        }
+        var pagedResult = result.Data!;
+        var dtos = pagedResult.Items.Select(MapToCategoryListDto).ToList();
 
-        if (filter.IsActive.HasValue)
-        {
-            query = query.Where(c => c.IsActive == filter.IsActive.Value);
-        }
-
-        // Apply sorting
-        query = filter.SortBy.ToLowerInvariant() switch
-        {
-            "name" => filter.SortDirection.ToLowerInvariant() == "desc"
-                ? query.OrderByDescending(c => c.Name)
-                : query.OrderBy(c => c.Name),
-            "createdat" => filter.SortDirection.ToLowerInvariant() == "desc"
-                ? query.OrderByDescending(c => c.CreatedAt)
-                : query.OrderBy(c => c.CreatedAt),
-            _ => filter.SortDirection.ToLowerInvariant() == "desc"
-                ? query.OrderByDescending(c => c.DisplayOrder)
-                : query.OrderBy(c => c.DisplayOrder)
-        };
-
-        // Get total count
-        var totalCount = await query.CountAsync();
-
-        // Apply pagination
-        var categories = await query
-            .Include(c => c.ParentCategory)
-            .Include(c => c.SubCategories)
-            .Include(c => c.Products)
-            .Skip((filter.PageNumber - 1) * filter.PageSize)
-            .Take(filter.PageSize)
-            .ToListAsync();
-
-        var dtos = categories.Select(c => new CategoryListDto
-        {
-            Id = c.Id,
-            Name = c.Name,
-            ParentCategoryId = c.ParentCategoryId,
-            ParentCategoryName = c.ParentCategory?.Name,
-            DisplayOrder = c.DisplayOrder,
-            IsActive = c.IsActive,
-            SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-            ProductCount = c.Products.Count(p => !p.IsDeleted)
-        }).ToList();
-
-        return PagedResponse(dtos, filter.PageNumber, filter.PageSize, totalCount);
+        return PagedResponse(dtos, pagedResult.PageNumber, pagedResult.PageSize, pagedResult.TotalCount);
     }
 
     /// <summary>
@@ -106,17 +70,19 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCategory(Guid id)
     {
-        var category = await _categoryRepository.Query()
-            .Include(c => c.ParentCategory)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var query = new GetCategoryByIdQuery(id);
+        var result = await _mediator.Send(query);
 
-        if (category == null)
+        if (!result.IsSuccess)
         {
-            return NotFoundResponse($"Category with ID {id} not found");
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to get category", result.ErrorCode);
         }
 
-        var dto = MapToDto(category);
-        return OkResponse(dto);
+        return OkResponse(MapToCategoryDto(result.Data!));
     }
 
     /// <summary>
@@ -127,24 +93,16 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse<List<CategoryTreeDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategoryTree([FromQuery] bool activeOnly = true)
     {
-        var query = _categoryRepository.Query()
-            .Include(c => c.SubCategories)
-            .AsQueryable();
+        var query = new GetCategoryTreeQuery(activeOnly);
+        var result = await _mediator.Send(query);
 
-        if (activeOnly)
+        if (!result.IsSuccess)
         {
-            query = query.Where(c => c.IsActive);
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to get category tree", result.ErrorCode);
         }
 
-        var allCategories = await query.ToListAsync();
-        var rootCategories = allCategories.Where(c => c.ParentCategoryId == null);
-
-        var tree = rootCategories
-            .OrderBy(c => c.DisplayOrder)
-            .Select(c => BuildCategoryTree(c, allCategories, activeOnly))
-            .ToList();
-
-        return OkResponse(tree);
+        var dtos = result.Data!.Select(MapToCategoryTreeDto).ToList();
+        return OkResponse(dtos);
     }
 
     /// <summary>
@@ -155,27 +113,15 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse<List<CategoryListDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRootCategories([FromQuery] bool activeOnly = true)
     {
-        var categories = await _categoryRepository.GetByParentIdAsync(null);
+        var query = new GetRootCategoriesQuery(activeOnly);
+        var result = await _mediator.Send(query);
 
-        if (activeOnly)
+        if (!result.IsSuccess)
         {
-            categories = categories.Where(c => c.IsActive);
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to get root categories", result.ErrorCode);
         }
 
-        var dtos = categories
-            .OrderBy(c => c.DisplayOrder)
-            .Select(c => new CategoryListDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                ParentCategoryId = null,
-                ParentCategoryName = null,
-                DisplayOrder = c.DisplayOrder,
-                IsActive = c.IsActive,
-                SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-                ProductCount = c.Products.Count(p => !p.IsDeleted)
-            }).ToList();
-
+        var dtos = result.Data!.Select(MapToCategoryListDto).ToList();
         return OkResponse(dtos);
     }
 
@@ -188,34 +134,19 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSubCategories(Guid id, [FromQuery] bool activeOnly = true)
     {
-        // Verify parent exists
-        var parent = await _categoryRepository.GetByIdAsync(id);
-        if (parent == null)
+        var query = new GetSubCategoriesQuery(id, activeOnly);
+        var result = await _mediator.Send(query);
+
+        if (!result.IsSuccess)
         {
-            return NotFoundResponse($"Category with ID {id} not found");
-        }
-
-        var categories = await _categoryRepository.GetByParentIdAsync(id);
-
-        if (activeOnly)
-        {
-            categories = categories.Where(c => c.IsActive);
-        }
-
-        var dtos = categories
-            .OrderBy(c => c.DisplayOrder)
-            .Select(c => new CategoryListDto
+            if (result.ErrorCode == "NOT_FOUND")
             {
-                Id = c.Id,
-                Name = c.Name,
-                ParentCategoryId = c.ParentCategoryId,
-                ParentCategoryName = parent.Name,
-                DisplayOrder = c.DisplayOrder,
-                IsActive = c.IsActive,
-                SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-                ProductCount = c.Products.Count(p => !p.IsDeleted)
-            }).ToList();
+                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to get subcategories", result.ErrorCode);
+        }
 
+        var dtos = result.Data!.Select(MapToCategoryListDto).ToList();
         return OkResponse(dtos);
     }
 
@@ -228,57 +159,36 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto dto)
     {
-        // Validate parent category if specified
-        if (dto.ParentCategoryId.HasValue)
-        {
-            var parent = await _categoryRepository.GetByIdAsync(dto.ParentCategoryId.Value);
-            if (parent == null)
-            {
-                return BadRequestResponse($"Parent category with ID {dto.ParentCategoryId} not found", "INVALID_PARENT");
-            }
-        }
-
-        // Check for duplicate name under same parent
-        var existingCategory = await _categoryRepository.Query()
-            .FirstOrDefaultAsync(c => c.Name == dto.Name && c.ParentCategoryId == dto.ParentCategoryId);
-
-        if (existingCategory != null)
-        {
-            return ConflictResponse($"A category with name '{dto.Name}' already exists under the same parent", "DUPLICATE_NAME");
-        }
-
-        var category = new Category(
+        var command = new CreateCategoryCommand(
             dto.Name,
-            dto.Description ?? string.Empty,
+            dto.Description,
             dto.ParentCategoryId,
-            dto.DisplayOrder);
+            dto.ImageUrl,
+            dto.DisplayOrder,
+            dto.IsActive,
+            GetClientName());
 
-        if (!string.IsNullOrEmpty(dto.ImageUrl))
+        var result = await _mediator.Send(command);
+
+        if (!result.IsSuccess)
         {
-            category.SetImage(dto.ImageUrl);
+            if (result.ErrorCode == "INVALID_PARENT")
+            {
+                return BadRequestResponse(result.ErrorMessage ?? "Invalid parent category", result.ErrorCode);
+            }
+            if (result.ErrorCode == "DUPLICATE_NAME")
+            {
+                return ConflictResponse(result.ErrorMessage ?? "Duplicate category name", result.ErrorCode);
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to create category", result.ErrorCode);
         }
-
-        if (!dto.IsActive)
-        {
-            category.Deactivate();
-        }
-
-        category.CreatedBy = GetClientName();
-
-        await _categoryRepository.AddAsync(category);
-        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
             "Category {CategoryId} created by API client {ClientName}",
-            category.Id,
+            result.Data!.Id,
             GetClientName());
 
-        // Reload with parent for response
-        var createdCategory = await _categoryRepository.Query()
-            .Include(c => c.ParentCategory)
-            .FirstAsync(c => c.Id == category.Id);
-
-        return CreatedResponse(MapToDto(createdCategory), $"/api/v1/categories/{category.Id}");
+        return CreatedResponse(MapToCategoryDto(result.Data!), $"/api/v1/categories/{result.Data!.Id}");
     }
 
     /// <summary>
@@ -291,52 +201,36 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto dto)
     {
-        var category = await _categoryRepository.Query()
-            .Include(c => c.ParentCategory)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var command = new UpdateCategoryCommand(
+            id,
+            dto.Name,
+            dto.Description,
+            dto.ImageUrl,
+            dto.DisplayOrder,
+            dto.IsActive,
+            GetClientName());
 
-        if (category == null)
+        var result = await _mediator.Send(command);
+
+        if (!result.IsSuccess)
         {
-            return NotFoundResponse($"Category with ID {id} not found");
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+            }
+            if (result.ErrorCode == "DUPLICATE_NAME")
+            {
+                return ConflictResponse(result.ErrorMessage ?? "Duplicate category name", result.ErrorCode);
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to update category", result.ErrorCode);
         }
-
-        // Check for duplicate name under same parent (excluding current category)
-        var existingCategory = await _categoryRepository.Query()
-            .FirstOrDefaultAsync(c => c.Name == dto.Name
-                && c.ParentCategoryId == category.ParentCategoryId
-                && c.Id != id);
-
-        if (existingCategory != null)
-        {
-            return ConflictResponse($"A category with name '{dto.Name}' already exists under the same parent", "DUPLICATE_NAME");
-        }
-
-        category.Update(dto.Name, dto.Description ?? string.Empty, dto.DisplayOrder);
-
-        if (!string.IsNullOrEmpty(dto.ImageUrl))
-        {
-            category.SetImage(dto.ImageUrl);
-        }
-
-        if (dto.IsActive)
-        {
-            category.Activate();
-        }
-        else
-        {
-            category.Deactivate();
-        }
-
-        category.UpdatedBy = GetClientName();
-
-        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
             "Category {CategoryId} updated by API client {ClientName}",
-            category.Id,
+            id,
             GetClientName());
 
-        return OkResponse(MapToDto(category));
+        return OkResponse(MapToCategoryDto(result.Data!));
     }
 
     /// <summary>
@@ -349,35 +243,21 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
-        var category = await _categoryRepository.Query()
-            .Include(c => c.SubCategories)
-            .Include(c => c.Products)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var command = new DeleteCategoryCommand(id, GetClientName());
+        var result = await _mediator.Send(command);
 
-        if (category == null)
+        if (!result.IsSuccess)
         {
-            return NotFoundResponse($"Category with ID {id} not found");
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+            }
+            if (result.ErrorCode == "HAS_SUBCATEGORIES" || result.ErrorCode == "HAS_PRODUCTS")
+            {
+                return BadRequestResponse(result.ErrorMessage ?? "Cannot delete category", result.ErrorCode);
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to delete category", result.ErrorCode);
         }
-
-        // Check for subcategories
-        if (category.SubCategories.Any(sc => !sc.IsDeleted))
-        {
-            return BadRequestResponse(
-                "Cannot delete category with subcategories. Delete subcategories first or move them to another parent.",
-                "HAS_SUBCATEGORIES");
-        }
-
-        // Check for products
-        if (category.Products.Any(p => !p.IsDeleted))
-        {
-            return BadRequestResponse(
-                "Cannot delete category with products. Remove or reassign products first.",
-                "HAS_PRODUCTS");
-        }
-
-        category.DeletedBy = GetClientName();
-        await _categoryRepository.DeleteAsync(id);
-        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
             "Category {CategoryId} deleted by API client {ClientName}",
@@ -396,25 +276,24 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ActivateCategory(Guid id)
     {
-        var category = await _categoryRepository.Query()
-            .Include(c => c.ParentCategory)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var command = new ActivateCategoryCommand(id, GetClientName());
+        var result = await _mediator.Send(command);
 
-        if (category == null)
+        if (!result.IsSuccess)
         {
-            return NotFoundResponse($"Category with ID {id} not found");
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to activate category", result.ErrorCode);
         }
-
-        category.Activate();
-        category.UpdatedBy = GetClientName();
-        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
             "Category {CategoryId} activated by API client {ClientName}",
-            category.Id,
+            id,
             GetClientName());
 
-        return OkResponse(MapToDto(category));
+        return OkResponse(MapToCategoryDto(result.Data!));
     }
 
     /// <summary>
@@ -426,64 +305,71 @@ public class CategoriesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeactivateCategory(Guid id)
     {
-        var category = await _categoryRepository.Query()
-            .Include(c => c.ParentCategory)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var command = new DeactivateCategoryCommand(id, GetClientName());
+        var result = await _mediator.Send(command);
 
-        if (category == null)
+        if (!result.IsSuccess)
         {
-            return NotFoundResponse($"Category with ID {id} not found");
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+            }
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to deactivate category", result.ErrorCode);
         }
-
-        category.Deactivate();
-        category.UpdatedBy = GetClientName();
-        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
             "Category {CategoryId} deactivated by API client {ClientName}",
-            category.Id,
+            id,
             GetClientName());
 
-        return OkResponse(MapToDto(category));
+        return OkResponse(MapToCategoryDto(result.Data!));
     }
 
-    #region Private Helper Methods
+    #region Private Mapping Methods
 
-    private static CategoryDto MapToDto(Category category)
+    private static CategoryDto MapToCategoryDto(Application.DTOs.Categories.CategoryDto source)
     {
         return new CategoryDto
         {
-            Id = category.Id,
-            Name = category.Name,
-            Description = category.Description,
-            ParentCategoryId = category.ParentCategoryId,
-            ParentCategoryName = category.ParentCategory?.Name,
-            ImageUrl = category.ImageUrl,
-            DisplayOrder = category.DisplayOrder,
-            IsActive = category.IsActive,
-            CreatedAt = category.CreatedAt,
-            UpdatedAt = category.UpdatedAt
+            Id = source.Id,
+            Name = source.Name,
+            Description = source.Description,
+            ParentCategoryId = source.ParentCategoryId,
+            ParentCategoryName = source.ParentCategoryName,
+            ImageUrl = source.ImageUrl,
+            DisplayOrder = source.DisplayOrder,
+            IsActive = source.IsActive,
+            CreatedAt = source.CreatedAt,
+            UpdatedAt = source.UpdatedAt
         };
     }
 
-    private static CategoryTreeDto BuildCategoryTree(Category category, IEnumerable<Category> allCategories, bool activeOnly)
+    private static CategoryListDto MapToCategoryListDto(Application.DTOs.Categories.CategoryListDto source)
     {
-        var subCategories = allCategories
-            .Where(c => c.ParentCategoryId == category.Id)
-            .Where(c => !activeOnly || c.IsActive)
-            .OrderBy(c => c.DisplayOrder)
-            .Select(c => BuildCategoryTree(c, allCategories, activeOnly))
-            .ToList();
+        return new CategoryListDto
+        {
+            Id = source.Id,
+            Name = source.Name,
+            ParentCategoryId = source.ParentCategoryId,
+            ParentCategoryName = source.ParentCategoryName,
+            DisplayOrder = source.DisplayOrder,
+            IsActive = source.IsActive,
+            SubCategoryCount = source.SubCategoryCount,
+            ProductCount = source.ProductCount
+        };
+    }
 
+    private static CategoryTreeDto MapToCategoryTreeDto(Application.DTOs.Categories.CategoryTreeDto source)
+    {
         return new CategoryTreeDto
         {
-            Id = category.Id,
-            Name = category.Name,
-            Description = category.Description,
-            ImageUrl = category.ImageUrl,
-            DisplayOrder = category.DisplayOrder,
-            IsActive = category.IsActive,
-            SubCategories = subCategories
+            Id = source.Id,
+            Name = source.Name,
+            Description = source.Description,
+            ImageUrl = source.ImageUrl,
+            DisplayOrder = source.DisplayOrder,
+            IsActive = source.IsActive,
+            SubCategories = source.SubCategories.Select(MapToCategoryTreeDto).ToList()
         };
     }
 

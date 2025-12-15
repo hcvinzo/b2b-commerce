@@ -27,6 +27,29 @@ public class Category : BaseEntity, IAggregateRoot
         Products = new List<Product>();
     }
 
+    /// <summary>
+    /// Creates a new Category instance
+    /// </summary>
+    public static Category Create(string name, string description, Guid? parentCategoryId = null, int displayOrder = 0)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Category name cannot be null or empty", nameof(name));
+
+        var category = new Category
+        {
+            Name = name,
+            Description = description ?? string.Empty,
+            ParentCategoryId = parentCategoryId,
+            DisplayOrder = displayOrder,
+            IsActive = true,
+            SubCategories = new List<Category>(),
+            Products = new List<Product>()
+        };
+
+        return category;
+    }
+
+    [Obsolete("Use Category.Create() factory method instead")]
     public Category(string name, string description, Guid? parentCategoryId = null, int displayOrder = 0)
     {
         if (string.IsNullOrWhiteSpace(name))

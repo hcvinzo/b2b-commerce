@@ -25,7 +25,7 @@ public class ApiClientService : IApiClientService
     {
         var client = await _unitOfWork.ApiClients.GetWithKeysAsync(id, cancellationToken);
 
-        if (client == null)
+        if (client is null)
         {
             return Result<ApiClientDetailDto>.Failure("API client not found", "CLIENT_NOT_FOUND");
         }
@@ -97,7 +97,7 @@ public class ApiClientService : IApiClientService
     {
         var client = await _unitOfWork.ApiClients.GetByIdAsync(id, cancellationToken);
 
-        if (client == null)
+        if (client is null)
         {
             return Result<ApiClientDetailDto>.Failure("API client not found", "CLIENT_NOT_FOUND");
         }
@@ -131,7 +131,7 @@ public class ApiClientService : IApiClientService
     {
         var client = await _unitOfWork.ApiClients.GetByIdAsync(id, cancellationToken);
 
-        if (client == null)
+        if (client is null)
         {
             return Result.Failure("API client not found", "CLIENT_NOT_FOUND");
         }
@@ -154,7 +154,7 @@ public class ApiClientService : IApiClientService
     {
         var client = await _unitOfWork.ApiClients.GetWithKeysAsync(id, cancellationToken);
 
-        if (client == null)
+        if (client is null)
         {
             return Result.Failure("API client not found", "CLIENT_NOT_FOUND");
         }
@@ -177,7 +177,7 @@ public class ApiClientService : IApiClientService
     {
         var client = await _unitOfWork.ApiClients.GetWithKeysAsync(id, cancellationToken);
 
-        if (client == null)
+        if (client is null)
         {
             return Result.Failure("API client not found", "CLIENT_NOT_FOUND");
         }

@@ -43,7 +43,7 @@ public class AuthService : IAuthService
     public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user == null)
+        if (user is null)
         {
             _logger.LogWarning("Login failed: User not found for email {Email}", request.Email);
             return Result<LoginResponseDto>.Failure("Invalid email or password", "INVALID_CREDENTIALS");
@@ -99,14 +99,14 @@ public class AuthService : IAuthService
     {
         // Check if email already exists
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
-        if (existingUser != null)
+        if (existingUser is not null)
         {
             return Result<CustomerDto>.Failure("Email already registered", "EMAIL_EXISTS");
         }
 
         // Check if tax number already exists
         var existingCustomer = await _unitOfWork.Customers.GetByTaxNumberAsync(request.TaxNumber, cancellationToken);
-        if (existingCustomer != null)
+        if (existingCustomer is not null)
         {
             return Result<CustomerDto>.Failure("Tax number already registered", "TAX_NUMBER_EXISTS");
         }
@@ -189,7 +189,7 @@ public class AuthService : IAuthService
         var users = _userManager.Users.Where(u => u.RefreshToken == request.RefreshToken);
         var user = users.FirstOrDefault();
 
-        if (user == null)
+        if (user is null)
         {
             return Result<LoginResponseDto>.Failure("Invalid refresh token", "INVALID_REFRESH_TOKEN");
         }
@@ -239,7 +239,7 @@ public class AuthService : IAuthService
     public async Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordDto request, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null)
+        if (user is null)
         {
             return Result.Failure("User not found", "USER_NOT_FOUND");
         }
@@ -264,7 +264,7 @@ public class AuthService : IAuthService
     public async Task<Result> LogoutAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null)
+        if (user is null)
         {
             return Result.Failure("User not found", "USER_NOT_FOUND");
         }
@@ -331,7 +331,7 @@ public class AuthService : IAuthService
             claims.Add(new Claim("customerId", user.CustomerId.Value.ToString()));
         }
 
-        if (customer != null)
+        if (customer is not null)
         {
             claims.Add(new Claim("companyName", customer.CompanyName));
             claims.Add(new Claim("priceTier", customer.PriceTier.ToString()));

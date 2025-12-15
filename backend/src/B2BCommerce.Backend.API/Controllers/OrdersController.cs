@@ -185,7 +185,7 @@ public class OrdersController : ControllerBase
 
         if (!result.IsSuccess)
         {
-            if (result.ValidationErrors != null)
+            if (result.ValidationErrors is not null)
             {
                 return BadRequest(new { message = result.ErrorMessage, errors = result.ValidationErrors });
             }

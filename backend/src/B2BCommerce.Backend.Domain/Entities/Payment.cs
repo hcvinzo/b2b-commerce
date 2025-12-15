@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Domain.Common;
 using B2BCommerce.Backend.Domain.Enums;
+using B2BCommerce.Backend.Domain.Exceptions;
 using B2BCommerce.Backend.Domain.ValueObjects;
 
 namespace B2BCommerce.Backend.Domain.Entities;
@@ -33,6 +34,24 @@ public class Payment : BaseEntity, IAggregateRoot
         Amount = Money.Zero("USD");
     }
 
+    /// <summary>
+    /// Creates a new Payment instance
+    /// </summary>
+    public static Payment Create(Guid orderId, PaymentMethod paymentMethod, Money amount)
+    {
+        var payment = new Payment
+        {
+            OrderId = orderId,
+            PaymentNumber = GeneratePaymentNumber(),
+            PaymentMethod = paymentMethod,
+            Status = PaymentStatus.Pending,
+            Amount = amount ?? throw new ArgumentNullException(nameof(amount))
+        };
+
+        return payment;
+    }
+
+    [Obsolete("Use Payment.Create() factory method instead")]
     public Payment(Guid orderId, PaymentMethod paymentMethod, Money amount)
     {
         OrderId = orderId;
@@ -50,7 +69,7 @@ public class Payment : BaseEntity, IAggregateRoot
     public void Authorize(string transactionId, string? gatewayResponse = null)
     {
         if (Status != PaymentStatus.Pending)
-            throw new InvalidOperationException($"Cannot authorize payment with status {Status}");
+            throw new InvalidOperationDomainException($"Cannot authorize payment with status {Status}");
 
         Status = PaymentStatus.Authorized;
         TransactionId = transactionId;
@@ -60,7 +79,7 @@ public class Payment : BaseEntity, IAggregateRoot
     public void Capture()
     {
         if (Status != PaymentStatus.Authorized)
-            throw new InvalidOperationException($"Cannot capture payment with status {Status}");
+            throw new InvalidOperationDomainException($"Cannot capture payment with status {Status}");
 
         Status = PaymentStatus.Captured;
         PaidAt = DateTime.UtcNow;
@@ -69,7 +88,7 @@ public class Payment : BaseEntity, IAggregateRoot
     public void MarkAsPaid(string? transactionId = null, string? gatewayResponse = null)
     {
         if (Status == PaymentStatus.Captured)
-            throw new InvalidOperationException("Payment is already captured");
+            throw new InvalidOperationDomainException("Payment is already captured");
 
         Status = PaymentStatus.Captured;
         PaidAt = DateTime.UtcNow;
@@ -86,7 +105,7 @@ public class Payment : BaseEntity, IAggregateRoot
     public void Cancel()
     {
         if (Status == PaymentStatus.Captured)
-            throw new InvalidOperationException("Cannot cancel a captured payment. Use refund instead.");
+            throw new InvalidOperationDomainException("Cannot cancel a captured payment. Use refund instead.");
 
         Status = PaymentStatus.Cancelled;
     }
@@ -94,7 +113,7 @@ public class Payment : BaseEntity, IAggregateRoot
     public void Refund()
     {
         if (Status != PaymentStatus.Captured)
-            throw new InvalidOperationException("Can only refund captured payments");
+            throw new InvalidOperationDomainException("Can only refund captured payments");
 
         Status = PaymentStatus.Refunded;
     }

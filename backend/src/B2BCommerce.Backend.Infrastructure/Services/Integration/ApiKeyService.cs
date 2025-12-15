@@ -31,7 +31,7 @@ public class ApiKeyService : IApiKeyService
     {
         var key = await _unitOfWork.ApiKeys.GetWithDetailsAsync(id, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return Result<ApiKeyDetailDto>.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -43,7 +43,7 @@ public class ApiKeyService : IApiKeyService
     public async Task<Result<List<ApiKeyListDto>>> GetByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default)
     {
         var client = await _unitOfWork.ApiClients.GetByIdAsync(clientId, cancellationToken);
-        if (client == null)
+        if (client is null)
         {
             return Result<List<ApiKeyListDto>>.Failure("API client not found", "CLIENT_NOT_FOUND");
         }
@@ -61,7 +61,7 @@ public class ApiKeyService : IApiKeyService
     {
         // Verify client exists and is active
         var client = await _unitOfWork.ApiClients.GetByIdAsync(dto.ApiClientId, cancellationToken);
-        if (client == null)
+        if (client is null)
         {
             return Result<CreateApiKeyResponseDto>.Failure("API client not found", "CLIENT_NOT_FOUND");
         }
@@ -132,7 +132,7 @@ public class ApiKeyService : IApiKeyService
     {
         var key = await _unitOfWork.ApiKeys.GetWithDetailsAsync(id, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return Result<ApiKeyDetailDto>.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -167,7 +167,7 @@ public class ApiKeyService : IApiKeyService
     {
         var key = await _unitOfWork.ApiKeys.GetByIdAsync(id, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return Result.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -192,7 +192,7 @@ public class ApiKeyService : IApiKeyService
     {
         var oldKey = await _unitOfWork.ApiKeys.GetWithDetailsAsync(id, cancellationToken);
 
-        if (oldKey == null)
+        if (oldKey is null)
         {
             return Result<CreateApiKeyResponseDto>.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -254,7 +254,7 @@ public class ApiKeyService : IApiKeyService
     {
         var key = await _unitOfWork.ApiKeys.GetWithDetailsAsync(keyId, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return Result.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -293,7 +293,7 @@ public class ApiKeyService : IApiKeyService
     {
         var key = await _unitOfWork.ApiKeys.GetWithDetailsAsync(keyId, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return Result.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -324,7 +324,7 @@ public class ApiKeyService : IApiKeyService
     {
         var key = await _unitOfWork.ApiKeys.GetWithDetailsAsync(keyId, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return Result.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -335,7 +335,7 @@ public class ApiKeyService : IApiKeyService
         }
 
         var ipEntry = key.IpWhitelist.FirstOrDefault(ip => ip.Id == whitelistId);
-        if (ipEntry == null)
+        if (ipEntry is null)
         {
             return Result.Failure("IP whitelist entry not found", "IP_NOT_FOUND");
         }
@@ -368,7 +368,7 @@ public class ApiKeyService : IApiKeyService
         var keyHash = _keyGenerator.HashKey(plainTextKey);
         var key = await _unitOfWork.ApiKeys.GetByHashAsync(keyHash, cancellationToken);
 
-        if (key == null)
+        if (key is null)
         {
             return new ApiKeyValidationResult
             {
@@ -454,7 +454,7 @@ public class ApiKeyService : IApiKeyService
         }
 
         var key = await _unitOfWork.ApiKeys.GetByIdAsync(filter.ApiKeyId.Value, cancellationToken);
-        if (key == null)
+        if (key is null)
         {
             return Result<PagedResult<ApiKeyUsageLogDto>>.Failure("API key not found", "KEY_NOT_FOUND");
         }
@@ -478,7 +478,7 @@ public class ApiKeyService : IApiKeyService
         CancellationToken cancellationToken = default)
     {
         var key = await _unitOfWork.ApiKeys.GetByIdAsync(keyId, cancellationToken);
-        if (key == null)
+        if (key is null)
         {
             return Result<ApiKeyUsageStatsDto>.Failure("API key not found", "KEY_NOT_FOUND");
         }

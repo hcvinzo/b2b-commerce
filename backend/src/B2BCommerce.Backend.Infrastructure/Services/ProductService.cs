@@ -25,7 +25,7 @@ public class ProductService : IProductService
     public async Task<Result<ProductDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result<ProductDto>.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
@@ -36,7 +36,7 @@ public class ProductService : IProductService
     public async Task<Result<ProductDto>> GetBySKUAsync(string sku, CancellationToken cancellationToken = default)
     {
         var product = await _unitOfWork.Products.GetBySKUAsync(sku, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result<ProductDto>.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
@@ -86,7 +86,7 @@ public class ProductService : IProductService
     {
         // Check if SKU already exists
         var existingProduct = await _unitOfWork.Products.GetBySKUAsync(dto.SKU, cancellationToken);
-        if (existingProduct != null)
+        if (existingProduct is not null)
         {
             return Result<ProductDto>.Failure("Product with this SKU already exists", "SKU_EXISTS");
         }
@@ -126,7 +126,7 @@ public class ProductService : IProductService
                 product.SetMainImage(dto.MainImageUrl);
             }
 
-            if (dto.ImageUrls != null)
+            if (dto.ImageUrls is not null)
             {
                 foreach (var imageUrl in dto.ImageUrls)
                 {
@@ -135,7 +135,7 @@ public class ProductService : IProductService
             }
 
             // Set specifications
-            if (dto.Specifications != null)
+            if (dto.Specifications is not null)
             {
                 foreach (var spec in dto.Specifications)
                 {
@@ -168,7 +168,7 @@ public class ProductService : IProductService
     public async Task<Result<ProductDto>> UpdateAsync(Guid id, UpdateProductDto dto, CancellationToken cancellationToken = default)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result<ProductDto>.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
@@ -242,7 +242,7 @@ public class ProductService : IProductService
     public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
@@ -258,7 +258,7 @@ public class ProductService : IProductService
     public async Task<Result> ActivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
@@ -275,7 +275,7 @@ public class ProductService : IProductService
     public async Task<Result> DeactivateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }

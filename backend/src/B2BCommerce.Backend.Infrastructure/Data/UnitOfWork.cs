@@ -90,7 +90,7 @@ public class UnitOfWork : IUnitOfWork
         {
             await SaveChangesAsync(cancellationToken);
 
-            if (_transaction != null)
+            if (_transaction is not null)
             {
                 await _transaction.CommitAsync(cancellationToken);
             }
@@ -102,7 +102,7 @@ public class UnitOfWork : IUnitOfWork
         }
         finally
         {
-            if (_transaction != null)
+            if (_transaction is not null)
             {
                 await _transaction.DisposeAsync();
                 _transaction = null;
@@ -112,7 +112,7 @@ public class UnitOfWork : IUnitOfWork
 
     public async Task RollbackAsync(CancellationToken cancellationToken = default)
     {
-        if (_transaction != null)
+        if (_transaction is not null)
         {
             await _transaction.RollbackAsync(cancellationToken);
             await _transaction.DisposeAsync();
@@ -128,7 +128,7 @@ public class UnitOfWork : IUnitOfWork
 
     public async ValueTask DisposeAsync()
     {
-        if (_transaction != null)
+        if (_transaction is not null)
         {
             await _transaction.DisposeAsync();
         }

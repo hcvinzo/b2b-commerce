@@ -49,7 +49,7 @@ public class NewsletterSubscription : BaseEntity, IAggregateRoot
     /// </summary>
     public void Unsubscribe()
     {
-        if (UnsubscribedAt == null)
+        if (UnsubscribedAt is null)
         {
             UnsubscribedAt = DateTime.UtcNow;
         }

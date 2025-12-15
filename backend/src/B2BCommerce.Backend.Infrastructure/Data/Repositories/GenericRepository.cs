@@ -66,7 +66,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
 
     public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default)
     {
-        if (predicate == null)
+        if (predicate is null)
             return await _dbSet.CountAsync(cancellationToken);
 
         return await _dbSet.CountAsync(predicate, cancellationToken);
@@ -97,7 +97,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await GetByIdAsync(id, cancellationToken);
-        if (entity == null)
+        if (entity is null)
             return;
 
         if (entity is BaseEntity baseEntity)

@@ -9,10 +9,10 @@ public class OrderValidationService : IOrderValidationService
 {
     public bool ValidateOrderCanBeCreated(Customer customer, List<OrderItem> items)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
-        if (items == null || !items.Any())
+        if (items is null || !items.Any())
             return false;
 
         // Customer must be approved
@@ -28,7 +28,7 @@ public class OrderValidationService : IOrderValidationService
 
     public bool ValidateStockAvailability(Product product, int requestedQuantity)
     {
-        if (product == null)
+        if (product is null)
             throw new ArgumentNullException(nameof(product));
 
         if (requestedQuantity <= 0)
@@ -39,7 +39,7 @@ public class OrderValidationService : IOrderValidationService
 
     public bool ValidateMinimumOrderQuantity(Product product, int requestedQuantity)
     {
-        if (product == null)
+        if (product is null)
             throw new ArgumentNullException(nameof(product));
 
         return requestedQuantity >= product.MinimumOrderQuantity;
@@ -47,7 +47,7 @@ public class OrderValidationService : IOrderValidationService
 
     public bool ValidateCustomerApprovalStatus(Customer customer)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
         return customer.IsApproved && customer.IsActive;

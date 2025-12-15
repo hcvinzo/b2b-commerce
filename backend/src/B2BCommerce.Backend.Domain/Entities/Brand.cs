@@ -23,6 +23,26 @@ public class Brand : BaseEntity, IAggregateRoot
         Products = new List<Product>();
     }
 
+    /// <summary>
+    /// Creates a new Brand instance
+    /// </summary>
+    public static Brand Create(string name, string description)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Brand name cannot be null or empty", nameof(name));
+
+        var brand = new Brand
+        {
+            Name = name,
+            Description = description ?? string.Empty,
+            IsActive = true,
+            Products = new List<Product>()
+        };
+
+        return brand;
+    }
+
+    [Obsolete("Use Brand.Create() factory method instead")]
     public Brand(string name, string description)
     {
         if (string.IsNullOrWhiteSpace(name))

@@ -11,10 +11,10 @@ public class CreditManagementService : ICreditManagementService
 {
     public bool ValidateCreditAvailability(Customer customer, Money orderAmount)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
-        if (orderAmount == null)
+        if (orderAmount is null)
             throw new ArgumentNullException(nameof(orderAmount));
 
         return customer.HasSufficientCredit(orderAmount);
@@ -22,10 +22,10 @@ public class CreditManagementService : ICreditManagementService
 
     public void ReserveCredit(Customer customer, Money amount)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
-        if (amount == null)
+        if (amount is null)
             throw new ArgumentNullException(nameof(amount));
 
         if (!customer.HasSufficientCredit(amount))
@@ -39,10 +39,10 @@ public class CreditManagementService : ICreditManagementService
 
     public void ReleaseCredit(Customer customer, Money amount)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
-        if (amount == null)
+        if (amount is null)
             throw new ArgumentNullException(nameof(amount));
 
         customer.ReleaseCredit(amount);
@@ -50,7 +50,7 @@ public class CreditManagementService : ICreditManagementService
 
     public Money GetAvailableCredit(Customer customer)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
         return customer.GetAvailableCredit();
@@ -58,7 +58,7 @@ public class CreditManagementService : ICreditManagementService
 
     public bool IsNearCreditLimit(Customer customer, decimal thresholdPercentage = 0.9m)
     {
-        if (customer == null)
+        if (customer is null)
             throw new ArgumentNullException(nameof(customer));
 
         return customer.IsCreditNearLimit(thresholdPercentage);

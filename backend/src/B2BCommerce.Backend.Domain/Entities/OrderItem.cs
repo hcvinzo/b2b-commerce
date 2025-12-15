@@ -39,6 +39,46 @@ public class OrderItem : BaseEntity
         SerialNumbers = new List<string>();
     }
 
+    /// <summary>
+    /// Creates a new OrderItem instance
+    /// </summary>
+    public static OrderItem Create(
+        Guid orderId,
+        Guid productId,
+        string productName,
+        string productSKU,
+        int quantity,
+        Money unitPrice,
+        decimal taxRate,
+        Money? discountAmount = null)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than zero", nameof(quantity));
+
+        if (string.IsNullOrWhiteSpace(productName))
+            throw new ArgumentException("Product name cannot be null or empty", nameof(productName));
+
+        if (string.IsNullOrWhiteSpace(productSKU))
+            throw new ArgumentException("Product SKU cannot be null or empty", nameof(productSKU));
+
+        var orderItem = new OrderItem
+        {
+            OrderId = orderId,
+            ProductId = productId,
+            ProductName = productName,
+            ProductSKU = productSKU,
+            Quantity = quantity,
+            UnitPrice = unitPrice ?? throw new ArgumentNullException(nameof(unitPrice)),
+            TaxRate = taxRate,
+            DiscountAmount = discountAmount ?? Money.Zero(unitPrice.Currency),
+            SerialNumbers = new List<string>()
+        };
+
+        orderItem.CalculateAmounts();
+        return orderItem;
+    }
+
+    [Obsolete("Use OrderItem.Create() factory method instead")]
     public OrderItem(
         Guid orderId,
         Guid productId,

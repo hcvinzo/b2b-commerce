@@ -19,7 +19,7 @@ public abstract class BaseApiController : ControllerBase
     protected Guid? GetApiClientId()
     {
         var claim = User.FindFirst("api_client_id");
-        if (claim != null && Guid.TryParse(claim.Value, out var clientId))
+        if (claim is not null && Guid.TryParse(claim.Value, out var clientId))
         {
             return clientId;
         }
@@ -32,7 +32,7 @@ public abstract class BaseApiController : ControllerBase
     protected Guid? GetApiKeyId()
     {
         var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (claim != null && Guid.TryParse(claim.Value, out var keyId))
+        if (claim is not null && Guid.TryParse(claim.Value, out var keyId))
         {
             return keyId;
         }

@@ -27,7 +27,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -38,7 +38,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> GetByOrderNumberAsync(string orderNumber, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByOrderNumberAsync(orderNumber, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -86,7 +86,7 @@ public class OrderService : IOrderService
     {
         // Validate customer
         var customer = await _unitOfWork.Customers.GetByIdAsync(dto.CustomerId, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<OrderDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -101,7 +101,7 @@ public class OrderService : IOrderService
             return Result<OrderDto>.Failure("Customer account is inactive", "CUSTOMER_INACTIVE");
         }
 
-        if (dto.OrderItems == null || !dto.OrderItems.Any())
+        if (dto.OrderItems is null || !dto.OrderItems.Any())
         {
             return Result<OrderDto>.Failure("Order must have at least one item", "NO_ORDER_ITEMS");
         }
@@ -127,7 +127,7 @@ public class OrderService : IOrderService
             foreach (var item in dto.OrderItems)
             {
                 var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId, cancellationToken);
-                if (product == null)
+                if (product is null)
                 {
                     await _unitOfWork.RollbackAsync(cancellationToken);
                     return Result<OrderDto>.Failure($"Product not found: {item.ProductId}", "PRODUCT_NOT_FOUND");
@@ -222,19 +222,19 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> AddOrderItemAsync(Guid orderId, CreateOrderItemDto item, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
 
         var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId, cancellationToken);
-        if (product == null)
+        if (product is null)
         {
             return Result<OrderDto>.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
 
         var customer = await _unitOfWork.Customers.GetByIdAsync(order.CustomerId, cancellationToken);
-        if (customer == null)
+        if (customer is null)
         {
             return Result<OrderDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
@@ -278,13 +278,13 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> RemoveOrderItemAsync(Guid orderId, Guid orderItemId, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
 
         var orderItem = order.OrderItems.FirstOrDefault(i => i.Id == orderItemId);
-        if (orderItem == null)
+        if (orderItem is null)
         {
             return Result<OrderDto>.Failure("Order item not found", "ORDER_ITEM_NOT_FOUND");
         }
@@ -293,7 +293,7 @@ public class OrderService : IOrderService
         {
             // Release stock
             var product = await _unitOfWork.Products.GetByIdAsync(orderItem.ProductId, cancellationToken);
-            if (product != null)
+            if (product is not null)
             {
                 product.ReleaseStock(orderItem.Quantity);
                 _unitOfWork.Products.Update(product);
@@ -318,13 +318,13 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> UpdateOrderItemQuantityAsync(Guid orderId, Guid orderItemId, int newQuantity, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(orderId, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
 
         var orderItem = order.OrderItems.FirstOrDefault(i => i.Id == orderItemId);
-        if (orderItem == null)
+        if (orderItem is null)
         {
             return Result<OrderDto>.Failure("Order item not found", "ORDER_ITEM_NOT_FOUND");
         }
@@ -332,7 +332,7 @@ public class OrderService : IOrderService
         try
         {
             var product = await _unitOfWork.Products.GetByIdAsync(orderItem.ProductId, cancellationToken);
-            if (product != null)
+            if (product is not null)
             {
                 var quantityDifference = newQuantity - orderItem.Quantity;
                 if (quantityDifference > 0)
@@ -372,7 +372,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> ApproveAsync(Guid id, string approvedBy, decimal? exchangeRate = null, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -381,7 +381,7 @@ public class OrderService : IOrderService
         {
             // Reserve customer credit
             var customer = await _unitOfWork.Customers.GetByIdAsync(order.CustomerId, cancellationToken);
-            if (customer != null)
+            if (customer is not null)
             {
                 var orderTotal = new Money(order.TotalAmount.Amount, order.TotalAmount.Currency);
                 if (!customer.HasSufficientCredit(orderTotal))
@@ -418,7 +418,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> RejectAsync(Guid id, string rejectedBy, string reason, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -431,7 +431,7 @@ public class OrderService : IOrderService
             foreach (var item in order.OrderItems)
             {
                 var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId, cancellationToken);
-                if (product != null)
+                if (product is not null)
                 {
                     product.ReleaseStock(item.Quantity);
                     _unitOfWork.Products.Update(product);
@@ -455,7 +455,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> CancelAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -468,7 +468,7 @@ public class OrderService : IOrderService
             foreach (var item in order.OrderItems)
             {
                 var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId, cancellationToken);
-                if (product != null)
+                if (product is not null)
                 {
                     product.ReleaseStock(item.Quantity);
                     _unitOfWork.Products.Update(product);
@@ -479,7 +479,7 @@ public class OrderService : IOrderService
             if (order.ApprovalStatus == OrderApprovalStatus.Approved)
             {
                 var customer = await _unitOfWork.Customers.GetByIdAsync(order.CustomerId, cancellationToken);
-                if (customer != null)
+                if (customer is not null)
                 {
                     customer.ReleaseCredit(new Money(order.TotalAmount.Amount, order.TotalAmount.Currency));
                     _unitOfWork.Customers.Update(customer);
@@ -503,7 +503,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> MarkAsProcessingAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -529,7 +529,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> MarkAsShippedAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -555,7 +555,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> MarkAsDeliveredAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }
@@ -581,7 +581,7 @@ public class OrderService : IOrderService
     public async Task<Result<OrderDto>> SetInternalNoteAsync(Guid id, string note, CancellationToken cancellationToken = default)
     {
         var order = await _unitOfWork.Orders.GetByIdAsync(id, cancellationToken);
-        if (order == null)
+        if (order is null)
         {
             return Result<OrderDto>.Failure("Order not found", "ORDER_NOT_FOUND");
         }

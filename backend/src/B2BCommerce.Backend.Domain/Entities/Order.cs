@@ -59,6 +59,35 @@ public class Order : BaseEntity, IAggregateRoot
         OrderItems = new List<OrderItem>();
     }
 
+    /// <summary>
+    /// Creates a new Order instance
+    /// </summary>
+    public static Order Create(
+        Guid customerId,
+        Address shippingAddress,
+        string currency,
+        string? customerNote = null)
+    {
+        var order = new Order
+        {
+            OrderNumber = GenerateOrderNumber(),
+            CustomerId = customerId,
+            Status = OrderStatus.Pending,
+            ApprovalStatus = OrderApprovalStatus.PendingApproval,
+            ShippingAddress = shippingAddress ?? throw new ArgumentNullException(nameof(shippingAddress)),
+            CustomerNote = customerNote,
+            Subtotal = Money.Zero(currency),
+            TaxAmount = Money.Zero(currency),
+            DiscountAmount = Money.Zero(currency),
+            ShippingCost = Money.Zero(currency),
+            TotalAmount = Money.Zero(currency),
+            OrderItems = new List<OrderItem>()
+        };
+
+        return order;
+    }
+
+    [Obsolete("Use Order.Create() factory method instead")]
     public Order(
         Guid customerId,
         Address shippingAddress,
@@ -107,7 +136,7 @@ public class Order : BaseEntity, IAggregateRoot
             throw new InvalidOperationDomainException($"Cannot remove items from an order with status {Status}");
 
         var item = OrderItems.FirstOrDefault(i => i.Id == orderItemId);
-        if (item != null)
+        if (item is not null)
         {
             OrderItems.Remove(item);
             RecalculateTotals();
@@ -120,7 +149,7 @@ public class Order : BaseEntity, IAggregateRoot
             throw new InvalidOperationDomainException($"Cannot update items in an order with status {Status}");
 
         var item = OrderItems.FirstOrDefault(i => i.Id == orderItemId);
-        if (item != null)
+        if (item is not null)
         {
             item.UpdateQuantity(newQuantity);
             RecalculateTotals();

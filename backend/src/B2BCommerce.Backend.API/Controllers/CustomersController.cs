@@ -187,7 +187,7 @@ public class CustomersController : ControllerBase
             {
                 return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
             }
-            if (result.ValidationErrors != null)
+            if (result.ValidationErrors is not null)
             {
                 return BadRequest(new { message = result.ErrorMessage, errors = result.ValidationErrors });
             }

@@ -25,8 +25,33 @@ public class ApiClient : BaseEntity, IAggregateRoot
     }
 
     /// <summary>
-    /// Creates a new API client
+    /// Creates a new API client instance
     /// </summary>
+    public static ApiClient Create(
+        string name,
+        string contactEmail,
+        string? description = null,
+        string? contactPhone = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Client name is required");
+
+        if (string.IsNullOrWhiteSpace(contactEmail))
+            throw new DomainException("Contact email is required");
+
+        var client = new ApiClient
+        {
+            Name = name.Trim(),
+            ContactEmail = contactEmail.Trim().ToLowerInvariant(),
+            Description = description?.Trim(),
+            ContactPhone = contactPhone?.Trim(),
+            IsActive = true
+        };
+
+        return client;
+    }
+
+    [Obsolete("Use ApiClient.Create() factory method instead")]
     public ApiClient(
         string name,
         string contactEmail,

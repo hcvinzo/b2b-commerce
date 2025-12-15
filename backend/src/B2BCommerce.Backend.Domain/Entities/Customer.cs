@@ -59,6 +59,54 @@ public class Customer : BaseEntity, IAggregateRoot
         Addresses = new List<CustomerAddress>();
     }
 
+    /// <summary>
+    /// Creates a new Customer instance
+    /// </summary>
+    public static Customer Create(
+        string companyName,
+        TaxNumber taxNumber,
+        Email email,
+        PhoneNumber phone,
+        string contactPersonName,
+        string contactPersonTitle,
+        Address billingAddress,
+        Address shippingAddress,
+        Money creditLimit,
+        CustomerType type = CustomerType.Standard,
+        PriceTier priceTier = PriceTier.List)
+    {
+        if (string.IsNullOrWhiteSpace(companyName))
+            throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
+
+        if (string.IsNullOrWhiteSpace(contactPersonName))
+            throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
+
+        var customer = new Customer
+        {
+            CompanyName = companyName,
+            TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber)),
+            Email = email ?? throw new ArgumentNullException(nameof(email)),
+            Phone = phone ?? throw new ArgumentNullException(nameof(phone)),
+            ContactPersonName = contactPersonName,
+            ContactPersonTitle = contactPersonTitle ?? string.Empty,
+            BillingAddress = billingAddress ?? throw new ArgumentNullException(nameof(billingAddress)),
+            ShippingAddress = shippingAddress ?? throw new ArgumentNullException(nameof(shippingAddress)),
+            CreditLimit = creditLimit ?? throw new ArgumentNullException(nameof(creditLimit)),
+            UsedCredit = Money.Zero(creditLimit.Currency),
+            Type = type,
+            PriceTier = priceTier,
+            PreferredCurrency = creditLimit.Currency,
+            PreferredLanguage = "en",
+            IsApproved = false,
+            IsActive = true,
+            Orders = new List<Order>(),
+            Addresses = new List<CustomerAddress>()
+        };
+
+        return customer;
+    }
+
+    [Obsolete("Use Customer.Create() factory method instead")]
     public Customer(
         string companyName,
         TaxNumber taxNumber,
