@@ -25,4 +25,30 @@ public class BrandRepository : GenericRepository<Brand>, IBrandRepository
             .OrderBy(b => b.Name)
             .ToListAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Gets a brand by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    public async Task<Brand?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(b => b.ExternalId == externalId && !b.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets a brand by its name
+    /// </summary>
+    public async Task<Brand?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(b => b.Name == name && !b.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if a brand exists by its external ID
+    /// </summary>
+    public async Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AnyAsync(b => b.ExternalId == externalId && !b.IsDeleted, cancellationToken);
+    }
 }

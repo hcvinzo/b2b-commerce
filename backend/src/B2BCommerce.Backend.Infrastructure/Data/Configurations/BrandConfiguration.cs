@@ -55,11 +55,29 @@ public class BrandConfiguration : IEntityTypeConfiguration<Brand>
         builder.Property(b => b.DeletedBy)
             .HasMaxLength(100);
 
+        // ExternalEntity properties
+        builder.Property(b => b.ExternalId)
+            .HasMaxLength(100);
+
+        builder.Property(b => b.ExternalCode)
+            .HasMaxLength(100);
+
+        builder.Property(b => b.LastSyncedAt);
+
         // Indexes
         builder.HasIndex(b => b.Name);
 
         builder.HasIndex(b => b.IsActive);
 
         builder.HasIndex(b => b.IsDeleted);
+
+        // Unique index on ExternalId (primary upsert key)
+        builder.HasIndex(b => b.ExternalId)
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalId\" IS NOT NULL");
+
+        // Non-unique index on ExternalCode (optional reference)
+        builder.HasIndex(b => b.ExternalCode)
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
     }
 }

@@ -5,7 +5,7 @@ namespace B2BCommerce.Backend.Domain.Entities;
 /// <summary>
 /// Brand entity for product brands
 /// </summary>
-public class Brand : BaseEntity, IAggregateRoot
+public class Brand : ExternalEntity, IAggregateRoot
 {
     public string Name { get; private set; }
     public string Description { get; private set; }
@@ -78,4 +78,71 @@ public class Brand : BaseEntity, IAggregateRoot
     {
         IsActive = false;
     }
+
+    #region External System Integration
+
+    /// <summary>
+    /// Creates a brand from an external system (LOGO ERP).
+    /// Uses ExternalId as the primary upsert key.
+    /// </summary>
+    public static Brand CreateFromExternal(
+        string externalId,
+        string name,
+        string description,
+        string? logoUrl = null,
+        string? websiteUrl = null,
+        bool isActive = true,
+        string? externalCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            throw new ArgumentException("External ID is required", nameof(externalId));
+        }
+
+        var brand = Create(name, description);
+        brand.LogoUrl = logoUrl;
+        brand.WebsiteUrl = websiteUrl;
+
+        if (!isActive)
+        {
+            brand.Deactivate();
+        }
+
+        brand.SetExternalIdentifiers(externalCode, externalId);
+        brand.MarkAsSynced();
+        return brand;
+    }
+
+    /// <summary>
+    /// Updates brand from external system sync
+    /// </summary>
+    public void UpdateFromExternal(
+        string name,
+        string description,
+        string? logoUrl,
+        string? websiteUrl,
+        bool isActive,
+        string? externalCode = null)
+    {
+        Update(name, description, websiteUrl);
+        LogoUrl = logoUrl;
+
+        if (isActive)
+        {
+            Activate();
+        }
+        else
+        {
+            Deactivate();
+        }
+
+        if (externalCode != null)
+        {
+            SetExternalIdentifiers(externalCode, ExternalId);
+        }
+
+        MarkAsSynced();
+    }
+
+    #endregion
 }

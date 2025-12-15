@@ -86,6 +86,10 @@ try
             policy.RequireClaim("scope", "product-types:read", "product-types:*", "*"));
         options.AddPolicy("product-types:write", policy =>
             policy.RequireClaim("scope", "product-types:write", "product-types:*", "*"));
+        options.AddPolicy("brands:read", policy =>
+            policy.RequireClaim("scope", "brands:read", "brands:*", "*"));
+        options.AddPolicy("brands:write", policy =>
+            policy.RequireClaim("scope", "brands:write", "brands:*", "*"));
     });
 
     // Add API Explorer and Swagger
