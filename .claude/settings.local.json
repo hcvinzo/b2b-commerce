@@ -20,7 +20,11 @@
       "Bash(dotnet list:*)",
       "Bash(grep:*)",
       "Bash(dotnet test:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm install:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
