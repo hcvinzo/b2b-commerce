@@ -252,7 +252,7 @@ CREATE INDEX IX_ApiKeyUsageLogs_ApiKeyId_RequestTimestamp ON ApiKeyUsageLogs(Api
 
 ```csharp
 // File: Domain/Entities/Integration/ApiClient.cs
-namespace EnormTech.B2B.Domain.Entities.Integration
+namespace B2BCommerce.Backend.Domain.Entities.Integration
 {
     public class ApiClient : BaseEntity, IAggregateRoot
     {
@@ -346,7 +346,7 @@ namespace EnormTech.B2B.Domain.Entities.Integration
 
 ```csharp
 // File: Domain/Entities/Integration/ApiKey.cs
-namespace EnormTech.B2B.Domain.Entities.Integration
+namespace B2BCommerce.Backend.Domain.Entities.Integration
 {
     public class ApiKey : BaseEntity
     {
@@ -516,7 +516,7 @@ namespace EnormTech.B2B.Domain.Entities.Integration
 
 ```csharp
 // File: Domain/Entities/Integration/ApiKeyPermission.cs
-namespace EnormTech.B2B.Domain.Entities.Integration
+namespace B2BCommerce.Backend.Domain.Entities.Integration
 {
     public class ApiKeyPermission : BaseEntity
     {
@@ -548,7 +548,7 @@ namespace EnormTech.B2B.Domain.Entities.Integration
 
 ```csharp
 // File: Domain/Entities/Integration/ApiKeyIpWhitelist.cs
-namespace EnormTech.B2B.Domain.Entities.Integration
+namespace B2BCommerce.Backend.Domain.Entities.Integration
 {
     public class ApiKeyIpWhitelist : BaseEntity
     {
@@ -582,7 +582,7 @@ namespace EnormTech.B2B.Domain.Entities.Integration
 
 ```csharp
 // File: Domain/Entities/Integration/ApiKeyUsageLog.cs
-namespace EnormTech.B2B.Domain.Entities.Integration
+namespace B2BCommerce.Backend.Domain.Entities.Integration
 {
     public class ApiKeyUsageLog
     {
@@ -633,7 +633,7 @@ namespace EnormTech.B2B.Domain.Entities.Integration
 
 ```csharp
 // File: Domain/Enums/IntegrationPermissionScopes.cs
-namespace EnormTech.B2B.Domain.Enums
+namespace B2BCommerce.Backend.Domain.Enums
 {
     public static class IntegrationPermissionScopes
     {
@@ -709,7 +709,7 @@ namespace EnormTech.B2B.Domain.Enums
 // File: Domain/Helpers/IpAddressHelper.cs
 using System.Net;
 
-namespace EnormTech.B2B.Domain.Helpers
+namespace B2BCommerce.Backend.Domain.Helpers
 {
     public static class IpAddressHelper
     {
@@ -781,7 +781,7 @@ namespace EnormTech.B2B.Domain.Helpers
 
 ```csharp
 // File: Application/DTOs/Integration/ApiClientDtos.cs
-namespace EnormTech.B2B.Application.DTOs.Integration
+namespace B2BCommerce.Backend.Application.DTOs.Integration
 {
     // List/Summary DTO
     public class ApiClientListDto
@@ -834,7 +834,7 @@ namespace EnormTech.B2B.Application.DTOs.Integration
 
 ```csharp
 // File: Application/DTOs/Integration/ApiKeyDtos.cs
-namespace EnormTech.B2B.Application.DTOs.Integration
+namespace B2BCommerce.Backend.Application.DTOs.Integration
 {
     // List/Summary DTO
     public class ApiKeyListDto
@@ -940,7 +940,7 @@ namespace EnormTech.B2B.Application.DTOs.Integration
 
 ```csharp
 // File: Application/DTOs/Integration/ApiKeyUsageLogDtos.cs
-namespace EnormTech.B2B.Application.DTOs.Integration
+namespace B2BCommerce.Backend.Application.DTOs.Integration
 {
     public class ApiKeyUsageLogDto
     {
@@ -989,7 +989,7 @@ namespace EnormTech.B2B.Application.DTOs.Integration
 
 ```csharp
 // File: Application/Interfaces/Repositories/IApiClientRepository.cs
-namespace EnormTech.B2B.Application.Interfaces.Repositories
+namespace B2BCommerce.Backend.Application.Interfaces.Repositories
 {
     public interface IApiClientRepository : IGenericRepository<ApiClient>
     {
@@ -1006,7 +1006,7 @@ namespace EnormTech.B2B.Application.Interfaces.Repositories
 
 ```csharp
 // File: Application/Interfaces/Repositories/IApiKeyRepository.cs
-namespace EnormTech.B2B.Application.Interfaces.Repositories
+namespace B2BCommerce.Backend.Application.Interfaces.Repositories
 {
     public interface IApiKeyRepository : IGenericRepository<ApiKey>
     {
@@ -1025,7 +1025,7 @@ namespace EnormTech.B2B.Application.Interfaces.Repositories
 
 ```csharp
 // File: Application/Interfaces/Repositories/IApiKeyUsageLogRepository.cs
-namespace EnormTech.B2B.Application.Interfaces.Repositories
+namespace B2BCommerce.Backend.Application.Interfaces.Repositories
 {
     public interface IApiKeyUsageLogRepository
     {
@@ -1045,7 +1045,7 @@ namespace EnormTech.B2B.Application.Interfaces.Repositories
 
 ```csharp
 // File: Application/Interfaces/Services/IApiKeyService.cs
-namespace EnormTech.B2B.Application.Interfaces.Services
+namespace B2BCommerce.Backend.Application.Interfaces.Services
 {
     public interface IApiKeyService
     {
@@ -1118,7 +1118,7 @@ namespace EnormTech.B2B.Application.Interfaces.Services
 
 ```csharp
 // File: Application/Interfaces/Services/IApiKeyGenerator.cs
-namespace EnormTech.B2B.Application.Interfaces.Services
+namespace B2BCommerce.Backend.Application.Interfaces.Services
 {
     public interface IApiKeyGenerator
     {
@@ -1149,7 +1149,7 @@ namespace EnormTech.B2B.Application.Interfaces.Services
 // File: Application/Validators/Integration/CreateApiClientValidator.cs
 using FluentValidation;
 
-namespace EnormTech.B2B.Application.Validators.Integration
+namespace B2BCommerce.Backend.Application.Validators.Integration
 {
     public class CreateApiClientValidator : AbstractValidator<CreateApiClientDto>
     {
@@ -1182,7 +1182,7 @@ namespace EnormTech.B2B.Application.Validators.Integration
 // File: Application/Validators/Integration/CreateApiKeyValidator.cs
 using FluentValidation;
 
-namespace EnormTech.B2B.Application.Validators.Integration
+namespace B2BCommerce.Backend.Application.Validators.Integration
 {
     public class CreateApiKeyValidator : AbstractValidator<CreateApiKeyDto>
     {
@@ -1224,7 +1224,7 @@ namespace EnormTech.B2B.Application.Validators.Integration
 // File: Application/Mapping/IntegrationMappingProfile.cs
 using AutoMapper;
 
-namespace EnormTech.B2B.Application.Mapping
+namespace B2BCommerce.Backend.Application.Mapping
 {
     public class IntegrationMappingProfile : Profile
     {
@@ -1274,7 +1274,7 @@ namespace EnormTech.B2B.Application.Mapping
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
+namespace B2BCommerce.Backend.Infrastructure.Data.Configurations.Integration
 {
     public class ApiClientConfiguration : IEntityTypeConfiguration<ApiClient>
     {
@@ -1330,7 +1330,7 @@ namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
+namespace B2BCommerce.Backend.Infrastructure.Data.Configurations.Integration
 {
     public class ApiKeyConfiguration : IEntityTypeConfiguration<ApiKey>
     {
@@ -1400,7 +1400,7 @@ namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
+namespace B2BCommerce.Backend.Infrastructure.Data.Configurations.Integration
 {
     public class ApiKeyPermissionConfiguration : IEntityTypeConfiguration<ApiKeyPermission>
     {
@@ -1429,7 +1429,7 @@ namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
+namespace B2BCommerce.Backend.Infrastructure.Data.Configurations.Integration
 {
     public class ApiKeyIpWhitelistConfiguration : IEntityTypeConfiguration<ApiKeyIpWhitelist>
     {
@@ -1460,7 +1460,7 @@ namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
+namespace B2BCommerce.Backend.Infrastructure.Data.Configurations.Integration
 {
     public class ApiKeyUsageLogConfiguration : IEntityTypeConfiguration<ApiKeyUsageLog>
     {
@@ -1511,7 +1511,7 @@ namespace EnormTech.B2B.Infrastructure.Data.Configurations.Integration
 // File: Infrastructure/Repositories/Integration/ApiClientRepository.cs
 using Microsoft.EntityFrameworkCore;
 
-namespace EnormTech.B2B.Infrastructure.Repositories.Integration
+namespace B2BCommerce.Backend.Infrastructure.Repositories.Integration
 {
     public class ApiClientRepository : GenericRepository<ApiClient>, IApiClientRepository
     {
@@ -1572,7 +1572,7 @@ namespace EnormTech.B2B.Infrastructure.Repositories.Integration
 // File: Infrastructure/Repositories/Integration/ApiKeyRepository.cs
 using Microsoft.EntityFrameworkCore;
 
-namespace EnormTech.B2B.Infrastructure.Repositories.Integration
+namespace B2BCommerce.Backend.Infrastructure.Repositories.Integration
 {
     public class ApiKeyRepository : GenericRepository<ApiKey>, IApiKeyRepository
     {
@@ -1650,7 +1650,7 @@ namespace EnormTech.B2B.Infrastructure.Repositories.Integration
 // File: Infrastructure/Repositories/Integration/ApiKeyUsageLogRepository.cs
 using Microsoft.EntityFrameworkCore;
 
-namespace EnormTech.B2B.Infrastructure.Repositories.Integration
+namespace B2BCommerce.Backend.Infrastructure.Repositories.Integration
 {
     public class ApiKeyUsageLogRepository : IApiKeyUsageLogRepository
     {
@@ -1762,7 +1762,7 @@ namespace EnormTech.B2B.Infrastructure.Repositories.Integration
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EnormTech.B2B.Infrastructure.Services.Integration
+namespace B2BCommerce.Backend.Infrastructure.Services.Integration
 {
     public class ApiKeyGenerator : IApiKeyGenerator
     {
@@ -1811,7 +1811,7 @@ namespace EnormTech.B2B.Infrastructure.Services.Integration
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
-namespace EnormTech.B2B.Infrastructure.Services.Integration
+namespace B2BCommerce.Backend.Infrastructure.Services.Integration
 {
     public class ApiKeyService : IApiKeyService
     {
@@ -2295,7 +2295,7 @@ namespace EnormTech.B2B.Infrastructure.Services.Integration
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EnormTech.B2B.API.Controllers.Admin
+namespace B2BCommerce.Backend.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/integration/clients")]
@@ -2422,7 +2422,7 @@ namespace EnormTech.B2B.API.Controllers.Admin
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EnormTech.B2B.API.Controllers.Admin
+namespace B2BCommerce.Backend.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/integration/keys")]
@@ -2638,7 +2638,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace EnormTech.B2B.API.Authentication
+namespace B2BCommerce.Backend.API.Authentication
 {
     public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
     {
@@ -2754,7 +2754,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace EnormTech.B2B.API.Authorization
+namespace B2BCommerce.Backend.API.Authorization
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
     public class RequireIntegrationPermissionAttribute : Attribute, IAuthorizationFilter
@@ -2807,7 +2807,7 @@ namespace EnormTech.B2B.API.Authorization
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 
-namespace EnormTech.B2B.API.Middleware
+namespace B2BCommerce.Backend.API.Middleware
 {
     public class RateLimitingMiddleware
     {
@@ -2885,7 +2885,7 @@ namespace EnormTech.B2B.API.Middleware
 // File: API/Middleware/ApiKeyUsageLoggingMiddleware.cs
 using System.Diagnostics;
 
-namespace EnormTech.B2B.API.Middleware
+namespace B2BCommerce.Backend.API.Middleware
 {
     public class ApiKeyUsageLoggingMiddleware
     {
