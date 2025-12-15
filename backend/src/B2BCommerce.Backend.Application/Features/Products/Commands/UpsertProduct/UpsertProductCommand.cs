@@ -57,12 +57,17 @@ public record UpsertProductCommand : ICommand<Result<ProductDto>>
     /// </summary>
     public string? CategoryExtId { get; init; }
 
-    // Brand - support ID only (Brand not yet an ExternalEntity)
+    // Brand - support ID or ExternalId
 
     /// <summary>
     /// Brand internal ID
     /// </summary>
     public Guid? BrandId { get; init; }
+
+    /// <summary>
+    /// Brand external ID (for external system references)
+    /// </summary>
+    public string? BrandExtId { get; init; }
 
     // ProductType - support ID or ExternalId
 

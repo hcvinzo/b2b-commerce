@@ -4,27 +4,24 @@ namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Products;
 
 /// <summary>
 /// Request DTO for syncing a product from external system (LOGO ERP).
-/// Uses ExtId (primary), Id (internal), or SKU as the upsert key.
-/// ExtId is required for creating new products.
+/// Id = ExternalId (string) - the primary upsert key.
+/// Code = ExternalCode (string) - optional secondary reference.
+/// All related entity IDs (CategoryId, BrandId, ProductTypeId) are ExternalIds.
 /// </summary>
 public class ProductSyncRequest
 {
     /// <summary>
-    /// Internal ID (optional - for internal updates)
-    /// </summary>
-    public Guid? Id { get; set; }
-
-    /// <summary>
-    /// External system ID (PRIMARY upsert key - required for new products)
+    /// External ID (PRIMARY upsert key - required for new products).
+    /// This is the ID from the source system (LOGO ERP).
     /// </summary>
     [StringLength(100)]
-    public string? ExtId { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
-    /// External system code (OPTIONAL reference)
+    /// External code (OPTIONAL secondary reference)
     /// </summary>
     [StringLength(100)]
-    public string? ExtCode { get; set; }
+    public string? Code { get; set; }
 
     /// <summary>
     /// Stock Keeping Unit (required, unique, used as fallback for matching)
@@ -46,38 +43,23 @@ public class ProductSyncRequest
     [StringLength(5000)]
     public string? Description { get; set; }
 
-    // Category lookup (one is required)
-
     /// <summary>
-    /// Category internal ID
-    /// </summary>
-    public Guid? CategoryId { get; set; }
-
-    /// <summary>
-    /// Category external ID (alternative to CategoryId)
+    /// Category external ID (required - one of CategoryId or SKU must resolve to a category)
     /// </summary>
     [StringLength(100)]
-    public string? CategoryExtId { get; set; }
-
-    // Brand lookup (optional)
+    public string? CategoryId { get; set; }
 
     /// <summary>
-    /// Brand internal ID
-    /// </summary>
-    public Guid? BrandId { get; set; }
-
-    // ProductType lookup (optional)
-
-    /// <summary>
-    /// Product type internal ID
-    /// </summary>
-    public Guid? ProductTypeId { get; set; }
-
-    /// <summary>
-    /// Product type external ID (alternative to ProductTypeId)
+    /// Brand external ID (optional)
     /// </summary>
     [StringLength(100)]
-    public string? ProductTypeExtId { get; set; }
+    public string? BrandId { get; set; }
+
+    /// <summary>
+    /// Product type external ID (optional)
+    /// </summary>
+    [StringLength(100)]
+    public string? ProductTypeId { get; set; }
 
     // Pricing
 

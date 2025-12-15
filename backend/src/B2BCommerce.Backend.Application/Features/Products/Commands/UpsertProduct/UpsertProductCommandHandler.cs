@@ -94,10 +94,22 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             }
         }
 
-        // 3. Verify brand exists if provided
-        if (request.BrandId.HasValue)
+        // 3. Verify brand exists if provided (by ID or ExternalId)
+        Guid? brandId = request.BrandId;
+        if (!brandId.HasValue && !string.IsNullOrEmpty(request.BrandExtId))
         {
-            var brandEntity = await _unitOfWork.Brands.GetByIdAsync(request.BrandId.Value, cancellationToken);
+            var brandEntity = await _unitOfWork.Brands.GetByExternalIdAsync(request.BrandExtId, cancellationToken);
+            if (brandEntity == null)
+            {
+                return Result<ProductDto>.Failure(
+                    $"Brand not found by ExternalId: {request.BrandExtId}",
+                    "BRAND_NOT_FOUND");
+            }
+            brandId = brandEntity.Id;
+        }
+        else if (brandId.HasValue)
+        {
+            var brandEntity = await _unitOfWork.Brands.GetByIdAsync(brandId.Value, cancellationToken);
             if (brandEntity == null)
             {
                 return Result<ProductDto>.Failure(
@@ -158,7 +170,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 stockQuantity: request.StockQuantity,
                 minimumOrderQuantity: request.MinimumOrderQuantity,
                 taxRate: request.TaxRate,
-                brandId: request.BrandId,
+                brandId: brandId,
                 productTypeId: productTypeId,
                 isActive: request.IsActive,
                 externalCode: request.ExternalCode);
@@ -198,7 +210,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 name: request.Name,
                 description: request.Description ?? string.Empty,
                 categoryId: categoryId.Value,
-                brandId: request.BrandId,
+                brandId: brandId,
                 productTypeId: productTypeId,
                 isActive: request.IsActive,
                 externalCode: request.ExternalCode);

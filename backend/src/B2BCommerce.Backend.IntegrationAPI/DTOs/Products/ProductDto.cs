@@ -1,28 +1,38 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Products;
 
 /// <summary>
-/// Product data transfer object for API responses
+/// Product data transfer object for API responses.
+/// Id = ExternalId (string), Code = ExternalCode (string).
+/// All related entity IDs (CategoryId, BrandId, ProductTypeId) are also ExternalIds.
+/// Internal Guids are never exposed.
 /// </summary>
 public class ProductDto
 {
-    public Guid Id { get; set; }
+    /// <summary>
+    /// External ID (from source system like LOGO ERP)
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// External code (optional secondary reference)
+    /// </summary>
+    public string? Code { get; set; }
+
     public string SKU { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
 
-    // Category
-    public Guid CategoryId { get; set; }
+    // Category (external ID)
+    public string? CategoryId { get; set; }
     public string? CategoryName { get; set; }
-    public string? CategoryExtId { get; set; }
 
-    // Brand
-    public Guid? BrandId { get; set; }
+    // Brand (external ID)
+    public string? BrandId { get; set; }
     public string? BrandName { get; set; }
 
-    // ProductType
-    public Guid? ProductTypeId { get; set; }
+    // ProductType (external ID)
+    public string? ProductTypeId { get; set; }
     public string? ProductTypeName { get; set; }
-    public string? ProductTypeExtId { get; set; }
 
     // Pricing
     public decimal ListPrice { get; set; }
@@ -54,9 +64,6 @@ public class ProductDto
     public decimal? Width { get; set; }
     public decimal? Height { get; set; }
 
-    // External entity fields
-    public string? ExtId { get; set; }
-    public string? ExtCode { get; set; }
     public DateTime? LastSyncedAt { get; set; }
 
     // Audit
@@ -65,23 +72,42 @@ public class ProductDto
 }
 
 /// <summary>
-/// Product list item for paginated responses
+/// Product list item for paginated responses.
+/// Id = ExternalId (string), Code = ExternalCode (string).
+/// Internal Guids are never exposed.
 /// </summary>
 public class ProductListDto
 {
-    public Guid Id { get; set; }
+    /// <summary>
+    /// External ID (from source system like LOGO ERP)
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// External code (optional secondary reference)
+    /// </summary>
+    public string? Code { get; set; }
+
     public string SKU { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Category's ExternalId
+    /// </summary>
+    public string? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+
+    /// <summary>
+    /// Brand's ExternalId
+    /// </summary>
+    public string? BrandId { get; set; }
     public string? BrandName { get; set; }
+
     public decimal ListPrice { get; set; }
     public string Currency { get; set; } = "TRY";
     public int StockQuantity { get; set; }
     public bool IsActive { get; set; }
     public string? MainImageUrl { get; set; }
 
-    // External entity fields
-    public string? ExtId { get; set; }
-    public string? ExtCode { get; set; }
     public DateTime? LastSyncedAt { get; set; }
 }

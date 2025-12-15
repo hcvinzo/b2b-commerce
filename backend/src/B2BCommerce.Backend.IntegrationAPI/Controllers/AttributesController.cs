@@ -2,7 +2,6 @@ using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.Del
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.RemoveAttributeValue;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.UpsertAttributeDefinition;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.UpsertAttributeValue;
-using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitionById;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitions;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Enums;
@@ -14,7 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Integration API controller for attribute definition management
+/// Integration API controller for attribute definition management.
+/// All operations use ExternalId as the primary identifier.
 /// </summary>
 [Route("api/v1/attributes")]
 public class AttributesController : BaseApiController
@@ -108,96 +108,48 @@ public class AttributesController : BaseApiController
     }
 
     /// <summary>
-    /// Get attribute definition by internal ID
+    /// Get attribute definition by ID (ExternalId)
     /// </summary>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [Authorize(Policy = "attributes:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeDefinitionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAttribute(Guid id)
+    public async Task<IActionResult> GetAttribute(string id)
     {
-        var query = new GetAttributeDefinitionByIdQuery(id);
-        var result = await _mediator.Send(query);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? $"Attribute with ID {id} not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to get attribute", result.ErrorCode);
-        }
-
-        return OkResponse(MapToAttributeDefinitionDto(result.Data!));
-    }
-
-    /// <summary>
-    /// Get attribute definition by external ID (primary lookup)
-    /// </summary>
-    [HttpGet("ext/{extId}")]
-    [Authorize(Policy = "attributes:read")]
-    [ProducesResponseType(typeof(Models.ApiResponse<AttributeDefinitionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAttributeByExtId(string extId)
-    {
-        var attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(extId);
+        var attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(id);
 
         if (attribute == null)
         {
-            return NotFoundResponse($"Attribute with external ID '{extId}' not found");
+            return NotFoundResponse($"Attribute with ID '{id}' not found");
         }
 
         return OkResponse(MapEntityToDto(attribute));
     }
 
     /// <summary>
-    /// Get specific predefined value by attribute ID and value ID
+    /// Get specific predefined value by attribute ID (ExternalId) and value string
     /// </summary>
-    [HttpGet("{id:guid}/values/{valueId:guid}")]
+    [HttpGet("{id}/values/{value}")]
     [Authorize(Policy = "attributes:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeValueDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAttributeValue(Guid id, Guid valueId)
+    public async Task<IActionResult> GetAttributeValue(string id, string value)
     {
-        var attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesAsync(id);
+        var attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(id);
 
         if (attribute == null)
         {
-            return NotFoundResponse($"Attribute with ID {id} not found");
+            return NotFoundResponse($"Attribute with ID '{id}' not found");
         }
 
-        var value = attribute.PredefinedValues.FirstOrDefault(v => v.Id == valueId);
-        if (value == null)
+        var attributeValue = attribute.PredefinedValues.FirstOrDefault(v =>
+            v.Value.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (attributeValue == null)
         {
-            return NotFoundResponse($"Value with ID {valueId} not found");
+            return NotFoundResponse($"Value '{value}' not found");
         }
 
-        return OkResponse(MapToAttributeValueDto(value));
-    }
-
-    /// <summary>
-    /// Get specific predefined value by attribute external ID and value ID
-    /// </summary>
-    [HttpGet("ext/{extId}/values/{valueId:guid}")]
-    [Authorize(Policy = "attributes:read")]
-    [ProducesResponseType(typeof(Models.ApiResponse<AttributeValueDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAttributeValueByExtId(string extId, Guid valueId)
-    {
-        var attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(extId);
-
-        if (attribute == null)
-        {
-            return NotFoundResponse($"Attribute with external ID '{extId}' not found");
-        }
-
-        var value = attribute.PredefinedValues.FirstOrDefault(v => v.Id == valueId);
-        if (value == null)
-        {
-            return NotFoundResponse($"Value with ID {valueId} not found");
-        }
-
-        return OkResponse(MapToAttributeValueDto(value));
+        return OkResponse(MapToAttributeValueDto(attributeValue));
     }
 
     #endregion
@@ -205,8 +157,8 @@ public class AttributesController : BaseApiController
     #region Write Operations
 
     /// <summary>
-    /// Upserts attribute definition. If attribute with given external ID or internal ID exists, it is updated; otherwise, a new attribute is created.
-    /// One of ExtId or Id is required. If only Id is provided, ExtId will be set to Id.ToString().
+    /// Upserts attribute definition. If attribute with given ID (ExternalId) exists, it is updated; otherwise, a new attribute is created.
+    /// Id is required for creating new attributes.
     /// </summary>
     [HttpPost]
     [Authorize(Policy = "attributes:write")]
@@ -214,10 +166,10 @@ public class AttributesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpsertAttribute([FromBody] AttributeSyncRequest request)
     {
-        // Validate: One of ExtId or Id is required
-        if (string.IsNullOrEmpty(request.ExtId) && !request.Id.HasValue)
+        // Validate: Id (ExternalId) is required
+        if (string.IsNullOrEmpty(request.Id))
         {
-            return BadRequestResponse("One of ExtId or Id is required", "ID_REQUIRED");
+            return BadRequestResponse("Id is required", "ID_REQUIRED");
         }
 
         // Parse AttributeType
@@ -228,18 +180,10 @@ public class AttributesController : BaseApiController
                 "INVALID_TYPE");
         }
 
-        // If only Id is provided, set ExtId to Id.ToString()
-        var externalId = request.ExtId;
-        if (string.IsNullOrEmpty(externalId) && request.Id.HasValue)
-        {
-            externalId = request.Id.Value.ToString();
-        }
-
         var command = new UpsertAttributeDefinitionCommand
         {
-            Id = request.Id,
-            ExternalId = externalId,
-            ExternalCode = request.ExtCode,
+            ExternalId = request.Id,
+            ExternalCode = null, // Not exposed in Integration API
             Code = request.Code,
             Name = request.Name,
             Type = attributeType,
@@ -269,26 +213,26 @@ public class AttributesController : BaseApiController
         }
 
         _logger.LogInformation(
-            "Attribute {ExternalId} synced by API client {ClientName}",
-            externalId,
+            "Attribute {Id} synced by API client {ClientName}",
+            request.Id,
             GetClientName());
 
         return OkResponse(MapToAttributeDefinitionDto(result.Data!));
     }
 
     /// <summary>
-    /// Upserts a predefined value for an attribute (by attribute ID)
+    /// Upserts a predefined value for an attribute (by attribute ID - ExternalId)
     /// </summary>
-    [HttpPost("{id:guid}/values")]
+    [HttpPost("{id}/values")]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeValueDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpsertAttributeValue(Guid id, [FromBody] AttributeValueSyncRequest request)
+    public async Task<IActionResult> UpsertAttributeValue(string id, [FromBody] AttributeValueSyncRequest request)
     {
         var command = new UpsertAttributeValueCommand
         {
-            AttributeDefinitionId = id,
+            AttributeExternalId = id,
             Value = request.Value,
             DisplayText = request.DisplayText,
             DisplayOrder = request.DisplayOrder,
@@ -301,51 +245,14 @@ public class AttributesController : BaseApiController
         {
             if (result.ErrorCode == "NOT_FOUND")
             {
-                return NotFoundResponse(result.ErrorMessage ?? $"Attribute with ID {id} not found");
+                return NotFoundResponse(result.ErrorMessage ?? $"Attribute with ID '{id}' not found");
             }
             return BadRequestResponse(result.ErrorMessage ?? "Failed to upsert value", result.ErrorCode);
         }
 
         _logger.LogInformation(
-            "Attribute value '{Value}' synced for attribute {AttributeId} by API client {ClientName}",
+            "Attribute value '{Value}' synced for attribute {Id} by API client {ClientName}",
             request.Value, id, GetClientName());
-
-        return OkResponse(MapToAttributeValueDto(result.Data!));
-    }
-
-    /// <summary>
-    /// Upserts a predefined value for an attribute (by attribute external ID)
-    /// </summary>
-    [HttpPost("ext/{extId}/values")]
-    [Authorize(Policy = "attributes:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse<AttributeValueDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpsertAttributeValueByExtId(string extId, [FromBody] AttributeValueSyncRequest request)
-    {
-        var command = new UpsertAttributeValueCommand
-        {
-            AttributeExternalId = extId,
-            Value = request.Value,
-            DisplayText = request.DisplayText,
-            DisplayOrder = request.DisplayOrder,
-            ModifiedBy = GetClientName()
-        };
-
-        var result = await _mediator.Send(command);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? $"Attribute with external ID '{extId}' not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to upsert value", result.ErrorCode);
-        }
-
-        _logger.LogInformation(
-            "Attribute value '{Value}' synced for attribute {ExternalId} by API client {ClientName}",
-            request.Value, extId, GetClientName());
 
         return OkResponse(MapToAttributeValueDto(result.Data!));
     }
@@ -355,47 +262,19 @@ public class AttributesController : BaseApiController
     #region Delete Operations
 
     /// <summary>
-    /// Delete an attribute definition (soft delete)
+    /// Delete an attribute definition by ID (ExternalId) - soft delete
     /// </summary>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAttribute(Guid id)
+    public async Task<IActionResult> DeleteAttribute(string id)
     {
-        var command = new DeleteAttributeDefinitionCommand(id);
-        var result = await _mediator.Send(command);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? $"Attribute with ID {id} not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to delete attribute", result.ErrorCode);
-        }
-
-        _logger.LogInformation(
-            "Attribute {AttributeId} deleted by API client {ClientName}",
-            id, GetClientName());
-
-        return OkResponse<object?>(null, "Attribute deleted successfully");
-    }
-
-    /// <summary>
-    /// Delete an attribute definition by external ID (soft delete)
-    /// </summary>
-    [HttpDelete("ext/{extId}")]
-    [Authorize(Policy = "attributes:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAttributeByExtId(string extId)
-    {
-        var attribute = await _unitOfWork.AttributeDefinitions.GetByExternalIdAsync(extId);
+        var attribute = await _unitOfWork.AttributeDefinitions.GetByExternalIdAsync(id);
 
         if (attribute == null)
         {
-            return NotFoundResponse($"Attribute with external ID '{extId}' not found");
+            return NotFoundResponse($"Attribute with ID '{id}' not found");
         }
 
         var command = new DeleteAttributeDefinitionCommand(attribute.Id);
@@ -407,57 +286,36 @@ public class AttributesController : BaseApiController
         }
 
         _logger.LogInformation(
-            "Attribute with external ID {ExternalId} deleted by API client {ClientName}",
-            extId, GetClientName());
+            "Attribute {Id} deleted by API client {ClientName}",
+            id, GetClientName());
 
         return OkResponse<object?>(null, "Attribute deleted successfully");
     }
 
     /// <summary>
-    /// Delete a predefined value from an attribute (by attribute ID)
+    /// Delete a predefined value from an attribute (by attribute ID - ExternalId and value string)
     /// </summary>
-    [HttpDelete("{id:guid}/values/{valueId:guid}")]
+    [HttpDelete("{id}/values/{value}")]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAttributeValue(Guid id, Guid valueId)
+    public async Task<IActionResult> DeleteAttributeValue(string id, string value)
     {
-        var command = new RemoveAttributeValueCommand(id, valueId);
-        var result = await _mediator.Send(command);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? "Attribute or value not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to delete value", result.ErrorCode);
-        }
-
-        _logger.LogInformation(
-            "Attribute value {ValueId} deleted from attribute {AttributeId} by API client {ClientName}",
-            valueId, id, GetClientName());
-
-        return OkResponse<object?>(null, "Attribute value deleted successfully");
-    }
-
-    /// <summary>
-    /// Delete a predefined value from an attribute (by attribute external ID)
-    /// </summary>
-    [HttpDelete("ext/{extId}/values/{valueId:guid}")]
-    [Authorize(Policy = "attributes:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAttributeValueByExtId(string extId, Guid valueId)
-    {
-        var attribute = await _unitOfWork.AttributeDefinitions.GetByExternalIdAsync(extId);
+        var attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(id);
 
         if (attribute == null)
         {
-            return NotFoundResponse($"Attribute with external ID '{extId}' not found");
+            return NotFoundResponse($"Attribute with ID '{id}' not found");
         }
 
-        var command = new RemoveAttributeValueCommand(attribute.Id, valueId);
+        var attributeValue = attribute.PredefinedValues.FirstOrDefault(v =>
+            v.Value.Equals(value, StringComparison.OrdinalIgnoreCase));
+        if (attributeValue == null)
+        {
+            return NotFoundResponse($"Value '{value}' not found");
+        }
+
+        var command = new RemoveAttributeValueCommand(attribute.Id, attributeValue.Id);
         var result = await _mediator.Send(command);
 
         if (!result.IsSuccess)
@@ -470,8 +328,8 @@ public class AttributesController : BaseApiController
         }
 
         _logger.LogInformation(
-            "Attribute value {ValueId} deleted from attribute {ExternalId} by API client {ClientName}",
-            valueId, extId, GetClientName());
+            "Attribute value '{Value}' deleted from attribute {Id} by API client {ClientName}",
+            value, id, GetClientName());
 
         return OkResponse<object?>(null, "Attribute value deleted successfully");
     }
@@ -484,7 +342,7 @@ public class AttributesController : BaseApiController
     {
         return new AttributeDefinitionDto
         {
-            Id = source.Id,
+            Id = source.ExternalId ?? string.Empty,
             Code = source.Code,
             Name = source.Name,
             Type = source.Type.ToString(),
@@ -493,14 +351,11 @@ public class AttributesController : BaseApiController
             IsRequired = source.IsRequired,
             IsVisibleOnProductPage = source.IsVisibleOnProductPage,
             DisplayOrder = source.DisplayOrder,
-            ExternalId = source.ExternalId,
-            ExternalCode = source.ExternalCode,
             LastSyncedAt = source.LastSyncedAt,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt,
             PredefinedValues = source.PredefinedValues?.Select(v => new AttributeValueDto
             {
-                Id = v.Id,
                 Value = v.Value,
                 DisplayText = v.DisplayText,
                 DisplayOrder = v.DisplayOrder
@@ -512,7 +367,7 @@ public class AttributesController : BaseApiController
     {
         return new AttributeDefinitionListDto
         {
-            Id = source.Id,
+            Id = source.ExternalId ?? string.Empty,
             Code = source.Code,
             Name = source.Name,
             Type = source.Type.ToString(),
@@ -521,8 +376,6 @@ public class AttributesController : BaseApiController
             IsRequired = source.IsRequired,
             IsVisibleOnProductPage = source.IsVisibleOnProductPage,
             DisplayOrder = source.DisplayOrder,
-            ExternalId = source.ExternalId,
-            ExternalCode = source.ExternalCode,
             LastSyncedAt = source.LastSyncedAt,
             ValueCount = source.PredefinedValues?.Count ?? 0
         };
@@ -532,7 +385,7 @@ public class AttributesController : BaseApiController
     {
         return new AttributeDefinitionDto
         {
-            Id = entity.Id,
+            Id = entity.ExternalId ?? string.Empty,
             Code = entity.Code,
             Name = entity.Name,
             Type = entity.Type.ToString(),
@@ -541,14 +394,11 @@ public class AttributesController : BaseApiController
             IsRequired = entity.IsRequired,
             IsVisibleOnProductPage = entity.IsVisibleOnProductPage,
             DisplayOrder = entity.DisplayOrder,
-            ExternalId = entity.ExternalId,
-            ExternalCode = entity.ExternalCode,
             LastSyncedAt = entity.LastSyncedAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
             PredefinedValues = entity.PredefinedValues.Select(v => new AttributeValueDto
             {
-                Id = v.Id,
                 Value = v.Value,
                 DisplayText = v.DisplayText,
                 DisplayOrder = v.DisplayOrder
@@ -560,7 +410,6 @@ public class AttributesController : BaseApiController
     {
         return new AttributeValueDto
         {
-            Id = source.Id,
             Value = source.Value,
             DisplayText = source.DisplayText,
             DisplayOrder = source.DisplayOrder
@@ -571,7 +420,6 @@ public class AttributesController : BaseApiController
     {
         return new AttributeValueDto
         {
-            Id = entity.Id,
             Value = entity.Value,
             DisplayText = entity.DisplayText,
             DisplayOrder = entity.DisplayOrder

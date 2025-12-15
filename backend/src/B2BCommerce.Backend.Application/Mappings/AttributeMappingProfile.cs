@@ -35,7 +35,8 @@ public class AttributeMappingProfile : Profile
         CreateMap<ProductTypeAttribute, ProductTypeAttributeDto>()
             .ForMember(dest => dest.AttributeCode, opt => opt.MapFrom(src => src.AttributeDefinition.Code))
             .ForMember(dest => dest.AttributeName, opt => opt.MapFrom(src => src.AttributeDefinition.Name))
-            .ForMember(dest => dest.AttributeType, opt => opt.MapFrom(src => src.AttributeDefinition.Type.ToString()));
+            .ForMember(dest => dest.AttributeType, opt => opt.MapFrom(src => src.AttributeDefinition.Type.ToString()))
+            .ForMember(dest => dest.AttributeExternalId, opt => opt.MapFrom(src => src.AttributeDefinition.ExternalId));
 
         // ProductAttributeValue mappings
         CreateMap<ProductAttributeValue, ProductAttributeValueDto>()

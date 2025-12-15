@@ -1,7 +1,8 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Categories;
 
 /// <summary>
-/// Filter parameters for category listing
+/// Filter parameters for category listing.
+/// Uses external IDs for filtering.
 /// </summary>
 public class CategoryFilterDto
 {
@@ -11,14 +12,9 @@ public class CategoryFilterDto
     public string? Search { get; set; }
 
     /// <summary>
-    /// Filter by parent category ID (null for root categories)
+    /// Filter by parent category's external ID (null for root categories)
     /// </summary>
-    public Guid? ParentCategoryId { get; set; }
-
-    /// <summary>
-    /// Filter by parent category's external ID (alternative to ParentCategoryId)
-    /// </summary>
-    public string? ParentCategoryExtId { get; set; }
+    public string? ParentId { get; set; }
 
     /// <summary>
     /// Filter by active status

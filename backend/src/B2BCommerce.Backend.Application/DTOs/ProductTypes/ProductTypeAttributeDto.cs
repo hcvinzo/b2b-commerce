@@ -19,6 +19,11 @@ public class ProductTypeAttributeDto
     public Guid AttributeDefinitionId { get; set; }
 
     /// <summary>
+    /// Attribute external ID (for Integration API)
+    /// </summary>
+    public string? AttributeExternalId { get; set; }
+
+    /// <summary>
     /// Attribute code
     /// </summary>
     public string AttributeCode { get; set; } = string.Empty;

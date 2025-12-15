@@ -4,27 +4,23 @@ namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Brands;
 
 /// <summary>
 /// Request DTO for syncing a brand from external system (LOGO ERP).
-/// Uses ExtId (primary), Id (internal), or Name as the upsert key.
-/// ExtId is required for creating new brands.
+/// Id = ExternalId (string) - the primary upsert key.
+/// Code = ExternalCode (string) - optional secondary reference.
 /// </summary>
 public class BrandSyncRequest
 {
     /// <summary>
-    /// Internal ID (optional - for internal updates)
-    /// </summary>
-    public Guid? Id { get; set; }
-
-    /// <summary>
-    /// External system ID (PRIMARY upsert key - required for new brands)
+    /// External ID (PRIMARY upsert key - required for new brands).
+    /// This is the ID from the source system (LOGO ERP).
     /// </summary>
     [StringLength(100)]
-    public string? ExtId { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
-    /// External system code (OPTIONAL reference)
+    /// External code (OPTIONAL secondary reference)
     /// </summary>
     [StringLength(100)]
-    public string? ExtCode { get; set; }
+    public string? Code { get; set; }
 
     /// <summary>
     /// Brand name (required)

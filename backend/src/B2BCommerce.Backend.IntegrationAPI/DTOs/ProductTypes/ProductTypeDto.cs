@@ -1,17 +1,20 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.ProductTypes;
 
 /// <summary>
-/// Product type DTO for Integration API
+/// Product type DTO for Integration API.
+/// Id = ExternalId (string).
+/// Code is the business code (not ExternalCode).
+/// Internal Guid is never exposed.
 /// </summary>
 public class ProductTypeDto
 {
     /// <summary>
-    /// Unique identifier
+    /// External ID (from source system like LOGO ERP)
     /// </summary>
-    public Guid Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// Unique code for the product type
+    /// Unique business code for the product type
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
@@ -41,16 +44,6 @@ public class ProductTypeDto
     public List<ProductTypeAttributeDto> Attributes { get; set; } = new();
 
     /// <summary>
-    /// External system ID (primary key for ERP integration)
-    /// </summary>
-    public string? ExtId { get; set; }
-
-    /// <summary>
-    /// External system code (optional reference)
-    /// </summary>
-    public string? ExtCode { get; set; }
-
-    /// <summary>
     /// When the entity was last synchronized with the external system
     /// </summary>
     public DateTime? LastSyncedAt { get; set; }
@@ -67,17 +60,19 @@ public class ProductTypeDto
 }
 
 /// <summary>
-/// Product type list item DTO for Integration API
+/// Product type list item DTO for Integration API.
+/// Id = ExternalId (string).
+/// Internal Guid is never exposed.
 /// </summary>
 public class ProductTypeListDto
 {
     /// <summary>
-    /// Unique identifier
+    /// External ID (from source system like LOGO ERP)
     /// </summary>
-    public Guid Id { get; set; }
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// Unique code for the product type
+    /// Unique business code for the product type
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
@@ -97,33 +92,24 @@ public class ProductTypeListDto
     public int AttributeCount { get; set; }
 
     /// <summary>
-    /// External system ID (primary key for ERP integration)
-    /// </summary>
-    public string? ExtId { get; set; }
-
-    /// <summary>
-    /// External system code (optional reference)
-    /// </summary>
-    public string? ExtCode { get; set; }
-
-    /// <summary>
     /// When the entity was last synchronized with the external system
     /// </summary>
     public DateTime? LastSyncedAt { get; set; }
 }
 
 /// <summary>
-/// Product type attribute DTO for Integration API
+/// Product type attribute DTO for Integration API.
+/// AttributeId = Attribute's ExternalId (string).
 /// </summary>
 public class ProductTypeAttributeDto
 {
     /// <summary>
-    /// Attribute definition ID
+    /// Attribute's external ID
     /// </summary>
-    public Guid AttributeDefinitionId { get; set; }
+    public string AttributeId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Attribute code
+    /// Attribute business code
     /// </summary>
     public string Code { get; set; } = string.Empty;
 
@@ -164,17 +150,13 @@ public class ProductTypeAttributeDto
 }
 
 /// <summary>
-/// Attribute value option DTO for Select/MultiSelect types
+/// Attribute value option DTO for Select/MultiSelect types.
+/// Uses Value as the identifier (unique within attribute).
 /// </summary>
 public class AttributeValueOptionDto
 {
     /// <summary>
-    /// Value ID
-    /// </summary>
-    public Guid Id { get; set; }
-
-    /// <summary>
-    /// Internal value
+    /// Internal value (used as identifier, unique within attribute)
     /// </summary>
     public string Value { get; set; } = string.Empty;
 

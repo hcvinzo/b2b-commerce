@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Products API endpoints for external integrations (LOGO ERP)
+/// Products API endpoints for external integrations (LOGO ERP).
+/// All operations use ExternalId as the primary identifier.
 /// </summary>
 public class ProductsController : BaseApiController
 {
@@ -35,26 +36,38 @@ public class ProductsController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetProducts([FromQuery] ProductFilterDto filter)
     {
-        // Resolve CategoryExtId to CategoryId if provided
-        Guid? categoryId = filter.CategoryId;
-        if (!categoryId.HasValue && !string.IsNullOrEmpty(filter.CategoryExtId))
+        // Resolve CategoryId (ExternalId) to internal Guid if provided
+        Guid? categoryId = null;
+        if (!string.IsNullOrEmpty(filter.CategoryId))
         {
-            var category = await _unitOfWork.Categories.GetByExternalIdAsync(filter.CategoryExtId);
+            var category = await _unitOfWork.Categories.GetByExternalIdAsync(filter.CategoryId);
             if (category == null)
             {
-                return NotFoundResponse($"Category with external ID '{filter.CategoryExtId}' not found");
+                return NotFoundResponse($"Category with ID '{filter.CategoryId}' not found");
             }
             categoryId = category.Id;
         }
 
-        // Resolve ProductTypeExtId to ProductTypeId if provided
-        Guid? productTypeId = filter.ProductTypeId;
-        if (!productTypeId.HasValue && !string.IsNullOrEmpty(filter.ProductTypeExtId))
+        // Resolve BrandId (ExternalId) to internal Guid if provided
+        Guid? brandId = null;
+        if (!string.IsNullOrEmpty(filter.BrandId))
         {
-            var productType = await _unitOfWork.ProductTypes.GetByExternalIdAsync(filter.ProductTypeExtId);
+            var brand = await _unitOfWork.Brands.GetByExternalIdAsync(filter.BrandId);
+            if (brand == null)
+            {
+                return NotFoundResponse($"Brand with ID '{filter.BrandId}' not found");
+            }
+            brandId = brand.Id;
+        }
+
+        // Resolve ProductTypeId (ExternalId) to internal Guid if provided
+        Guid? productTypeId = null;
+        if (!string.IsNullOrEmpty(filter.ProductTypeId))
+        {
+            var productType = await _unitOfWork.ProductTypes.GetByExternalIdAsync(filter.ProductTypeId);
             if (productType == null)
             {
-                return NotFoundResponse($"ProductType with external ID '{filter.ProductTypeExtId}' not found");
+                return NotFoundResponse($"ProductType with ID '{filter.ProductTypeId}' not found");
             }
             productTypeId = productType.Id;
         }
@@ -63,7 +76,7 @@ public class ProductsController : BaseApiController
         var products = await GetProductsWithFilters(
             filter.Search,
             categoryId,
-            filter.BrandId,
+            brandId,
             productTypeId,
             filter.IsActive,
             filter.MinStock,
@@ -81,38 +94,19 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get a product by internal ID
+    /// Get a product by ID (ExternalId)
     /// </summary>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [Authorize(Policy = "products:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProduct(Guid id)
+    public async Task<IActionResult> GetProduct(string id)
     {
-        var product = await _unitOfWork.Products.GetWithDetailsByIdAsync(id);
+        var product = await _unitOfWork.Products.GetWithDetailsByExternalIdAsync(id);
 
         if (product == null)
         {
             return NotFoundResponse($"Product with ID '{id}' not found");
-        }
-
-        return OkResponse(MapToProductDto(product));
-    }
-
-    /// <summary>
-    /// Get product by external ID (PRIMARY lookup)
-    /// </summary>
-    [HttpGet("ext/{extId}")]
-    [Authorize(Policy = "products:read")]
-    [ProducesResponseType(typeof(Models.ApiResponse<ProductDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProductByExtId(string extId)
-    {
-        var product = await _unitOfWork.Products.GetWithDetailsByExternalIdAsync(extId);
-
-        if (product == null)
-        {
-            return NotFoundResponse($"Product with external ID '{extId}' not found");
         }
 
         return OkResponse(MapToProductDto(product));
@@ -138,8 +132,8 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Upsert product. If product with given external ID, internal ID, or SKU exists, it is updated; otherwise, a new product is created.
-    /// ExtId is required for creating new products.
+    /// Upsert product. If product with given ID (ExternalId) or SKU exists, it is updated; otherwise, a new product is created.
+    /// Id is required for creating new products.
     /// </summary>
     [HttpPost]
     [Authorize(Policy = "products:write")]
@@ -147,22 +141,22 @@ public class ProductsController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpsertProduct([FromBody] ProductSyncRequest request)
     {
-        // Validate: At least one identifier should be provided for matching
-        // For new products, ExtId is required
+        // Validate: Id (ExternalId) is required for new products
+        if (string.IsNullOrEmpty(request.Id) && string.IsNullOrEmpty(request.SKU))
+        {
+            return BadRequestResponse("Id or SKU is required", "ID_REQUIRED");
+        }
 
         var command = new UpsertProductCommand
         {
-            Id = request.Id,
-            ExternalId = request.ExtId,
-            ExternalCode = request.ExtCode,
+            ExternalId = request.Id,
+            ExternalCode = request.Code,
             SKU = request.SKU,
             Name = request.Name,
             Description = request.Description,
-            CategoryId = request.CategoryId,
-            CategoryExtId = request.CategoryExtId,
-            BrandId = request.BrandId,
-            ProductTypeId = request.ProductTypeId,
-            ProductTypeExtId = request.ProductTypeExtId,
+            CategoryExtId = request.CategoryId,
+            BrandExtId = request.BrandId,
+            ProductTypeExtId = request.ProductTypeId,
             ListPrice = request.ListPrice,
             Currency = request.Currency,
             Tier1Price = request.Tier1Price,
@@ -193,14 +187,14 @@ public class ProductsController : BaseApiController
                 "PRODUCT_TYPE_NOT_FOUND" => BadRequestResponse(result.ErrorMessage ?? "ProductType not found", result.ErrorCode),
                 "BRAND_NOT_FOUND" => BadRequestResponse(result.ErrorMessage ?? "Brand not found", result.ErrorCode),
                 "CATEGORY_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "Category is required", result.ErrorCode),
-                "EXTERNAL_ID_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "ExternalId is required for new products", result.ErrorCode),
+                "EXTERNAL_ID_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "Id is required for new products", result.ErrorCode),
                 _ => BadRequestResponse(result.ErrorMessage ?? "Failed to sync product", result.ErrorCode)
             };
         }
 
         _logger.LogInformation(
-            "Product {ExtId}/{SKU} synced by API client {ClientName}",
-            request.ExtId,
+            "Product {Id}/{SKU} synced by API client {ClientName}",
+            request.Id,
             request.SKU,
             GetClientName());
 
@@ -208,15 +202,15 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a product by internal ID (soft delete)
+    /// Delete a product by ID (ExternalId) - soft delete
     /// </summary>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     [Authorize(Policy = "products:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProduct(Guid id)
+    public async Task<IActionResult> DeleteProduct(string id)
     {
-        var product = await _unitOfWork.Products.GetByIdAsync(id);
+        var product = await _unitOfWork.Products.GetByExternalIdAsync(id);
 
         if (product == null)
         {
@@ -227,35 +221,8 @@ public class ProductsController : BaseApiController
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
-            "Product {ProductId} deleted by API client {ClientName}",
+            "Product {ExternalId} deleted by API client {ClientName}",
             id,
-            GetClientName());
-
-        return OkResponse<object?>(null, "Product deleted successfully");
-    }
-
-    /// <summary>
-    /// Delete a product by external ID (soft delete)
-    /// </summary>
-    [HttpDelete("ext/{extId}")]
-    [Authorize(Policy = "products:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProductByExtId(string extId)
-    {
-        var product = await _unitOfWork.Products.GetByExternalIdAsync(extId);
-
-        if (product == null)
-        {
-            return NotFoundResponse($"Product with external ID '{extId}' not found");
-        }
-
-        product.MarkAsDeleted(GetClientName());
-        await _unitOfWork.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Product with external ID {ExternalId} deleted by API client {ClientName}",
-            extId,
             GetClientName());
 
         return OkResponse<object?>(null, "Product deleted successfully");
@@ -369,18 +336,17 @@ public class ProductsController : BaseApiController
     {
         return new ProductDto
         {
-            Id = product.Id,
+            Id = product.ExternalId ?? string.Empty,
+            Code = product.ExternalCode,
             SKU = product.SKU,
             Name = product.Name,
             Description = product.Description,
-            CategoryId = product.CategoryId,
+            CategoryId = product.Category?.ExternalId,
             CategoryName = product.Category?.Name,
-            CategoryExtId = product.Category?.ExternalId,
-            BrandId = product.BrandId,
+            BrandId = product.Brand?.ExternalId,
             BrandName = product.Brand?.Name,
-            ProductTypeId = product.ProductTypeId,
+            ProductTypeId = product.ProductType?.ExternalId,
             ProductTypeName = product.ProductType?.Name,
-            ProductTypeExtId = product.ProductType?.ExternalId,
             ListPrice = product.ListPrice.Amount,
             Currency = product.ListPrice.Currency,
             Tier1Price = product.Tier1Price?.Amount,
@@ -399,8 +365,6 @@ public class ProductsController : BaseApiController
             Length = product.Length,
             Width = product.Width,
             Height = product.Height,
-            ExtId = product.ExternalId,
-            ExtCode = product.ExternalCode,
             LastSyncedAt = product.LastSyncedAt,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
@@ -411,18 +375,19 @@ public class ProductsController : BaseApiController
     {
         return new ProductListDto
         {
-            Id = product.Id,
+            Id = product.ExternalId ?? string.Empty,
+            Code = product.ExternalCode,
             SKU = product.SKU,
             Name = product.Name,
+            CategoryId = product.Category?.ExternalId,
             CategoryName = product.Category?.Name,
+            BrandId = product.Brand?.ExternalId,
             BrandName = product.Brand?.Name,
             ListPrice = product.ListPrice.Amount,
             Currency = product.ListPrice.Currency,
             StockQuantity = product.StockQuantity,
             IsActive = product.IsActive,
             MainImageUrl = product.MainImageUrl,
-            ExtId = product.ExternalId,
-            ExtCode = product.ExternalCode,
             LastSyncedAt = product.LastSyncedAt
         };
     }
@@ -431,18 +396,17 @@ public class ProductsController : BaseApiController
     {
         return new ProductDto
         {
-            Id = source.Id,
+            Id = source.ExternalId ?? string.Empty,
+            Code = source.ExternalCode,
             SKU = source.SKU,
             Name = source.Name,
             Description = source.Description,
-            CategoryId = source.CategoryId,
+            CategoryId = source.CategoryExtId,
             CategoryName = source.CategoryName,
-            CategoryExtId = source.CategoryExtId,
-            BrandId = source.BrandId,
+            BrandId = source.BrandExtId,
             BrandName = source.BrandName,
-            ProductTypeId = source.ProductTypeId,
+            ProductTypeId = source.ProductTypeExtId,
             ProductTypeName = source.ProductTypeName,
-            ProductTypeExtId = source.ProductTypeExtId,
             ListPrice = source.ListPrice,
             Currency = source.Currency,
             Tier1Price = source.Tier1Price,
@@ -461,8 +425,6 @@ public class ProductsController : BaseApiController
             Length = source.Length,
             Width = source.Width,
             Height = source.Height,
-            ExtId = source.ExternalId,
-            ExtCode = source.ExternalCode,
             LastSyncedAt = source.LastSyncedAt,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt

@@ -4,28 +4,24 @@ namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Categories;
 
 /// <summary>
 /// Request DTO for syncing a category from external system.
-/// Uses ExtId (primary) or Id (internal) as the upsert key.
-/// One of ExtId or Id is required.
+/// Id = ExternalId (string) - the primary upsert key.
+/// Code = ExternalCode (string) - optional secondary reference.
 /// </summary>
 public class CategorySyncRequest
 {
     /// <summary>
-    /// Internal ID (optional for upsert - if provided without ExtId, ExtId will be set to Id.ToString())
-    /// </summary>
-    public Guid? Id { get; set; }
-
-    /// <summary>
-    /// External system ID (PRIMARY upsert key)
-    /// One of ExtId or Id is required.
+    /// External ID (PRIMARY upsert key).
+    /// This is the ID from the source system (LOGO ERP).
+    /// Required for creating new categories.
     /// </summary>
     [StringLength(100)]
-    public string? ExtId { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
-    /// External system code (OPTIONAL reference)
+    /// External code (OPTIONAL secondary reference)
     /// </summary>
     [StringLength(100)]
-    public string? ExtCode { get; set; }
+    public string? Code { get; set; }
 
     /// <summary>
     /// Category name
@@ -41,16 +37,10 @@ public class CategorySyncRequest
     public string? Description { get; set; }
 
     /// <summary>
-    /// Parent category's external ID (for hierarchy - PRIMARY)
+    /// Parent category's external ID (for hierarchy)
     /// </summary>
     [StringLength(100)]
     public string? ParentId { get; set; }
-
-    /// <summary>
-    /// Parent category's external code (for hierarchy - FALLBACK)
-    /// </summary>
-    [StringLength(100)]
-    public string? ParentCode { get; set; }
 
     /// <summary>
     /// Image URL

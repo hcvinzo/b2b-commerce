@@ -1,7 +1,5 @@
 using B2BCommerce.Backend.Application.Features.ProductTypes.Commands.DeleteProductType;
 using B2BCommerce.Backend.Application.Features.ProductTypes.Commands.UpsertProductType;
-using B2BCommerce.Backend.Application.Features.ProductTypes.Queries.GetProductTypeByCode;
-using B2BCommerce.Backend.Application.Features.ProductTypes.Queries.GetProductTypeById;
 using B2BCommerce.Backend.Application.Features.ProductTypes.Queries.GetProductTypes;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.IntegrationAPI.DTOs.ProductTypes;
@@ -13,6 +11,7 @@ namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
 /// Product Types API endpoints for external integrations.
+/// All operations use ExternalId as the primary identifier.
 /// Provides CRUD operations for product types and their attribute definitions.
 /// </summary>
 [Route("api/v1/producttypes")]
@@ -60,49 +59,22 @@ public class ProductTypesController : BaseApiController
     }
 
     /// <summary>
-    /// Get a product type by ID with full attribute details.
+    /// Get a product type by ID (ExternalId) with full attribute details.
     /// Returns the complete attribute schema for a product type.
     /// </summary>
-    /// <param name="id">Product type ID</param>
+    /// <param name="id">Product type ID (ExternalId)</param>
     /// <returns>Product type with attributes</returns>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [Authorize(Policy = "product-types:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductTypeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProductType(Guid id)
+    public async Task<IActionResult> GetProductType(string id)
     {
-        var query = new GetProductTypeByIdQuery(id);
-        var result = await _mediator.Send(query);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "PRODUCT_TYPE_NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? $"Product type with ID {id} not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to get product type", result.ErrorCode);
-        }
-
-        return OkResponse(MapToProductTypeDto(result.Data!));
-    }
-
-    /// <summary>
-    /// Get a product type by external ID with full attribute details.
-    /// Returns the complete attribute schema for a product type.
-    /// </summary>
-    /// <param name="extId">Product type external ID</param>
-    /// <returns>Product type with attributes</returns>
-    [HttpGet("ext/{extId}")]
-    [Authorize(Policy = "product-types:read")]
-    [ProducesResponseType(typeof(Models.ApiResponse<ProductTypeDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProductTypeByExtId(string extId)
-    {
-        var productType = await _unitOfWork.ProductTypes.GetWithAttributesByExternalIdAsync(extId);
+        var productType = await _unitOfWork.ProductTypes.GetWithAttributesByExternalIdAsync(id);
 
         if (productType == null)
         {
-            return NotFoundResponse($"Product type with external ID '{extId}' not found");
+            return NotFoundResponse($"Product type with ID '{id}' not found");
         }
 
         return OkResponse(MapEntityToDto(productType));
@@ -113,8 +85,8 @@ public class ProductTypesController : BaseApiController
     #region Write Operations
 
     /// <summary>
-    /// Upserts a product type. If product type with given external ID or internal ID exists, it is updated; otherwise, a new product type is created.
-    /// One of ExtId or Id is required. If only Id is provided, ExtId will be set to Id.ToString().
+    /// Upserts a product type. If product type with given ID (ExternalId) exists, it is updated; otherwise, a new product type is created.
+    /// Id is required for creating new product types.
     /// </summary>
     [HttpPost]
     [Authorize(Policy = "product-types:write")]
@@ -122,32 +94,22 @@ public class ProductTypesController : BaseApiController
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpsertProductType([FromBody] ProductTypeSyncRequest request)
     {
-        // Validate: One of ExtId or Id is required
-        if (string.IsNullOrEmpty(request.ExtId) && !request.Id.HasValue)
+        // Validate: Id (ExternalId) is required
+        if (string.IsNullOrEmpty(request.Id))
         {
-            return BadRequestResponse("One of ExtId or Id is required", "ID_REQUIRED");
-        }
-
-        // If only Id is provided, set ExtId to Id.ToString()
-        var externalId = request.ExtId;
-        if (string.IsNullOrEmpty(externalId) && request.Id.HasValue)
-        {
-            externalId = request.Id.Value.ToString();
+            return BadRequestResponse("Id is required", "ID_REQUIRED");
         }
 
         var command = new UpsertProductTypeCommand
         {
-            Id = request.Id,
-            ExternalId = externalId,
-            ExternalCode = request.ExtCode,
+            ExternalId = request.Id,
             Code = request.Code,
             Name = request.Name,
             Description = request.Description,
             IsActive = request.IsActive,
             Attributes = request.Attributes?.Select(a => new UpsertProductTypeAttributeDto
             {
-                AttributeDefinitionId = a.AttributeId,
-                AttributeExternalId = a.AttributeExtId,
+                AttributeExternalId = a.AttributeId,
                 AttributeCode = a.AttributeCode,
                 IsRequired = a.IsRequired,
                 DisplayOrder = a.DisplayOrder
@@ -171,8 +133,8 @@ public class ProductTypesController : BaseApiController
         }
 
         _logger.LogInformation(
-            "Product type {ExternalId} synced by API client {ClientName}",
-            externalId,
+            "Product type {Id} synced by API client {ClientName}",
+            request.Id,
             GetClientName());
 
         return OkResponse(MapToProductTypeDto(result.Data!));
@@ -183,47 +145,19 @@ public class ProductTypesController : BaseApiController
     #region Delete Operations
 
     /// <summary>
-    /// Delete a product type (soft delete)
+    /// Delete a product type by ID (ExternalId) - soft delete
     /// </summary>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     [Authorize(Policy = "product-types:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProductType(Guid id)
+    public async Task<IActionResult> DeleteProductType(string id)
     {
-        var command = new DeleteProductTypeCommand(id);
-        var result = await _mediator.Send(command);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? $"Product type with ID {id} not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to delete product type", result.ErrorCode);
-        }
-
-        _logger.LogInformation(
-            "Product type {ProductTypeId} deleted by API client {ClientName}",
-            id, GetClientName());
-
-        return OkResponse<object?>(null, "Product type deleted successfully");
-    }
-
-    /// <summary>
-    /// Delete a product type by external ID (soft delete)
-    /// </summary>
-    [HttpDelete("ext/{extId}")]
-    [Authorize(Policy = "product-types:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteProductTypeByExtId(string extId)
-    {
-        var productType = await _unitOfWork.ProductTypes.GetByExternalIdAsync(extId);
+        var productType = await _unitOfWork.ProductTypes.GetByExternalIdAsync(id);
 
         if (productType == null)
         {
-            return NotFoundResponse($"Product type with external ID '{extId}' not found");
+            return NotFoundResponse($"Product type with ID '{id}' not found");
         }
 
         var command = new DeleteProductTypeCommand(productType.Id);
@@ -235,8 +169,8 @@ public class ProductTypesController : BaseApiController
         }
 
         _logger.LogInformation(
-            "Product type with external ID {ExternalId} deleted by API client {ClientName}",
-            extId, GetClientName());
+            "Product type {Id} deleted by API client {ClientName}",
+            id, GetClientName());
 
         return OkResponse<object?>(null, "Product type deleted successfully");
     }
@@ -249,13 +183,11 @@ public class ProductTypesController : BaseApiController
     {
         return new ProductTypeListDto
         {
-            Id = source.Id,
+            Id = source.ExternalId ?? string.Empty,
             Code = source.Code,
             Name = source.Name,
             IsActive = source.IsActive,
             AttributeCount = source.AttributeCount,
-            ExtId = source.ExternalId,
-            ExtCode = source.ExternalCode,
             LastSyncedAt = source.LastSyncedAt
         };
     }
@@ -264,15 +196,13 @@ public class ProductTypesController : BaseApiController
     {
         return new ProductTypeDto
         {
-            Id = source.Id,
+            Id = source.ExternalId ?? string.Empty,
             Code = source.Code,
             Name = source.Name,
             Description = source.Description,
             IsActive = source.IsActive,
             AttributeCount = source.Attributes.Count,
             Attributes = source.Attributes.Select(MapToProductTypeAttributeDto).ToList(),
-            ExtId = source.ExternalId,
-            ExtCode = source.ExternalCode,
             LastSyncedAt = source.LastSyncedAt,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt
@@ -283,7 +213,7 @@ public class ProductTypesController : BaseApiController
     {
         return new ProductTypeDto
         {
-            Id = entity.Id,
+            Id = entity.ExternalId ?? string.Empty,
             Code = entity.Code,
             Name = entity.Name,
             Description = entity.Description,
@@ -291,24 +221,20 @@ public class ProductTypesController : BaseApiController
             AttributeCount = entity.Attributes.Count,
             Attributes = entity.Attributes.Select(a => new ProductTypeAttributeDto
             {
-                AttributeDefinitionId = a.AttributeDefinitionId,
+                AttributeId = a.AttributeDefinition?.ExternalId ?? string.Empty,
                 Code = a.AttributeDefinition?.Code ?? string.Empty,
                 Name = a.AttributeDefinition?.Name ?? string.Empty,
-                NameEn = null,
                 Type = a.AttributeDefinition?.Type.ToString() ?? string.Empty,
                 Unit = a.AttributeDefinition?.Unit,
                 IsRequired = a.IsRequired,
                 DisplayOrder = a.DisplayOrder,
                 PredefinedValues = a.AttributeDefinition?.PredefinedValues.Select(v => new AttributeValueOptionDto
                 {
-                    Id = v.Id,
                     Value = v.Value,
                     DisplayText = v.DisplayText,
                     DisplayOrder = v.DisplayOrder
                 }).ToList() ?? new()
             }).ToList(),
-            ExtId = entity.ExternalId,
-            ExtCode = entity.ExternalCode,
             LastSyncedAt = entity.LastSyncedAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt
@@ -320,10 +246,9 @@ public class ProductTypesController : BaseApiController
     {
         return new ProductTypeAttributeDto
         {
-            AttributeDefinitionId = source.AttributeDefinitionId,
+            AttributeId = source.AttributeExternalId ?? string.Empty,
             Code = source.AttributeCode,
             Name = source.AttributeName,
-            NameEn = null,
             Type = source.AttributeType.ToString(),
             Unit = source.Unit,
             IsRequired = source.IsRequired,
@@ -337,7 +262,6 @@ public class ProductTypesController : BaseApiController
     {
         return new AttributeValueOptionDto
         {
-            Id = source.Id,
             Value = source.Value,
             DisplayText = source.DisplayText,
             DisplayOrder = source.DisplayOrder

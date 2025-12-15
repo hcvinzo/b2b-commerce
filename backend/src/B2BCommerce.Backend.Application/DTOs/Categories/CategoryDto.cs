@@ -10,6 +10,7 @@ public class CategoryDto
     public string Description { get; set; } = string.Empty;
     public Guid? ParentCategoryId { get; set; }
     public string? ParentCategoryName { get; set; }
+    public string? ParentExternalId { get; set; }
     public string? ImageUrl { get; set; }
     public int DisplayOrder { get; set; }
     public bool IsActive { get; set; }
@@ -32,6 +33,7 @@ public class CategoryListDto
     public string Name { get; set; } = string.Empty;
     public Guid? ParentCategoryId { get; set; }
     public string? ParentCategoryName { get; set; }
+    public string? ParentExternalId { get; set; }
     public int DisplayOrder { get; set; }
     public bool IsActive { get; set; }
     public int SubCategoryCount { get; set; }

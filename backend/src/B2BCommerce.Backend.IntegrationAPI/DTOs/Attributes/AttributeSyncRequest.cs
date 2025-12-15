@@ -4,31 +4,22 @@ namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Attributes;
 
 /// <summary>
 /// Request DTO for syncing an attribute definition from external system.
-/// Uses ExtId (primary) or Id (internal) as the upsert key.
-/// One of ExtId or Id is required.
+/// Id = ExternalId (string) - the primary upsert key.
+/// Code is the business code (like "screen_size"), NOT ExternalCode.
 /// </summary>
 public class AttributeSyncRequest
 {
     /// <summary>
-    /// Internal ID (optional for upsert - if provided without ExtId, ExtId will be set to Id.ToString())
-    /// </summary>
-    public Guid? Id { get; set; }
-
-    /// <summary>
-    /// External system ID (PRIMARY upsert key)
-    /// One of ExtId or Id is required.
+    /// External ID (PRIMARY upsert key).
+    /// This is the ID from the source system (LOGO ERP).
+    /// Required for creating new attributes.
     /// </summary>
     [StringLength(100)]
-    public string? ExtId { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
-    /// External system code (OPTIONAL reference)
-    /// </summary>
-    [StringLength(100)]
-    public string? ExtCode { get; set; }
-
-    /// <summary>
-    /// Unique code for the attribute (required, e.g., "screen_size", "memory_capacity")
+    /// Unique business code for the attribute (required, e.g., "screen_size", "memory_capacity").
+    /// Used as fallback for matching if Id is not provided.
     /// </summary>
     [Required]
     [StringLength(100, MinimumLength = 1)]

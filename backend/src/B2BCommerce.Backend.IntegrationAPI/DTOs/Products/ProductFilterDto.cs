@@ -1,7 +1,8 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Products;
 
 /// <summary>
-/// Filter parameters for product listing
+/// Filter parameters for product listing.
+/// All entity IDs (CategoryId, BrandId, ProductTypeId) are ExternalIds.
 /// </summary>
 public class ProductFilterDto
 {
@@ -11,29 +12,19 @@ public class ProductFilterDto
     public string? Search { get; set; }
 
     /// <summary>
-    /// Filter by category ID
+    /// Filter by category external ID
     /// </summary>
-    public Guid? CategoryId { get; set; }
+    public string? CategoryId { get; set; }
 
     /// <summary>
-    /// Filter by category external ID (alternative to CategoryId)
+    /// Filter by brand external ID
     /// </summary>
-    public string? CategoryExtId { get; set; }
+    public string? BrandId { get; set; }
 
     /// <summary>
-    /// Filter by brand ID
+    /// Filter by product type external ID
     /// </summary>
-    public Guid? BrandId { get; set; }
-
-    /// <summary>
-    /// Filter by product type ID
-    /// </summary>
-    public Guid? ProductTypeId { get; set; }
-
-    /// <summary>
-    /// Filter by product type external ID (alternative to ProductTypeId)
-    /// </summary>
-    public string? ProductTypeExtId { get; set; }
+    public string? ProductTypeId { get; set; }
 
     /// <summary>
     /// Filter by active status

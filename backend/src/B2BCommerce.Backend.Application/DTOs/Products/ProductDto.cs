@@ -46,6 +46,11 @@ public class ProductDto
     public string? BrandName { get; set; }
 
     /// <summary>
+    /// Brand external ID
+    /// </summary>
+    public string? BrandExtId { get; set; }
+
+    /// <summary>
     /// List price amount
     /// </summary>
     public decimal ListPrice { get; set; }

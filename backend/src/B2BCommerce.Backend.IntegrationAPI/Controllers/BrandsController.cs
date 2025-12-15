@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Brands API endpoints for external integrations (LOGO ERP)
+/// Brands API endpoints for external integrations (LOGO ERP).
+/// All IDs are ExternalIds (string). Internal Guids are never exposed.
 /// </summary>
 public class BrandsController : BaseApiController
 {
@@ -51,15 +52,15 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Get a brand by internal ID
+    /// Get a brand by ID (ExternalId)
     /// </summary>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [Authorize(Policy = "brands:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<BrandDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetBrand(Guid id)
+    public async Task<IActionResult> GetBrand(string id)
     {
-        var brand = await _unitOfWork.Brands.GetByIdAsync(id);
+        var brand = await _unitOfWork.Brands.GetByExternalIdAsync(id);
 
         if (brand == null)
         {
@@ -70,27 +71,8 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Get brand by external ID (PRIMARY lookup)
-    /// </summary>
-    [HttpGet("ext/{extId}")]
-    [Authorize(Policy = "brands:read")]
-    [ProducesResponseType(typeof(Models.ApiResponse<BrandDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetBrandByExtId(string extId)
-    {
-        var brand = await _unitOfWork.Brands.GetByExternalIdAsync(extId);
-
-        if (brand == null)
-        {
-            return NotFoundResponse($"Brand with external ID '{extId}' not found");
-        }
-
-        return OkResponse(MapToBrandDto(brand));
-    }
-
-    /// <summary>
-    /// Upsert brand. If brand with given external ID, internal ID, or Name exists, it is updated; otherwise, a new brand is created.
-    /// ExtId is required for creating new brands.
+    /// Upsert brand. If brand with given Id (ExternalId) or Name exists, it is updated; otherwise, a new brand is created.
+    /// Id is required for creating new brands.
     /// </summary>
     [HttpPost]
     [Authorize(Policy = "brands:write")]
@@ -100,9 +82,8 @@ public class BrandsController : BaseApiController
     {
         var command = new UpsertBrandCommand
         {
-            Id = request.Id,
-            ExternalId = request.ExtId,
-            ExternalCode = request.ExtCode,
+            ExternalId = request.Id,
+            ExternalCode = request.Code,
             Name = request.Name,
             Description = request.Description,
             LogoUrl = request.LogoUrl,
@@ -117,14 +98,14 @@ public class BrandsController : BaseApiController
         {
             return result.ErrorCode switch
             {
-                "EXTERNAL_ID_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "ExternalId is required for new brands", result.ErrorCode),
+                "EXTERNAL_ID_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "Id is required for new brands", result.ErrorCode),
                 _ => BadRequestResponse(result.ErrorMessage ?? "Failed to sync brand", result.ErrorCode)
             };
         }
 
         _logger.LogInformation(
-            "Brand {ExtId}/{Name} synced by API client {ClientName}",
-            request.ExtId,
+            "Brand {Id}/{Name} synced by API client {ClientName}",
+            request.Id,
             request.Name,
             GetClientName());
 
@@ -132,15 +113,15 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a brand by internal ID (soft delete)
+    /// Delete a brand by ID (ExternalId) - soft delete
     /// </summary>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     [Authorize(Policy = "brands:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteBrand(Guid id)
+    public async Task<IActionResult> DeleteBrand(string id)
     {
-        var brand = await _unitOfWork.Brands.GetByIdAsync(id);
+        var brand = await _unitOfWork.Brands.GetByExternalIdAsync(id);
 
         if (brand == null)
         {
@@ -151,35 +132,8 @@ public class BrandsController : BaseApiController
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation(
-            "Brand {BrandId} deleted by API client {ClientName}",
+            "Brand with ID {Id} deleted by API client {ClientName}",
             id,
-            GetClientName());
-
-        return OkResponse<object?>(null, "Brand deleted successfully");
-    }
-
-    /// <summary>
-    /// Delete a brand by external ID (soft delete)
-    /// </summary>
-    [HttpDelete("ext/{extId}")]
-    [Authorize(Policy = "brands:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteBrandByExtId(string extId)
-    {
-        var brand = await _unitOfWork.Brands.GetByExternalIdAsync(extId);
-
-        if (brand == null)
-        {
-            return NotFoundResponse($"Brand with external ID '{extId}' not found");
-        }
-
-        brand.MarkAsDeleted(GetClientName());
-        await _unitOfWork.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Brand with external ID {ExternalId} deleted by API client {ClientName}",
-            extId,
             GetClientName());
 
         return OkResponse<object?>(null, "Brand deleted successfully");
@@ -241,14 +195,13 @@ public class BrandsController : BaseApiController
     {
         return new BrandDto
         {
-            Id = brand.Id,
+            Id = brand.ExternalId ?? string.Empty,
+            Code = brand.ExternalCode,
             Name = brand.Name,
             Description = brand.Description,
             LogoUrl = brand.LogoUrl,
             WebsiteUrl = brand.WebsiteUrl,
             IsActive = brand.IsActive,
-            ExtId = brand.ExternalId,
-            ExtCode = brand.ExternalCode,
             LastSyncedAt = brand.LastSyncedAt,
             CreatedAt = brand.CreatedAt,
             UpdatedAt = brand.UpdatedAt
@@ -259,13 +212,12 @@ public class BrandsController : BaseApiController
     {
         return new BrandListDto
         {
-            Id = brand.Id,
+            Id = brand.ExternalId ?? string.Empty,
+            Code = brand.ExternalCode,
             Name = brand.Name,
             LogoUrl = brand.LogoUrl,
             IsActive = brand.IsActive,
             ProductCount = brand.Products?.Count ?? 0,
-            ExtId = brand.ExternalId,
-            ExtCode = brand.ExternalCode,
             LastSyncedAt = brand.LastSyncedAt
         };
     }
@@ -274,14 +226,13 @@ public class BrandsController : BaseApiController
     {
         return new BrandDto
         {
-            Id = source.Id,
+            Id = source.ExternalId ?? string.Empty,
+            Code = source.ExternalCode,
             Name = source.Name,
             Description = source.Description,
             LogoUrl = source.LogoUrl,
             WebsiteUrl = source.WebsiteUrl,
             IsActive = source.IsActive,
-            ExtId = source.ExternalId,
-            ExtCode = source.ExternalCode,
             LastSyncedAt = source.LastSyncedAt,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt

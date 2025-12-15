@@ -4,31 +4,22 @@ namespace B2BCommerce.Backend.IntegrationAPI.DTOs.ProductTypes;
 
 /// <summary>
 /// Request DTO for syncing a product type from external system.
-/// Uses ExtId (primary) or Id (internal) as the upsert key.
-/// One of ExtId or Id is required.
+/// Id = ExternalId (string) - the primary upsert key.
+/// Code is the business code (not ExternalCode).
 /// </summary>
 public class ProductTypeSyncRequest
 {
     /// <summary>
-    /// Internal ID (optional for upsert - if provided without ExtId, ExtId will be set to Id.ToString())
-    /// </summary>
-    public Guid? Id { get; set; }
-
-    /// <summary>
-    /// External system ID (PRIMARY upsert key)
-    /// One of ExtId or Id is required.
+    /// External ID (PRIMARY upsert key).
+    /// This is the ID from the source system (LOGO ERP).
+    /// Required for creating new product types.
     /// </summary>
     [StringLength(100)]
-    public string? ExtId { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
-    /// External system code (OPTIONAL reference)
-    /// </summary>
-    [StringLength(100)]
-    public string? ExtCode { get; set; }
-
-    /// <summary>
-    /// Unique code for the product type (required, e.g., "memory_card", "ssd")
+    /// Unique business code for the product type (required, e.g., "memory_card", "ssd").
+    /// Used as fallback for matching if Id is not provided.
     /// </summary>
     [Required]
     [StringLength(100, MinimumLength = 1)]
@@ -60,23 +51,20 @@ public class ProductTypeSyncRequest
 }
 
 /// <summary>
-/// Request DTO for syncing a product type attribute assignment
+/// Request DTO for syncing a product type attribute assignment.
+/// AttributeId = Attribute's ExternalId (string).
 /// </summary>
 public class ProductTypeAttributeSyncRequest
 {
     /// <summary>
-    /// Attribute definition ID (optional if ExtId or Code provided)
-    /// </summary>
-    public Guid? AttributeId { get; set; }
-
-    /// <summary>
-    /// Attribute definition external ID (for lookup by external system)
+    /// Attribute's external ID (primary lookup).
+    /// This is the ID from the source system (LOGO ERP).
     /// </summary>
     [StringLength(100)]
-    public string? AttributeExtId { get; set; }
+    public string? AttributeId { get; set; }
 
     /// <summary>
-    /// Attribute code (for lookup by code)
+    /// Attribute business code (fallback lookup if AttributeId not provided)
     /// </summary>
     [StringLength(100)]
     public string? AttributeCode { get; set; }
