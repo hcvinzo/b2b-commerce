@@ -18,11 +18,6 @@ public class CreateAttributeDefinitionDto
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display name in English
-    /// </summary>
-    public string? NameEn { get; set; }
-
-    /// <summary>
     /// Data type for this attribute
     /// </summary>
     public AttributeType Type { get; set; }

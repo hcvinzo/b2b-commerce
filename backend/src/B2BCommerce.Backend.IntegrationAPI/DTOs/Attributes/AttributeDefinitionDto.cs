@@ -8,7 +8,6 @@ public class AttributeDefinitionDto
     public Guid Id { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public string? NameEn { get; set; }
     public string Type { get; set; } = null!;
     public string? Unit { get; set; }
     public bool IsFilterable { get; set; }
@@ -31,7 +30,6 @@ public class AttributeDefinitionListDto
     public Guid Id { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public string? NameEn { get; set; }
     public string Type { get; set; } = null!;
     public string? Unit { get; set; }
     public bool IsFilterable { get; set; }

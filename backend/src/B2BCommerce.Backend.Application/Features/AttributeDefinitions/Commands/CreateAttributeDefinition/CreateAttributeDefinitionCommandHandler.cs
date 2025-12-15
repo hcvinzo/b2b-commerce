@@ -35,7 +35,6 @@ public class CreateAttributeDefinitionCommandHandler : ICommandHandler<CreateAtt
             request.Code,
             request.Name,
             request.Type,
-            request.NameEn,
             request.Unit,
             request.IsFilterable,
             request.IsRequired,

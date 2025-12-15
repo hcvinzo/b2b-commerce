@@ -622,6 +622,58 @@ public interface ICategoryRepository : IGenericRepository<Category>
 }
 ```
 
+### Integration API - AttributeDefinitions
+
+AttributeDefinition extends ExternalEntity for ERP synchronization. Endpoints follow the same pattern as Categories.
+
+**Endpoints**:
+```csharp
+// List & Get
+GET /api/v1/attributes                              // List (with ?includeValues=true)
+GET /api/v1/attributes/{id:guid}                    // By internal ID
+GET /api/v1/attributes/ext/{extId}                  // By ExternalId
+GET /api/v1/attributes/{id}/values/{valueId}        // Get specific value
+GET /api/v1/attributes/ext/{extId}/values/{valueId} // Get value by attribute extId
+
+// Upsert
+POST /api/v1/attributes                             // Upsert attribute (with values)
+POST /api/v1/attributes/{id}/values                 // Upsert value by attribute ID
+POST /api/v1/attributes/ext/{extId}/values          // Upsert value by attribute extId
+
+// Delete
+DELETE /api/v1/attributes/{id}                      // Delete attribute
+DELETE /api/v1/attributes/ext/{extId}               // Delete by ExternalId
+DELETE /api/v1/attributes/{id}/values/{valueId}     // Delete value
+DELETE /api/v1/attributes/ext/{extId}/values/{valueId}
+```
+
+**Upsert AttributeDefinition Request**:
+```json
+{
+  "id": "guid (optional)",
+  "extId": "string (primary upsert key)",
+  "extCode": "string (optional)",
+  "code": "string (required, unique)",
+  "name": "string (required)",
+  "nameEn": "string (optional)",
+  "type": "Text|Number|Select|MultiSelect|Boolean|Date",
+  "unit": "string (optional)",
+  "isFilterable": true,
+  "isRequired": false,
+  "isVisibleOnProductPage": true,
+  "displayOrder": 0,
+  "values": [
+    { "value": "string", "displayText": "string", "displayOrder": 0 }
+  ]
+}
+```
+
+**Notes**:
+- One of `extId` or `id` is required for upsert
+- If only `id` provided, `extId` is set to `id.ToString()`
+- `values` use full replacement semantics (provided values replace all existing)
+- Authorization: `attributes:read`, `attributes:write` policies
+
 ### Response Format
 
 Consistent response wrapper:

@@ -11,7 +11,6 @@ namespace B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands
 public record CreateAttributeDefinitionCommand(
     string Code,
     string Name,
-    string? NameEn,
     AttributeType Type,
     string? Unit,
     bool IsFilterable,

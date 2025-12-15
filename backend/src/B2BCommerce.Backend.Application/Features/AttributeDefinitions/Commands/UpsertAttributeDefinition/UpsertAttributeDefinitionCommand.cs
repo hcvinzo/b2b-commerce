@@ -37,11 +37,6 @@ public record UpsertAttributeDefinitionCommand : ICommand<Result<AttributeDefini
     public required string Name { get; init; }
 
     /// <summary>
-    /// Display name in English (optional)
-    /// </summary>
-    public string? NameEn { get; init; }
-
-    /// <summary>
     /// Data type for this attribute (required)
     /// </summary>
     public required AttributeType Type { get; init; }

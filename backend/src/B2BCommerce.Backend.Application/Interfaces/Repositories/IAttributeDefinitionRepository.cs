@@ -53,4 +53,11 @@ public interface IAttributeDefinitionRepository : IGenericRepository<AttributeDe
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a predefined value to the context for tracking
+    /// </summary>
+    /// <param name="value">The AttributeValue to add</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task AddAttributeValueAsync(AttributeValue value, CancellationToken cancellationToken = default);
 }

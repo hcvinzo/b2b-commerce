@@ -89,7 +89,6 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
                 code: request.Code,
                 name: request.Name,
                 type: request.Type,
-                nameEn: request.NameEn,
                 unit: request.Unit,
                 isFilterable: request.IsFilterable,
                 isRequired: request.IsRequired,
@@ -120,7 +119,6 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
             // Update existing attribute
             attribute.UpdateFromExternal(
                 name: request.Name,
-                nameEn: request.NameEn,
                 unit: request.Unit,
                 isFilterable: request.IsFilterable,
                 isRequired: request.IsRequired,

@@ -24,9 +24,6 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(a => a.NameEn)
-            .HasMaxLength(200);
-
         builder.Property(a => a.Type)
             .IsRequired();
 

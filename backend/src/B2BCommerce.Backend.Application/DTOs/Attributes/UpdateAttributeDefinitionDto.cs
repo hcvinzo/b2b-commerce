@@ -11,11 +11,6 @@ public class UpdateAttributeDefinitionDto
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display name in English
-    /// </summary>
-    public string? NameEn { get; set; }
-
-    /// <summary>
     /// Unit of measurement (e.g., "GB", "MB/s")
     /// </summary>
     public string? Unit { get; set; }

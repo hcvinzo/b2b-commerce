@@ -31,7 +31,6 @@ public class UpdateAttributeDefinitionCommandHandler : ICommandHandler<UpdateAtt
         // Update the attribute definition
         attributeDefinition.Update(
             request.Name,
-            request.NameEn,
             request.Unit,
             request.IsFilterable,
             request.IsRequired,

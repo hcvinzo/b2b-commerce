@@ -100,7 +100,6 @@ public class AttributeDefinitionsController : ControllerBase
         var command = new CreateAttributeDefinitionCommand(
             request.Code,
             request.Name,
-            request.NameEn,
             request.Type,
             request.Unit,
             request.IsFilterable,
@@ -138,7 +137,6 @@ public class AttributeDefinitionsController : ControllerBase
         var command = new UpdateAttributeDefinitionCommand(
             id,
             request.Name,
-            request.NameEn,
             request.Unit,
             request.IsFilterable,
             request.IsRequired,

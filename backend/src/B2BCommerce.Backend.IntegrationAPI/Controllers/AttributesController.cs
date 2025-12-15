@@ -59,8 +59,7 @@ public class AttributesController : BaseApiController
             var searchLower = filter.Search.ToLowerInvariant();
             attributes = attributes.Where(a =>
                 a.Code.Contains(searchLower, StringComparison.OrdinalIgnoreCase) ||
-                a.Name.Contains(filter.Search, StringComparison.OrdinalIgnoreCase) ||
-                (a.NameEn?.Contains(filter.Search, StringComparison.OrdinalIgnoreCase) ?? false));
+                a.Name.Contains(filter.Search, StringComparison.OrdinalIgnoreCase));
         }
 
         if (filter.IsFilterable.HasValue)
@@ -243,7 +242,6 @@ public class AttributesController : BaseApiController
             ExternalCode = request.ExtCode,
             Code = request.Code,
             Name = request.Name,
-            NameEn = request.NameEn,
             Type = attributeType,
             Unit = request.Unit,
             IsFilterable = request.IsFilterable,
@@ -489,7 +487,6 @@ public class AttributesController : BaseApiController
             Id = source.Id,
             Code = source.Code,
             Name = source.Name,
-            NameEn = source.NameEn,
             Type = source.Type.ToString(),
             Unit = source.Unit,
             IsFilterable = source.IsFilterable,
@@ -518,7 +515,6 @@ public class AttributesController : BaseApiController
             Id = source.Id,
             Code = source.Code,
             Name = source.Name,
-            NameEn = source.NameEn,
             Type = source.Type.ToString(),
             Unit = source.Unit,
             IsFilterable = source.IsFilterable,
@@ -539,7 +535,6 @@ public class AttributesController : BaseApiController
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
-            NameEn = entity.NameEn,
             Type = entity.Type.ToString(),
             Unit = entity.Unit,
             IsFilterable = entity.IsFilterable,

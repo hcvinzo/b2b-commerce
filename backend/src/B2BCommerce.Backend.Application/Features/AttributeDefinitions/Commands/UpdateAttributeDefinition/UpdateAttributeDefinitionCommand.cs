@@ -11,7 +11,6 @@ namespace B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands
 public record UpdateAttributeDefinitionCommand(
     Guid Id,
     string Name,
-    string? NameEn,
     string? Unit,
     bool IsFilterable,
     bool IsRequired,

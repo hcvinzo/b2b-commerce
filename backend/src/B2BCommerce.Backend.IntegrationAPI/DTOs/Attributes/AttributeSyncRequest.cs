@@ -42,12 +42,6 @@ public class AttributeSyncRequest
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Display name in English (optional)
-    /// </summary>
-    [StringLength(200)]
-    public string? NameEn { get; set; }
-
-    /// <summary>
     /// Data type for this attribute (required).
     /// Valid values: Text, Number, Select, MultiSelect, Boolean, Date
     /// </summary>

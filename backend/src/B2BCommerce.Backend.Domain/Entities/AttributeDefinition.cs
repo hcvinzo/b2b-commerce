@@ -21,11 +21,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     public string Name { get; private set; }
 
     /// <summary>
-    /// Display name in English (optional)
-    /// </summary>
-    public string? NameEn { get; private set; }
-
-    /// <summary>
     /// Data type for this attribute
     /// </summary>
     public AttributeType Type { get; private set; }
@@ -72,7 +67,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         string code,
         string name,
         AttributeType type,
-        string? nameEn = null,
         string? unit = null,
         bool isFilterable = true,
         bool isRequired = false,
@@ -96,7 +90,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         {
             Code = code.Trim().ToLowerInvariant(),
             Name = name.Trim(),
-            NameEn = nameEn?.Trim(),
             Type = type,
             Unit = unit?.Trim(),
             IsFilterable = isFilterable,
@@ -114,7 +107,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// <param name="code">Attribute code (required, unique)</param>
     /// <param name="name">Display name in Turkish (required)</param>
     /// <param name="type">Data type for this attribute</param>
-    /// <param name="nameEn">Display name in English (optional)</param>
     /// <param name="unit">Unit of measurement (optional)</param>
     /// <param name="isFilterable">Whether this attribute should appear in product filters</param>
     /// <param name="isRequired">Default required status</param>
@@ -127,7 +119,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         string code,
         string name,
         AttributeType type,
-        string? nameEn = null,
         string? unit = null,
         bool isFilterable = true,
         bool isRequired = false,
@@ -141,7 +132,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
             throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        var attr = Create(code, name, type, nameEn, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
+        var attr = Create(code, name, type, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
 
         if (specificId.HasValue)
         {
@@ -158,7 +149,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// </summary>
     public void Update(
         string name,
-        string? nameEn,
         string? unit,
         bool isFilterable,
         bool isRequired,
@@ -171,7 +161,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         }
 
         Name = name.Trim();
-        NameEn = nameEn?.Trim();
         Unit = unit?.Trim();
         IsFilterable = isFilterable;
         IsRequired = isRequired;
@@ -185,7 +174,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// </summary>
     public void UpdateFromExternal(
         string name,
-        string? nameEn,
         string? unit,
         bool isFilterable,
         bool isRequired,
@@ -193,7 +181,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         int displayOrder,
         string? externalCode = null)
     {
-        Update(name, nameEn, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
+        Update(name, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
 
         if (externalCode != null)
         {

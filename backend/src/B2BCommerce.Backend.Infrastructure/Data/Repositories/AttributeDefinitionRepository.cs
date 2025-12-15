@@ -71,4 +71,12 @@ public class AttributeDefinitionRepository : GenericRepository<AttributeDefiniti
     {
         return await _dbSet.AnyAsync(a => a.ExternalId == externalId && !a.IsDeleted, cancellationToken);
     }
+
+    /// <summary>
+    /// Adds a predefined value to the context for tracking
+    /// </summary>
+    public async Task AddAttributeValueAsync(AttributeValue value, CancellationToken cancellationToken = default)
+    {
+        await _context.Set<AttributeValue>().AddAsync(value, cancellationToken);
+    }
 }
