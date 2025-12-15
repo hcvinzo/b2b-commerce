@@ -7,7 +7,7 @@ namespace B2BCommerce.Backend.Domain.Entities;
 /// Defines a product type that determines which attributes a product has
 /// (e.g., "Memory Card", "SSD", "USB Flash Drive")
 /// </summary>
-public class ProductType : BaseEntity, IAggregateRoot
+public class ProductType : ExternalEntity, IAggregateRoot
 {
     /// <summary>
     /// Unique code for the product type (e.g., "memory_card", "ssd")
@@ -162,5 +162,70 @@ public class ProductType : BaseEntity, IAggregateRoot
     public IEnumerable<Guid> GetRequiredAttributeIds()
     {
         return _attributes.Where(a => a.IsRequired).Select(a => a.AttributeDefinitionId);
+    }
+
+    /// <summary>
+    /// Creates a product type from an external system (LOGO ERP).
+    /// Uses ExternalId as the primary upsert key.
+    /// </summary>
+    public static ProductType CreateFromExternal(
+        string externalId,
+        string code,
+        string name,
+        string? description = null,
+        bool isActive = true,
+        string? externalCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            throw new ArgumentException("External ID is required", nameof(externalId));
+        }
+
+        var productType = Create(code, name, description);
+
+        if (!isActive)
+        {
+            productType.Deactivate();
+        }
+
+        productType.SetExternalIdentifiers(externalCode, externalId);
+        productType.MarkAsSynced();
+        return productType;
+    }
+
+    /// <summary>
+    /// Updates product type from external system sync
+    /// </summary>
+    public void UpdateFromExternal(
+        string name,
+        string? description,
+        bool isActive,
+        string? externalCode = null)
+    {
+        Update(name, description);
+
+        if (isActive)
+        {
+            Activate();
+        }
+        else
+        {
+            Deactivate();
+        }
+
+        if (externalCode != null)
+        {
+            SetExternalIdentifiers(externalCode, ExternalId);
+        }
+
+        MarkAsSynced();
+    }
+
+    /// <summary>
+    /// Finds an attribute by its attribute definition ID
+    /// </summary>
+    public ProductTypeAttribute? FindAttributeByDefinitionId(Guid attributeDefinitionId)
+    {
+        return _attributes.FirstOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId);
     }
 }

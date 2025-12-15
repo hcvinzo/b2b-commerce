@@ -52,6 +52,15 @@ public class ProductTypeConfiguration : IEntityTypeConfiguration<ProductType>
         builder.Property(pt => pt.DeletedBy)
             .HasMaxLength(100);
 
+        // ExternalEntity properties
+        builder.Property(pt => pt.ExternalId)
+            .HasMaxLength(100);
+
+        builder.Property(pt => pt.ExternalCode)
+            .HasMaxLength(100);
+
+        builder.Property(pt => pt.LastSyncedAt);
+
         // Relationships
         builder.HasMany(pt => pt.Attributes)
             .WithOne(pta => pta.ProductType)
@@ -71,5 +80,14 @@ public class ProductTypeConfiguration : IEntityTypeConfiguration<ProductType>
         builder.HasIndex(pt => pt.IsActive);
 
         builder.HasIndex(pt => pt.IsDeleted);
+
+        // Unique index on ExternalId (primary upsert key)
+        builder.HasIndex(pt => pt.ExternalId)
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalId\" IS NOT NULL");
+
+        // Non-unique index on ExternalCode (optional reference)
+        builder.HasIndex(pt => pt.ExternalCode)
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
     }
 }

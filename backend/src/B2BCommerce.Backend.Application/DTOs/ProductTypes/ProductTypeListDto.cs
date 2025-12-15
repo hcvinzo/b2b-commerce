@@ -44,4 +44,19 @@ public class ProductTypeListDto
     /// Date created
     /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// External system ID (primary key for ERP integration)
+    /// </summary>
+    public string? ExternalId { get; set; }
+
+    /// <summary>
+    /// External system code (optional reference)
+    /// </summary>
+    public string? ExternalCode { get; set; }
+
+    /// <summary>
+    /// When the entity was last synchronized with the external system
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
 }

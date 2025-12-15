@@ -82,6 +82,10 @@ try
             policy.RequireClaim("scope", "attributes:read", "attributes:*", "*"));
         options.AddPolicy("attributes:write", policy =>
             policy.RequireClaim("scope", "attributes:write", "attributes:*", "*"));
+        options.AddPolicy("product-types:read", policy =>
+            policy.RequireClaim("scope", "product-types:read", "product-types:*", "*"));
+        options.AddPolicy("product-types:write", policy =>
+            policy.RequireClaim("scope", "product-types:write", "product-types:*", "*"));
     });
 
     // Add API Explorer and Swagger
@@ -109,6 +113,8 @@ API keys are assigned scopes that control access:
 - `customers:write` - Create, update customers
 - `attributes:read` - Read attribute definitions
 - `attributes:write` - Create, update, delete attributes
+- `product-types:read` - Read product type definitions
+- `product-types:write` - Create, update, delete product types
 - `*` - Full access to all endpoints
 
 ## Rate Limiting

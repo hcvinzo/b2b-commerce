@@ -88,4 +88,41 @@ public class ProductTypeRepository : GenericRepository<ProductType>, IProductTyp
 
         return (items, totalCount);
     }
+
+    /// <summary>
+    /// Gets a product type by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    public async Task<ProductType?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(pt => pt.ExternalId == externalId && !pt.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets product type with attributes by external ID
+    /// </summary>
+    public async Task<ProductType?> GetWithAttributesByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(pt => pt.Attributes.Where(a => !a.IsDeleted).OrderBy(a => a.DisplayOrder))
+                .ThenInclude(a => a.AttributeDefinition)
+                    .ThenInclude(ad => ad.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder))
+            .FirstOrDefaultAsync(pt => pt.ExternalId == externalId && !pt.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if a product type exists by its external ID
+    /// </summary>
+    public async Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AnyAsync(pt => pt.ExternalId == externalId && !pt.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Adds a product type attribute to the context for tracking
+    /// </summary>
+    public async Task AddProductTypeAttributeAsync(ProductTypeAttribute attribute, CancellationToken cancellationToken = default)
+    {
+        await _context.Set<ProductTypeAttribute>().AddAsync(attribute, cancellationToken);
+    }
 }

@@ -41,6 +41,21 @@ public class ProductTypeDto
     public List<ProductTypeAttributeDto> Attributes { get; set; } = new();
 
     /// <summary>
+    /// External system ID (primary key for ERP integration)
+    /// </summary>
+    public string? ExtId { get; set; }
+
+    /// <summary>
+    /// External system code (optional reference)
+    /// </summary>
+    public string? ExtCode { get; set; }
+
+    /// <summary>
+    /// When the entity was last synchronized with the external system
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
+
+    /// <summary>
     /// When the product type was created
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -80,6 +95,21 @@ public class ProductTypeListDto
     /// Number of attributes assigned to this product type
     /// </summary>
     public int AttributeCount { get; set; }
+
+    /// <summary>
+    /// External system ID (primary key for ERP integration)
+    /// </summary>
+    public string? ExtId { get; set; }
+
+    /// <summary>
+    /// External system code (optional reference)
+    /// </summary>
+    public string? ExtCode { get; set; }
+
+    /// <summary>
+    /// When the entity was last synchronized with the external system
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
 }
 
 /// <summary>

@@ -51,4 +51,35 @@ public interface IProductTypeRepository : IGenericRepository<ProductType>
         int pageSize,
         bool? isActive = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a product type by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>ProductType if found, null otherwise</returns>
+    Task<ProductType?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets product type with attributes by external ID
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>ProductType with attributes</returns>
+    Task<ProductType?> GetWithAttributesByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a product type exists by its external ID
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if exists, false otherwise</returns>
+    Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a product type attribute to the context for tracking
+    /// </summary>
+    /// <param name="attribute">The ProductTypeAttribute to add</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task AddProductTypeAttributeAsync(ProductTypeAttribute attribute, CancellationToken cancellationToken = default);
 }
