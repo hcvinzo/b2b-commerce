@@ -12,6 +12,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         builder.HasKey(c => c.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(c => !c.IsDeleted);
+
         // Properties
         builder.Property(c => c.CompanyName)
             .IsRequired()

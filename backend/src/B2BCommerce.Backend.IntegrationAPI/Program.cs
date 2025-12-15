@@ -144,6 +144,10 @@ All responses follow a standard format:
     var app = builder.Build();
 
     // Configure the HTTP request pipeline
+
+    // Global exception handling - must be first in pipeline
+    app.UseExceptionHandling();
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();

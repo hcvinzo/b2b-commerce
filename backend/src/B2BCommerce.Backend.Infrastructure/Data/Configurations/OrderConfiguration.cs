@@ -12,6 +12,9 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasKey(o => o.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(o => !o.IsDeleted);
+
         // Properties
         builder.Property(o => o.OrderNumber)
             .IsRequired()

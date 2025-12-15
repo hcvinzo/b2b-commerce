@@ -1,4 +1,5 @@
 using System.Text;
+using B2BCommerce.Backend.API.Middleware;
 using B2BCommerce.Backend.Application;
 using B2BCommerce.Backend.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -124,6 +125,10 @@ try
     }
 
     // Configure the HTTP request pipeline
+
+    // Global exception handling - must be first in pipeline
+    app.UseExceptionHandling();
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();

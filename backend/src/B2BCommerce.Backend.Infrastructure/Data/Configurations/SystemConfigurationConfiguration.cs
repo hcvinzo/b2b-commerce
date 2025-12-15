@@ -12,6 +12,9 @@ public class SystemConfigurationConfiguration : IEntityTypeConfiguration<SystemC
 
         builder.HasKey(sc => sc.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(sc => !sc.IsDeleted);
+
         // Properties
         builder.Property(sc => sc.Key)
             .IsRequired()

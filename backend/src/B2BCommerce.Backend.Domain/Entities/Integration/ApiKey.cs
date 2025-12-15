@@ -52,22 +52,34 @@ public class ApiKey : BaseEntity
         string? createdBy = null)
     {
         if (apiClientId == Guid.Empty)
+        {
             throw new DomainException("API Client ID is required");
+        }
 
         if (string.IsNullOrWhiteSpace(keyHash))
+        {
             throw new DomainException("Key hash is required");
+        }
 
         if (string.IsNullOrWhiteSpace(keyPrefix))
+        {
             throw new DomainException("Key prefix is required");
+        }
 
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new DomainException("Key name is required");
+        }
 
         if (rateLimitPerMinute <= 0)
+        {
             throw new DomainException("Rate limit must be positive");
+        }
 
         if (expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
+        {
             throw new DomainException("Expiration date must be in the future");
+        }
 
         var apiKey = new ApiKey
         {
@@ -95,22 +107,34 @@ public class ApiKey : BaseEntity
         string? createdBy = null)
     {
         if (apiClientId == Guid.Empty)
+        {
             throw new DomainException("API Client ID is required");
+        }
 
         if (string.IsNullOrWhiteSpace(keyHash))
+        {
             throw new DomainException("Key hash is required");
+        }
 
         if (string.IsNullOrWhiteSpace(keyPrefix))
+        {
             throw new DomainException("Key prefix is required");
+        }
 
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new DomainException("Key name is required");
+        }
 
         if (rateLimitPerMinute <= 0)
+        {
             throw new DomainException("Rate limit must be positive");
+        }
 
         if (expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
+        {
             throw new DomainException("Expiration date must be in the future");
+        }
 
         ApiClientId = apiClientId;
         KeyHash = keyHash;
@@ -127,9 +151,21 @@ public class ApiKey : BaseEntity
     /// </summary>
     public bool IsValid()
     {
-        if (!IsActive) return false;
-        if (RevokedAt.HasValue) return false;
-        if (ExpiresAt.HasValue && ExpiresAt.Value <= DateTime.UtcNow) return false;
+        if (!IsActive)
+        {
+            return false;
+        }
+
+        if (RevokedAt.HasValue)
+        {
+            return false;
+        }
+
+        if (ExpiresAt.HasValue && ExpiresAt.Value <= DateTime.UtcNow)
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -158,7 +194,9 @@ public class ApiKey : BaseEntity
     public void UpdateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new DomainException("Key name is required");
+        }
 
         Name = name.Trim();
     }
@@ -169,7 +207,9 @@ public class ApiKey : BaseEntity
     public void UpdateRateLimit(int rateLimitPerMinute)
     {
         if (rateLimitPerMinute <= 0)
+        {
             throw new DomainException("Rate limit must be positive");
+        }
 
         RateLimitPerMinute = rateLimitPerMinute;
     }
@@ -180,7 +220,9 @@ public class ApiKey : BaseEntity
     public void UpdateExpiration(DateTime? expiresAt)
     {
         if (expiresAt.HasValue && expiresAt.Value <= DateTime.UtcNow)
+        {
             throw new DomainException("Expiration date must be in the future");
+        }
 
         ExpiresAt = expiresAt;
     }
@@ -191,7 +233,9 @@ public class ApiKey : BaseEntity
     public void Revoke(string reason, string revokedBy)
     {
         if (RevokedAt.HasValue)
+        {
             throw new DomainException("Key is already revoked");
+        }
 
         IsActive = false;
         RevokedAt = DateTime.UtcNow;
@@ -205,7 +249,9 @@ public class ApiKey : BaseEntity
     public void AddPermission(string scope)
     {
         if (_permissions.Any(p => p.Scope.Equals(scope, StringComparison.OrdinalIgnoreCase)))
+        {
             throw new DomainException($"Permission '{scope}' already exists");
+        }
 
         _permissions.Add(new ApiKeyPermission(this.Id, scope));
     }
@@ -248,7 +294,9 @@ public class ApiKey : BaseEntity
     public void AddIpToWhitelist(string ipAddress, string? description = null)
     {
         if (_ipWhitelist.Any(ip => ip.IpAddress.Equals(ipAddress, StringComparison.OrdinalIgnoreCase)))
+        {
             throw new DomainException($"IP address '{ipAddress}' already whitelisted");
+        }
 
         _ipWhitelist.Add(new ApiKeyIpWhitelist(this.Id, ipAddress, description));
     }
@@ -283,7 +331,10 @@ public class ApiKey : BaseEntity
     public bool IsIpAllowed(string ipAddress)
     {
         // If no whitelist configured, allow all
-        if (!_ipWhitelist.Any()) return true;
+        if (!_ipWhitelist.Any())
+        {
+            return true;
+        }
 
         // Check exact match or CIDR range
         return _ipWhitelist.Any(w =>

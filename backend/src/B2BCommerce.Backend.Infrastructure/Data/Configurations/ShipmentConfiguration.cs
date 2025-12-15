@@ -12,6 +12,9 @@ public class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
 
         builder.HasKey(s => s.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(s => !s.IsDeleted);
+
         // Properties
         builder.Property(s => s.OrderId)
             .IsRequired();

@@ -12,6 +12,9 @@ public class CurrencyRateConfiguration : IEntityTypeConfiguration<CurrencyRate>
 
         builder.HasKey(cr => cr.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(cr => !cr.IsDeleted);
+
         // Properties
         builder.Property(cr => cr.FromCurrency)
             .IsRequired()

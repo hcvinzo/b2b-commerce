@@ -12,6 +12,9 @@ public class NewsletterSubscriptionConfiguration : IEntityTypeConfiguration<News
 
         builder.HasKey(n => n.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(n => !n.IsDeleted);
+
         // Email value object conversion
         builder.Property(n => n.Email)
             .HasConversion(

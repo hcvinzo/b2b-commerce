@@ -12,6 +12,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasKey(p => p.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(p => !p.IsDeleted);
+
         // Properties
         builder.Property(p => p.Name)
             .IsRequired()

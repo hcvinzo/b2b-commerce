@@ -15,6 +15,9 @@ public class ApiKeyConfiguration : IEntityTypeConfiguration<ApiKey>
 
         builder.HasKey(x => x.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(x => !x.IsDeleted);
+
         builder.Property(x => x.KeyHash)
             .IsRequired()
             .HasMaxLength(256);

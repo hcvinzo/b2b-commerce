@@ -56,232 +56,670 @@ API → Infrastructure → Application → Domain
 
 | Layer | Project | Responsibility |
 |-------|---------|----------------|
-| **Domain** | `B2BCommerce.Backend.Domain` | Entities, Value Objects, Domain Services, Exceptions. Pure C#, NO external dependencies |
-| **Application** | `B2BCommerce.Backend.Application` | DTOs, Service Interfaces, Repository Interfaces, CQRS Handlers, Validators. Depends only on Domain |
+| **Domain** | `B2BCommerce.Backend.Domain` | Entities, Value Objects, Domain Services, Domain Events, Exceptions. Pure C#, NO external dependencies |
+| **Application** | `B2BCommerce.Backend.Application` | DTOs, Service Interfaces, Repository Interfaces, CQRS Handlers, Validators, Domain Event Handlers. Depends only on Domain |
 | **Infrastructure** | `B2BCommerce.Backend.Infrastructure` | EF Core DbContext, Repository implementations, Service implementations, Identity. Implements Application interfaces |
 | **API** | `B2BCommerce.Backend.API` | Controllers, Middleware, Auth config. Thin layer, delegates via MediatR |
 | **IntegrationAPI** | `B2BCommerce.Backend.IntegrationAPI` | External API for ERP integrations. API Key auth, delegates via MediatR |
 
-### Key Architectural Rules
+---
 
-1. **Domain layer has NO dependencies** - pure business logic
-2. **Application defines interfaces** (e.g., `IProductRepository`, `ICategoryService`) that Infrastructure implements
-3. **Never expose Domain entities to API** - always use DTOs
-4. **Repositories use soft delete** - filter by `IsDeleted` automatically
-5. **All entities include audit fields**: `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`
-6. **Controllers delegate to Application layer** - use MediatR for CQRS, never use EF Core directly in controllers
-7. **Use pattern matching for null checks** - prefer `is null` / `is not null` over `== null` / `!= null`
-   - **Exception**: Expression trees (AutoMapper, EF Core LINQ) must use `!= null` due to CS8122
-8. **Use domain exceptions** - throw `InvalidOperationDomainException` instead of `System.InvalidOperationException`
+## Domain Layer Rules
 
-## Domain Entities & Value Objects
+### Base Classes
 
-**Core Entities**: Product, Category, Brand, Customer, CustomerAddress, Order, OrderItem, Payment, Shipment, CurrencyRate, SystemConfiguration
-
-**Value Objects** (immutable, stored as owned types):
-- `Money` - amount + currency with arithmetic operators
-- `Address` - street, city, state, country, postalCode
-- `Email`, `PhoneNumber`, `TaxNumber` - validated wrapper types with conversions
-
-**Enums**: OrderStatus, PaymentStatus, ShipmentStatus, PriceTier, CustomerType, OrderApprovalStatus, PaymentMethod
-
-## Code Patterns
-
-### Creating Entities
-Use factory methods on entities, not direct constructors:
+**BaseEntity** - All entities inherit from this:
 ```csharp
-// Correct - use factory method
-var product = Product.Create(sku, name, categoryId, brandId, listPrice);
-var category = Category.Create(name, description, parentCategoryId, displayOrder);
-var customer = Customer.Create(companyName, taxNumber, email, phone, ...);
+public abstract class BaseEntity
+{
+    public Guid Id { get; protected set; }
 
-// Wrong - direct constructor (marked as [Obsolete])
-var product = new Product(...); // Will generate warning CS0618
+    // Audit fields - PROTECTED setters (set by DbContext)
+    public DateTime CreatedAt { get; protected set; }
+    public string? CreatedBy { get; protected set; }
+    public DateTime? UpdatedAt { get; protected set; }
+    public string? UpdatedBy { get; protected set; }
+
+    // Soft delete
+    public bool IsDeleted { get; protected set; }
+    public DateTime? DeletedAt { get; protected set; }
+    public string? DeletedBy { get; protected set; }
+
+    // Domain events
+    private readonly List<IDomainEvent> _domainEvents = new();
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    public void AddDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    public void SoftDelete(string? deletedBy = null) { ... }
+    public void Restore() { ... }
+}
 ```
 
-All entities have factory methods: `Product`, `Category`, `Brand`, `Customer`, `Order`, `OrderItem`, `Payment`, `Shipment`, `ApiClient`, `ApiKey`
-
-### Repository Pattern
+**ExternalEntity** - For entities synced from external systems (ERP):
 ```csharp
-// Application layer defines interface
-public interface IProductRepository : IGenericRepository<Product>
+public abstract class ExternalEntity : BaseEntity, IExternalEntity
 {
-    Task<Product?> GetBySKUAsync(string sku);
+    public string? ExternalCode { get; protected set; }  // Code in external system
+    public string? ExternalId { get; protected set; }    // ID in external system
+    public DateTime? LastSyncedAt { get; protected set; }
+
+    public void MarkAsSynced() => LastSyncedAt = DateTime.UtcNow;
+
+    // Factory method pattern for external creation
+    // Child entities implement: static T CreateFromExternal(string externalCode, ...)
+}
+```
+
+**Entities extending ExternalEntity**: `Product`, `Category`, `Brand`, `Customer`
+
+### Entity Rules
+
+1. **Private constructors** - Never use `new Entity()` directly
+2. **Factory methods** - Use `Entity.Create(...)` or `Entity.CreateFromExternal(...)`
+3. **Protected setters** - All properties have `{ get; protected set; }`
+4. **Domain events** - Raise events in factory methods: `AddDomainEvent(new ProductCreatedEvent(this))`
+5. **Behavior methods** - Encapsulate state changes: `order.AddItem(...)`, `customer.UpdateCreditLimit(...)`
+
+```csharp
+public class Product : ExternalEntity, IAggregateRoot
+{
+    // Private constructor
+    private Product() { }
+
+    // Factory method for internal creation
+    public static Product Create(string sku, string name, Guid categoryId, ...)
+    {
+        var product = new Product { ... };
+        product.AddDomainEvent(new ProductCreatedEvent(product));
+        return product;
+    }
+
+    // Factory method for external system sync
+    public static Product CreateFromExternal(string externalCode, string sku, string name, ...)
+    {
+        var product = Create(sku, name, ...);
+        product.ExternalCode = externalCode;
+        product.MarkAsSynced();
+        return product;
+    }
+
+    // Behavior methods
+    public void UpdatePrice(Money newPrice) { ... }
+    public void Deactivate() { ... }
+}
+```
+
+### Marker Interfaces
+
+- **IAggregateRoot** - Marks aggregate roots (only these should have repositories)
+- **IExternalEntity** - Marks entities synced from external systems
+
+### Value Objects
+
+Immutable objects with value equality. Use for concepts with no identity:
+
+```csharp
+// Money - amount + currency with arithmetic
+public record Money(decimal Amount, string Currency = "TRY")
+{
+    public static Money operator +(Money a, Money b) => ...
+    public static Money operator *(Money m, decimal multiplier) => ...
 }
 
-// Infrastructure implements it
-public class ProductRepository : GenericRepository<Product>, IProductRepository
+// Email - validated wrapper
+public record Email
+{
+    public string Value { get; }
+    public Email(string value)
+    {
+        if (!IsValid(value)) throw new DomainException("Invalid email");
+        Value = value;
+    }
+}
+
+// Others: PhoneNumber, TaxNumber, Address
+```
+
+### Domain Events
+
+Events raised when significant domain actions occur:
+
+```csharp
+// Interface
+public interface IDomainEvent : INotification
+{
+    DateTime OccurredOn { get; }
+}
+
+// Events
+public record ProductCreatedEvent(Product Product) : IDomainEvent { ... }
+public record OrderPlacedEvent(Order Order) : IDomainEvent { ... }
+public record CustomerCreditLimitChangedEvent(Customer Customer, decimal OldLimit, decimal NewLimit) : IDomainEvent { ... }
+```
+
+### Domain Exceptions
+
+Never use `System.InvalidOperationException` in Domain layer:
+
+```csharp
+// Base exception
+public class DomainException : Exception { ... }
+
+// Specific exceptions
+public class InvalidOperationDomainException : DomainException { ... }
+public class InsufficientCreditException : DomainException { ... }
+public class InsufficientStockException : DomainException { ... }
+public class OutOfStockException : DomainException { ... }
+```
+
+### Domain Services
+
+For logic spanning multiple aggregates:
+
+```csharp
+public interface IPricingService
+{
+    Money CalculatePrice(Product product, Customer customer, int quantity);
+}
+
+public interface ICreditManagementService
+{
+    bool HasSufficientCredit(Customer customer, Money amount);
+    void ReserveCredit(Customer customer, Order order);
+    void ReleaseCredit(Customer customer, Order order);
+}
+```
+
+---
+
+## Application Layer Rules
+
+### Repository Interfaces
+
+```csharp
+public interface IGenericRepository<T> where T : BaseEntity
+{
+    Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default);
+    Task<T> AddAsync(T entity, CancellationToken ct = default);
+    void Update(T entity);
+    void Remove(T entity);
+    Task<bool> ExistsAsync(Guid id, CancellationToken ct = default);
+}
+
+// Specific repositories for aggregate roots only
+public interface IProductRepository : IGenericRepository<Product>
+{
+    Task<Product?> GetBySKUAsync(string sku, CancellationToken ct = default);
+    Task<IEnumerable<Product>> GetByCategoryAsync(Guid categoryId, CancellationToken ct = default);
+}
 ```
 
 ### Unit of Work
+
 ```csharp
-await _unitOfWork.BeginTransactionAsync();
-try {
-    // operations
-    await _unitOfWork.SaveChangesAsync();
-    await _unitOfWork.CommitAsync();
-} catch {
-    await _unitOfWork.RollbackAsync();
-    throw;
+public interface IUnitOfWork : IDisposable
+{
+    // Repositories
+    IProductRepository Products { get; }
+    ICategoryRepository Categories { get; }
+    ICustomerRepository Customers { get; }
+    IOrderRepository Orders { get; }
+
+    // Transaction management
+    Task<int> SaveChangesAsync(CancellationToken ct = default);
+    Task BeginTransactionAsync(CancellationToken ct = default);
+    Task CommitAsync(CancellationToken ct = default);
+    Task RollbackAsync(CancellationToken ct = default);
 }
 ```
 
-### Value Object Configurations (EF Core)
-```csharp
-// Owned types for Money
-builder.OwnsOne(e => e.ListPrice, money => {
-    money.Property(m => m.Amount).HasColumnName("ListPriceAmount");
-    money.Property(m => m.Currency).HasColumnName("ListPriceCurrency");
-});
+### DTOs
 
-// Conversions for Email/Phone/TaxNumber
-builder.Property(c => c.Email)
-    .HasConversion(email => email.Value, value => new Email(value));
+Naming convention: `{Entity}Dto`, `Create{Entity}Dto`, `Update{Entity}Dto`
+
+```csharp
+public record ProductDto(Guid Id, string Sku, string Name, decimal Price, ...);
+public record CreateProductDto(string Sku, string Name, Guid CategoryId, ...);
+public record UpdateProductDto(string Name, string? Description, decimal Price, ...);
 ```
 
-### CQRS Pattern (Commands & Queries)
-Controllers use MediatR to dispatch commands/queries to handlers:
+### Result Pattern
+
+Explicit success/failure handling:
+
 ```csharp
-// Controller (thin layer)
-[HttpGet("{id:guid}")]
-public async Task<IActionResult> GetCategory(Guid id)
+public class Result<T>
 {
-    var query = new GetCategoryByIdQuery(id);
-    var result = await _mediator.Send(query);
+    public bool IsSuccess { get; }
+    public T? Data { get; }
+    public string? ErrorMessage { get; }
+    public IEnumerable<string> Errors { get; }
 
-    if (!result.IsSuccess)
-        return NotFoundResponse(result.ErrorMessage);
-
-    return OkResponse(result.Data);
+    public static Result<T> Ok(T data) => new(true, data, null, null);
+    public static Result<T> Fail(string error) => new(false, default, error, null);
+    public static Result<T> Fail(IEnumerable<string> errors) => new(false, default, null, errors);
 }
+```
 
-// Query in Application layer
-public record GetCategoryByIdQuery(Guid Id) : IQuery<Result<CategoryDto>>;
+### CQRS with MediatR
 
-// Handler delegates to service
-public class GetCategoryByIdQueryHandler : IQueryHandler<GetCategoryByIdQuery, Result<CategoryDto>>
+**Commands** (write operations):
+```csharp
+public interface ICommand<TResponse> : IRequest<TResponse> { }
+public interface ICommandHandler<TCommand, TResponse> : IRequestHandler<TCommand, TResponse>
+    where TCommand : ICommand<TResponse> { }
+
+public record CreateProductCommand(string Sku, string Name, ...) : ICommand<Result<ProductDto>>;
+```
+
+**Queries** (read operations):
+```csharp
+public interface IQuery<TResponse> : IRequest<TResponse> { }
+public interface IQueryHandler<TQuery, TResponse> : IRequestHandler<TQuery, TResponse>
+    where TQuery : IQuery<TResponse> { }
+
+public record GetProductByIdQuery(Guid Id) : IQuery<Result<ProductDto>>;
+```
+
+### FluentValidation
+
+Every command MUST have a validator:
+
+```csharp
+public class CreateProductCommandValidator : AbstractValidator<CreateProductCommand>
 {
-    private readonly ICategoryService _categoryService;
-
-    public async Task<Result<CategoryDto>> Handle(GetCategoryByIdQuery request, CancellationToken ct)
+    public CreateProductCommandValidator(IUnitOfWork unitOfWork)
     {
-        return await _categoryService.GetByIdAsync(request.Id, ct);
+        RuleFor(x => x.Sku)
+            .NotEmpty().WithMessage("SKU is required")
+            .MaximumLength(50).WithMessage("SKU cannot exceed 50 characters")
+            .MustAsync(async (sku, ct) => !await unitOfWork.Products.ExistsBySkuAsync(sku, ct))
+            .WithMessage("SKU already exists");
+
+        RuleFor(x => x.CategoryId)
+            .MustAsync(async (id, ct) => await unitOfWork.Categories.ExistsAsync(id, ct))
+            .WithMessage("Category not found");
     }
 }
 ```
 
-### Service Layer Pattern
-Services in Infrastructure implement Application interfaces and contain business logic:
+### Domain Event Handlers
+
+Handle domain events in Application layer:
+
 ```csharp
-// Application layer defines interface
-public interface ICategoryService
+public class ProductCreatedEventHandler : INotificationHandler<ProductCreatedEvent>
 {
-    Task<Result<CategoryDto>> GetByIdAsync(Guid id, CancellationToken ct);
-    Task<Result<CategoryDto>> CreateAsync(CreateCategoryDto dto, string? createdBy, CancellationToken ct);
+    public async Task Handle(ProductCreatedEvent notification, CancellationToken ct)
+    {
+        // Send notification, update cache, etc.
+    }
+}
+```
+
+### Application Exceptions
+
+```csharp
+public class NotFoundException : Exception
+{
+    public NotFoundException(string entityName, object key)
+        : base($"{entityName} with key '{key}' was not found.") { }
 }
 
-// Infrastructure implements with EF Core
-public class CategoryService : ICategoryService
+public class ValidationException : Exception
 {
-    private readonly ICategoryRepository _repository;
+    public IEnumerable<string> Errors { get; }
+}
+```
+
+---
+
+## Infrastructure Layer Rules
+
+### DbContext
+
+```csharp
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+{
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Category> Categories => Set<Category>();
+    // ...
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        // Auto-set audit fields
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    break;
+            }
+        }
+
+        // Dispatch domain events
+        var domainEntities = ChangeTracker.Entries<BaseEntity>()
+            .Where(e => e.Entity.DomainEvents.Any())
+            .ToList();
+        // ... dispatch and clear events
+
+        return await base.SaveChangesAsync(ct);
+    }
+}
+```
+
+### Entity Configurations
+
+Each entity has `IEntityTypeConfiguration<T>`:
+
+```csharp
+public class ProductConfiguration : IEntityTypeConfiguration<Product>
+{
+    public void Configure(EntityTypeBuilder<Product> builder)
+    {
+        builder.ToTable("Products");
+        builder.HasKey(p => p.Id);
+
+        // Global soft delete filter - REQUIRED
+        builder.HasQueryFilter(p => !p.IsDeleted);
+
+        // Value objects
+        builder.OwnsOne(p => p.ListPrice, money => {
+            money.Property(m => m.Amount).HasColumnName("ListPriceAmount");
+            money.Property(m => m.Currency).HasColumnName("ListPriceCurrency");
+        });
+
+        // Value object conversions
+        builder.Property(p => p.Sku)
+            .HasMaxLength(50)
+            .IsRequired();
+    }
+}
+```
+
+### Repositories
+
+```csharp
+public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
+{
+    protected readonly ApplicationDbContext _context;
+    protected readonly DbSet<T> _dbSet;
+
+    // Read operations use AsNoTracking()
+    public async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _dbSet.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, ct);
+    }
+
+    // For update operations, get tracked entity
+    public async Task<T?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _dbSet.FirstOrDefaultAsync(e => e.Id == id, ct);
+    }
+}
+```
+
+### Services
+
+Services implement Application interfaces:
+
+```csharp
+public class ProductService : IProductService
+{
     private readonly IUnitOfWork _unitOfWork;
-    // ... implementation using EF Core
+    private readonly IMapper _mapper;
+
+    public async Task<Result<ProductDto>> CreateAsync(CreateProductDto dto, CancellationToken ct)
+    {
+        // Use factory method - NEVER new Product()
+        var product = Product.Create(dto.Sku, dto.Name, dto.CategoryId, ...);
+
+        await _unitOfWork.Products.AddAsync(product, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        return Result<ProductDto>.Ok(_mapper.Map<ProductDto>(product));
+    }
 }
 ```
 
-## Technology Stack
+---
 
-### Backend
-- **.NET 10** (STS - Nov 2025)
-- **Entity Framework Core 10** with PostgreSQL (Npgsql)
-- **ASP.NET Core Identity** for authentication
-- **JWT Bearer** tokens for API auth
-- **MediatR** for CQRS pattern (Commands/Queries)
-- **AutoMapper** for entity-DTO mapping
-- **FluentValidation** for DTO validation
-- **Serilog** for structured logging
-- **xUnit** + FluentAssertions + Moq for testing
+## API Layer Rules
 
-### Frontend
-- **Next.js 16** with App Router (static export)
-- **React 19** with TypeScript
-- **Tailwind CSS 4** for styling
-- **react-hook-form** + **Zod** for form validation
-- **Zustand** for state management
-- **Axios** for API calls
+### Controllers
 
-## Business Domain
+Thin controllers - delegate to MediatR:
 
-**B2B dealer portal** with:
-- Multi-tier pricing (List, Tier1-5, Special per customer)
-- Customer credit management with limits and reservations
-- Order approval workflow (Pending → Approved/Rejected)
-- Serial number tracking per product
-- Currency conversion with locked exchange rates
+```csharp
+[ApiController]
+[Route("api/v1/[controller]")]  // ALWAYS use api/v1/ prefix
+[Authorize]
+public class ProductsController : BaseApiController
+{
+    private readonly IMediator _mediator;
 
-## Deployment
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var result = await _mediator.Send(new GetProductByIdQuery(id));
 
-### Frontend (AWS EC2 with Nginx)
-- Static export to `frontend/out/`
-- Nginx config provided in `frontend/nginx.conf`
-- Coming-soon redirect handled by Nginx `try_files` directive
+        if (!result.IsSuccess)
+            return NotFoundResponse(result.ErrorMessage);
 
-```bash
-# Deploy to EC2
-scp -r frontend/out/* ec2-user@your-ec2:/var/www/frontend/out/
-sudo cp frontend/nginx.conf /etc/nginx/conf.d/frontend.conf
-sudo nginx -t && sudo systemctl restart nginx
+        return OkResponse(result.Data);
+    }
+}
 ```
 
-### Backend
-- Deployed as .NET application
-- Environment variables via `.env` or AWS Parameter Store
+### Middleware
+
+**Required middleware** (in order):
+1. `ExceptionHandlingMiddleware` - Global exception handling
+2. `RequestLoggingMiddleware` - Request/response logging
+3. Authentication/Authorization
+
+```csharp
+// Program.cs
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+### Authentication
+
+**Main API**: JWT Bearer tokens
+```csharp
+services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options => { ... });
+```
+
+**Integration API**: API Key authentication
+```csharp
+services.AddAuthentication("ApiKey")
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+```
+
+### Response Format
+
+Consistent response wrapper:
+
+```csharp
+public class ApiResponse<T>
+{
+    public bool Success { get; set; }
+    public T? Data { get; set; }
+    public string? Message { get; set; }
+    public IEnumerable<string>? Errors { get; set; }
+}
+```
+
+---
+
+## Coding Standards
+
+### Null Handling
+
+```csharp
+// ✅ GOOD - Pattern matching
+if (product is null) return NotFound();
+if (customer is not null) DoSomething();
+
+// ❌ BAD - Equality operators
+if (product == null) return NotFound();
+if (customer != null) DoSomething();
+
+// ⚠️ EXCEPTION - Expression trees (AutoMapper, EF LINQ)
+.ForMember(d => d.Name, opt => opt.MapFrom(s => s.Name != null ? s.Name : ""))
+.Where(p => p.Category != null && p.Category.IsActive)
+```
+
+### Async/Await
+
+```csharp
+// ✅ All async methods suffixed with Async
+public async Task<Product?> GetByIdAsync(Guid id, CancellationToken ct)
+
+// ✅ Always use async/await
+return await _repository.GetByIdAsync(id, ct);
+
+// ❌ NEVER use .Result or .Wait()
+return _repository.GetByIdAsync(id).Result;  // Deadlock risk!
+```
+
+### Exception Handling
+
+```csharp
+// ✅ GOOD - Specific exceptions
+catch (DbUpdateConcurrencyException ex)
+{
+    _logger.LogWarning(ex, "Concurrency conflict for {EntityId}", id);
+    throw new ConflictException("Record was modified");
+}
+
+// ❌ BAD - Generic exception
+catch (Exception ex)
+{
+    _logger.LogError(ex, "Error");
+    throw;
+}
+```
+
+### Logging
+
+```csharp
+// ✅ Structured logging
+_logger.LogInformation("Product created: {ProductId} - {Sku}", product.Id, product.Sku);
+
+// ❌ String interpolation
+_logger.LogInformation($"Product created: {product.Id} - {product.Sku}");
+```
+
+### Braces
+
+```csharp
+// ✅ GOOD - Always use braces
+if (product is null)
+{
+    return NotFound();
+}
+
+// ❌ BAD - No braces
+if (product is null)
+    return NotFound();
+```
+
+---
 
 ## Project Structure
 
 ```
 backend/src/
 ├── B2BCommerce.Backend.Domain/
-│   ├── Common/              # BaseEntity, audit fields
+│   ├── Common/              # BaseEntity, ExternalEntity, IAggregateRoot
 │   ├── Entities/            # Product, Category, Order, etc.
 │   ├── ValueObjects/        # Money, Address, Email, etc.
 │   ├── Enums/               # OrderStatus, PaymentStatus, etc.
-│   ├── DomainServices/      # CreditManagementService, OrderValidationService
-│   └── Exceptions/          # InvalidOperationDomainException, etc.
+│   ├── Events/              # IDomainEvent, ProductCreatedEvent, etc.
+│   ├── DomainServices/      # IPricingService, ICreditManagementService
+│   └── Exceptions/          # DomainException, InvalidOperationDomainException
 │
 ├── B2BCommerce.Backend.Application/
-│   ├── Common/              # Result<T>, PagedResult<T>, CQRS interfaces
+│   ├── Common/              # Result<T>, PagedResult<T>, ICommand, IQuery
 │   ├── DTOs/                # CategoryDto, ProductDto, etc.
+│   ├── Exceptions/          # NotFoundException, ValidationException
 │   ├── Features/            # CQRS Commands & Queries by feature
 │   │   └── Categories/
-│   │       ├── Commands/    # CreateCategory, UpdateCategory, etc.
-│   │       └── Queries/     # GetCategories, GetCategoryById, etc.
+│   │       ├── Commands/    # CreateCategoryCommand, UpdateCategoryCommand
+│   │       ├── Queries/     # GetCategoriesQuery, GetCategoryByIdQuery
+│   │       └── Events/      # CategoryCreatedEventHandler
 │   ├── Interfaces/
-│   │   ├── Repositories/    # IProductRepository, ICategoryRepository
+│   │   ├── Repositories/    # IGenericRepository, IProductRepository
 │   │   └── Services/        # ICategoryService, IProductService
 │   ├── Mappings/            # AutoMapper profiles
 │   └── Validators/          # FluentValidation validators
 │
 ├── B2BCommerce.Backend.Infrastructure/
-│   ├── Data/                # ApplicationDbContext, Migrations
+│   ├── Data/
+│   │   ├── ApplicationDbContext.cs
 │   │   ├── Configurations/  # EF Core entity configurations
-│   │   └── Repositories/    # Repository implementations
-│   ├── Services/            # Service implementations (CategoryService, etc.)
-│   └── Identity/            # ASP.NET Core Identity
+│   │   ├── Repositories/    # Repository implementations
+│   │   └── Migrations/
+│   ├── Services/            # Service implementations
+│   └── Identity/            # ApplicationUser, ApplicationRole
 │
 ├── B2BCommerce.Backend.API/
-│   └── Controllers/         # MediatR-based controllers (JWT auth)
+│   ├── Controllers/         # MediatR-based controllers
+│   ├── Middleware/          # ExceptionHandling, RequestLogging
+│   └── Program.cs
 │
 └── B2BCommerce.Backend.IntegrationAPI/
-    ├── Controllers/         # MediatR-based controllers (API Key auth)
-    └── DTOs/                # API-specific DTOs (mapped from Application DTOs)
+    ├── Controllers/         # MediatR-based controllers
+    ├── Authentication/      # ApiKeyAuthenticationHandler
+    └── Program.cs
 ```
+
+---
+
+## Quick Reference
+
+| Rule | Do | Don't |
+|------|-----|-------|
+| Entity creation | `Product.Create(...)` | `new Product(...)` |
+| Null checks | `is null` / `is not null` | `== null` / `!= null` |
+| Domain exceptions | `throw new InvalidOperationDomainException(...)` | `throw new InvalidOperationException(...)` |
+| Controllers | Delegate to MediatR | Access DbContext directly |
+| Async methods | Suffix with `Async` | Omit suffix |
+| Repositories | Only for aggregate roots | For every entity |
+| Soft delete | `HasQueryFilter(e => !e.IsDeleted)` | Manual filtering |
+| Read queries | `AsNoTracking()` | Track read-only entities |
+
+---
 
 ## Documentation
 
-Detailed specifications are in `docs/`:
-- `00-08` - Architecture specification documents
-- `B2B_Technical_Architecture_Overview.md` - Full system architecture
-- `CSharp_Clean_Architecture_Guide.md` - Implementation patterns
-- `Domain_Application_Layer_Specification.md` - Entity specifications
-- `Infrastructure_Layer_Specification.md` - Data access details
+Detailed specifications in `backend/docs/`:
+- `00-README.md` - Documentation index
+- `01-Solution-Structure.md` - Project organization
+- `02-Architecture-Guide.md` - Clean Architecture principles
+- `03-Domain-Layer-Guide.md` - Entities, value objects, events
+- `04-Application-Layer-Guide.md` - DTOs, CQRS, validation
+- `05-Infrastructure-Layer-Guide.md` - DbContext, repositories
+- `06-API-Layer-Guide.md` - Controllers, authentication
+- `07-Coding-Standards.md` - Naming, formatting, best practices
+- `08-Testing-Guide.md` - Test structure and patterns

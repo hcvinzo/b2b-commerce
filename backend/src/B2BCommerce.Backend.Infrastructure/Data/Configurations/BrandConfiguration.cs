@@ -12,6 +12,9 @@ public class BrandConfiguration : IEntityTypeConfiguration<Brand>
 
         builder.HasKey(b => b.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(b => !b.IsDeleted);
+
         // Properties
         builder.Property(b => b.Name)
             .IsRequired()

@@ -12,6 +12,9 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.HasKey(c => c.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(c => !c.IsDeleted);
+
         // Properties
         builder.Property(c => c.Name)
             .IsRequired()

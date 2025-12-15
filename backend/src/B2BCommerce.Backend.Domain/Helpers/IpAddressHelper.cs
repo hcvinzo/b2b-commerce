@@ -14,16 +14,29 @@ public static class IpAddressHelper
     /// <returns>True if valid, false otherwise</returns>
     public static bool IsValidIpOrCidr(string input)
     {
-        if (string.IsNullOrWhiteSpace(input)) return false;
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return false;
+        }
 
         // Check for CIDR notation
         if (input.Contains('/'))
         {
             var parts = input.Split('/');
-            if (parts.Length != 2) return false;
+            if (parts.Length != 2)
+            {
+                return false;
+            }
 
-            if (!IPAddress.TryParse(parts[0], out var address)) return false;
-            if (!int.TryParse(parts[1], out var prefix)) return false;
+            if (!IPAddress.TryParse(parts[0], out var address))
+            {
+                return false;
+            }
+
+            if (!int.TryParse(parts[1], out var prefix))
+            {
+                return false;
+            }
 
             // Valid prefix range for IPv4 (0-32) and IPv6 (0-128)
             var maxPrefix = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
@@ -42,7 +55,9 @@ public static class IpAddressHelper
     public static bool IsInRange(string ipAddress, string cidr)
     {
         if (string.IsNullOrWhiteSpace(ipAddress) || string.IsNullOrWhiteSpace(cidr))
+        {
             return false;
+        }
 
         if (!cidr.Contains('/'))
         {
@@ -50,28 +65,47 @@ public static class IpAddressHelper
         }
 
         var parts = cidr.Split('/');
-        if (!IPAddress.TryParse(parts[0], out var network)) return false;
-        if (!int.TryParse(parts[1], out var prefixLength)) return false;
-        if (!IPAddress.TryParse(ipAddress, out var address)) return false;
+        if (!IPAddress.TryParse(parts[0], out var network))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parts[1], out var prefixLength))
+        {
+            return false;
+        }
+
+        if (!IPAddress.TryParse(ipAddress, out var address))
+        {
+            return false;
+        }
 
         var networkBytes = network.GetAddressBytes();
         var addressBytes = address.GetAddressBytes();
 
-        if (networkBytes.Length != addressBytes.Length) return false;
+        if (networkBytes.Length != addressBytes.Length)
+        {
+            return false;
+        }
 
         var fullBytes = prefixLength / 8;
         var remainingBits = prefixLength % 8;
 
         for (int i = 0; i < fullBytes; i++)
         {
-            if (networkBytes[i] != addressBytes[i]) return false;
+            if (networkBytes[i] != addressBytes[i])
+            {
+                return false;
+            }
         }
 
         if (remainingBits > 0 && fullBytes < networkBytes.Length)
         {
             var mask = (byte)(0xFF << (8 - remainingBits));
             if ((networkBytes[fullBytes] & mask) != (addressBytes[fullBytes] & mask))
+            {
                 return false;
+            }
         }
 
         return true;

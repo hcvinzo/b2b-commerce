@@ -12,6 +12,9 @@ public class CustomerAddressConfiguration : IEntityTypeConfiguration<CustomerAdd
 
         builder.HasKey(ca => ca.Id);
 
+        // Global soft delete filter
+        builder.HasQueryFilter(ca => !ca.IsDeleted);
+
         // Properties
         builder.Property(ca => ca.CustomerId)
             .IsRequired();
