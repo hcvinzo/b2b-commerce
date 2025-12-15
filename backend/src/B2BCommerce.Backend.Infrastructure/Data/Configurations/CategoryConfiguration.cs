@@ -38,6 +38,14 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .IsRequired()
             .HasDefaultValue(true);
 
+        // Slug for URL-friendly identifier
+        builder.Property(c => c.Slug)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        // Default ProductType FK
+        builder.Property(c => c.DefaultProductTypeId);
+
         // Audit properties
         builder.Property(c => c.CreatedAt)
             .IsRequired();
@@ -65,6 +73,14 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasForeignKey(c => c.ParentCategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // DefaultProductType relationship
+        builder.HasOne(c => c.DefaultProductType)
+            .WithMany()
+            .HasForeignKey(c => c.DefaultProductTypeId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // ProductCategories relationship is configured in ProductCategoryConfiguration
+
         // Indexes
         builder.HasIndex(c => c.ParentCategoryId);
 
@@ -75,5 +91,12 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.HasIndex(c => c.IsDeleted);
 
         builder.HasIndex(c => c.Name);
+
+        // Unique slug index
+        builder.HasIndex(c => c.Slug)
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
+
+        builder.HasIndex(c => c.DefaultProductTypeId);
     }
 }

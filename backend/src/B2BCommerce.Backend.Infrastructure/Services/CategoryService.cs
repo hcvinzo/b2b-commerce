@@ -218,6 +218,7 @@ public class CategoryService : ICategoryService
         var category = Category.Create(
             dto.Name,
             dto.Description ?? string.Empty,
+            slug: null, // Will be auto-generated from name
             dto.ParentCategoryId,
             dto.DisplayOrder);
 

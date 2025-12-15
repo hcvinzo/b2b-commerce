@@ -31,6 +31,12 @@ public class UnitOfWork : IUnitOfWork
     // Newsletter repository
     private INewsletterSubscriptionRepository? _newsletterSubscriptions;
 
+    // Product Attribute System repositories
+    private IAttributeDefinitionRepository? _attributeDefinitions;
+    private IProductTypeRepository? _productTypes;
+    private IProductAttributeValueRepository? _productAttributeValues;
+    private IProductCategoryRepository? _productCategories;
+
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
@@ -73,6 +79,19 @@ public class UnitOfWork : IUnitOfWork
     // Newsletter repository
     public INewsletterSubscriptionRepository NewsletterSubscriptions =>
         _newsletterSubscriptions ??= new NewsletterSubscriptionRepository(_context);
+
+    // Product Attribute System repositories
+    public IAttributeDefinitionRepository AttributeDefinitions =>
+        _attributeDefinitions ??= new AttributeDefinitionRepository(_context);
+
+    public IProductTypeRepository ProductTypes =>
+        _productTypes ??= new ProductTypeRepository(_context);
+
+    public IProductAttributeValueRepository ProductAttributeValues =>
+        _productAttributeValues ??= new ProductAttributeValueRepository(_context);
+
+    public IProductCategoryRepository ProductCategories =>
+        _productCategories ??= new ProductCategoryRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

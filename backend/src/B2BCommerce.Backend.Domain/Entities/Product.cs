@@ -13,7 +13,18 @@ public class Product : BaseEntity, IAggregateRoot
     public string Name { get; private set; }
     public string Description { get; private set; }
     public string SKU { get; private set; }
+
+    /// <summary>
+    /// FK to ProductType - defines which attributes this product can have
+    /// </summary>
+    public Guid? ProductTypeId { get; private set; }
+
+    /// <summary>
+    /// Legacy: Primary category ID (kept for backward compatibility)
+    /// New code should use ProductCategories with IsPrimary=true
+    /// </summary>
     public Guid CategoryId { get; private set; }
+
     public Guid? BrandId { get; private set; }
 
     // Pricing
@@ -45,8 +56,17 @@ public class Product : BaseEntity, IAggregateRoot
     public decimal? Height { get; private set; }
 
     // Navigation properties
+    public ProductType? ProductType { get; private set; }
     public Category? Category { get; set; }
     public Brand? Brand { get; set; }
+
+    // Multi-category support
+    private readonly List<ProductCategory> _productCategories = new();
+    public IReadOnlyCollection<ProductCategory> ProductCategories => _productCategories.AsReadOnly();
+
+    // Attribute values
+    private readonly List<ProductAttributeValue> _attributeValues = new();
+    public IReadOnlyCollection<ProductAttributeValue> AttributeValues => _attributeValues.AsReadOnly();
 
     private Product() // For EF Core
     {
@@ -249,4 +269,241 @@ public class Product : BaseEntity, IAggregateRoot
         Width = width;
         Height = height;
     }
+
+    #region ProductType Management
+
+    /// <summary>
+    /// Sets the product type for this product
+    /// </summary>
+    public void SetProductType(Guid productTypeId)
+    {
+        if (productTypeId == Guid.Empty)
+        {
+            throw new DomainException("ProductTypeId is required");
+        }
+
+        ProductTypeId = productTypeId;
+    }
+
+    /// <summary>
+    /// Clears the product type
+    /// </summary>
+    public void ClearProductType()
+    {
+        ProductTypeId = null;
+    }
+
+    #endregion
+
+    #region Multi-Category Management
+
+    /// <summary>
+    /// Adds this product to a category
+    /// </summary>
+    public ProductCategory AddToCategory(Guid categoryId, bool isPrimary = false, int displayOrder = 0)
+    {
+        if (categoryId == Guid.Empty)
+        {
+            throw new DomainException("CategoryId is required");
+        }
+
+        if (_productCategories.Any(pc => pc.CategoryId == categoryId))
+        {
+            throw new DomainException("Product is already in this category");
+        }
+
+        // If this is primary, remove primary from other categories
+        if (isPrimary)
+        {
+            foreach (var pc in _productCategories.Where(pc => pc.IsPrimary))
+            {
+                pc.RemovePrimaryStatus();
+            }
+        }
+
+        var productCategory = ProductCategory.Create(Id, categoryId, isPrimary, displayOrder);
+        _productCategories.Add(productCategory);
+
+        // Update legacy CategoryId if this is primary
+        if (isPrimary)
+        {
+            CategoryId = categoryId;
+        }
+
+        return productCategory;
+    }
+
+    /// <summary>
+    /// Removes this product from a category
+    /// </summary>
+    public void RemoveFromCategory(Guid categoryId)
+    {
+        var productCategory = _productCategories.FirstOrDefault(pc => pc.CategoryId == categoryId);
+        if (productCategory is not null)
+        {
+            _productCategories.Remove(productCategory);
+        }
+    }
+
+    /// <summary>
+    /// Sets a category as primary for this product
+    /// </summary>
+    public void SetPrimaryCategory(Guid categoryId)
+    {
+        var productCategory = _productCategories.FirstOrDefault(pc => pc.CategoryId == categoryId);
+        if (productCategory is null)
+        {
+            throw new DomainException("Product is not in this category");
+        }
+
+        // Remove primary from other categories
+        foreach (var pc in _productCategories.Where(pc => pc.IsPrimary))
+        {
+            pc.RemovePrimaryStatus();
+        }
+
+        productCategory.SetAsPrimary();
+
+        // Update legacy CategoryId
+        CategoryId = categoryId;
+    }
+
+    /// <summary>
+    /// Gets the primary category ID
+    /// </summary>
+    public Guid? GetPrimaryCategoryId()
+    {
+        var primaryCategory = _productCategories.FirstOrDefault(pc => pc.IsPrimary);
+        return primaryCategory?.CategoryId ?? (CategoryId != Guid.Empty ? CategoryId : null);
+    }
+
+    #endregion
+
+    #region Attribute Value Management
+
+    /// <summary>
+    /// Sets or updates a text attribute value
+    /// </summary>
+    public void SetTextAttribute(Guid attributeDefinitionId, string value)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            existing.UpdateTextValue(value);
+        }
+        else
+        {
+            _attributeValues.Add(ProductAttributeValue.CreateText(Id, attributeDefinitionId, value));
+        }
+    }
+
+    /// <summary>
+    /// Sets or updates a numeric attribute value
+    /// </summary>
+    public void SetNumericAttribute(Guid attributeDefinitionId, decimal value)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            existing.UpdateNumericValue(value);
+        }
+        else
+        {
+            _attributeValues.Add(ProductAttributeValue.CreateNumber(Id, attributeDefinitionId, value));
+        }
+    }
+
+    /// <summary>
+    /// Sets or updates a select attribute value
+    /// </summary>
+    public void SetSelectAttribute(Guid attributeDefinitionId, Guid selectedValueId)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            existing.UpdateSelectValue(selectedValueId);
+        }
+        else
+        {
+            _attributeValues.Add(ProductAttributeValue.CreateSelect(Id, attributeDefinitionId, selectedValueId));
+        }
+    }
+
+    /// <summary>
+    /// Sets or updates a multi-select attribute value
+    /// </summary>
+    public void SetMultiSelectAttribute(Guid attributeDefinitionId, List<Guid> selectedValueIds)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            existing.UpdateMultiSelectValues(selectedValueIds);
+        }
+        else
+        {
+            _attributeValues.Add(ProductAttributeValue.CreateMultiSelect(Id, attributeDefinitionId, selectedValueIds));
+        }
+    }
+
+    /// <summary>
+    /// Sets or updates a boolean attribute value
+    /// </summary>
+    public void SetBooleanAttribute(Guid attributeDefinitionId, bool value)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            existing.UpdateBooleanValue(value);
+        }
+        else
+        {
+            _attributeValues.Add(ProductAttributeValue.CreateBoolean(Id, attributeDefinitionId, value));
+        }
+    }
+
+    /// <summary>
+    /// Sets or updates a date attribute value
+    /// </summary>
+    public void SetDateAttribute(Guid attributeDefinitionId, DateTime value)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            existing.UpdateDateValue(value);
+        }
+        else
+        {
+            _attributeValues.Add(ProductAttributeValue.CreateDate(Id, attributeDefinitionId, value));
+        }
+    }
+
+    /// <summary>
+    /// Removes an attribute value
+    /// </summary>
+    public void RemoveAttribute(Guid attributeDefinitionId)
+    {
+        var existing = _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+        if (existing is not null)
+        {
+            _attributeValues.Remove(existing);
+        }
+    }
+
+    /// <summary>
+    /// Clears all attribute values
+    /// </summary>
+    public void ClearAttributeValues()
+    {
+        _attributeValues.Clear();
+    }
+
+    /// <summary>
+    /// Gets the attribute value for a specific attribute
+    /// </summary>
+    public ProductAttributeValue? GetAttributeValue(Guid attributeDefinitionId)
+    {
+        return _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+    }
+
+    #endregion
 }

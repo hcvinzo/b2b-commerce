@@ -19,7 +19,8 @@
       "Bash(dotnet package search:*)",
       "Bash(dotnet list:*)",
       "Bash(grep:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(tree:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

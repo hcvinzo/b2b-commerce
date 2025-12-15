@@ -30,6 +30,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
     public DbSet<NewsletterSubscription> NewsletterSubscriptions => Set<NewsletterSubscription>();
 
+    // Product Attribute System entities
+    public DbSet<AttributeDefinition> AttributeDefinitions => Set<AttributeDefinition>();
+    public DbSet<AttributeValue> AttributeValues => Set<AttributeValue>();
+    public DbSet<ProductType> ProductTypes => Set<ProductType>();
+    public DbSet<ProductTypeAttribute> ProductTypeAttributes => Set<ProductTypeAttribute>();
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+    public DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
+
     // Integration API entities
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();

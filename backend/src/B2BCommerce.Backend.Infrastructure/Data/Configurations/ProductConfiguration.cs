@@ -177,6 +177,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.DeletedBy)
             .HasMaxLength(100);
 
+        // ProductType FK (optional for backward compatibility)
+        builder.Property(p => p.ProductTypeId);
+
         // Relationships
         builder.HasOne(p => p.Category)
             .WithMany(c => c.Products)
@@ -188,6 +191,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasForeignKey(p => p.BrandId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // ProductType relationship is configured in ProductTypeConfiguration
+
+        // ProductCategories relationship is configured in ProductCategoryConfiguration
+
+        // AttributeValues relationship is configured in ProductAttributeValueConfiguration
+
         // Indexes
         builder.HasIndex(p => p.SKU)
             .IsUnique()
@@ -196,6 +205,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => p.CategoryId);
 
         builder.HasIndex(p => p.BrandId);
+
+        builder.HasIndex(p => p.ProductTypeId);
 
         builder.HasIndex(p => p.IsActive);
 

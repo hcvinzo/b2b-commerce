@@ -66,6 +66,26 @@ public interface IUnitOfWork : IDisposable
     INewsletterSubscriptionRepository NewsletterSubscriptions { get; }
 
     /// <summary>
+    /// Gets the attribute definition repository
+    /// </summary>
+    IAttributeDefinitionRepository AttributeDefinitions { get; }
+
+    /// <summary>
+    /// Gets the product type repository
+    /// </summary>
+    IProductTypeRepository ProductTypes { get; }
+
+    /// <summary>
+    /// Gets the product attribute value repository
+    /// </summary>
+    IProductAttributeValueRepository ProductAttributeValues { get; }
+
+    /// <summary>
+    /// Gets the product category repository
+    /// </summary>
+    IProductCategoryRepository ProductCategories { get; }
+
+    /// <summary>
     /// Saves all changes made in this unit of work to the database
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
