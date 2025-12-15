@@ -16,6 +16,11 @@ public class CategoryFilterDto
     public Guid? ParentCategoryId { get; set; }
 
     /// <summary>
+    /// Filter by parent category's external ID (alternative to ParentCategoryId)
+    /// </summary>
+    public string? ParentCategoryExtId { get; set; }
+
+    /// <summary>
     /// Filter by active status
     /// </summary>
     public bool? IsActive { get; set; }

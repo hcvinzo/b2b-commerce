@@ -93,7 +93,10 @@ public class CategoryService : ICategoryService
             DisplayOrder = c.DisplayOrder,
             IsActive = c.IsActive,
             SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-            ProductCount = c.Products.Count(p => !p.IsDeleted)
+            ProductCount = c.Products.Count(p => !p.IsDeleted),
+            ExternalCode = c.ExternalCode,
+            ExternalId = c.ExternalId,
+            LastSyncedAt = c.LastSyncedAt
         }).ToList();
 
         var pagedResult = new PagedResult<CategoryListDto>(dtos, totalCount, pageNumber, pageSize);
@@ -156,7 +159,10 @@ public class CategoryService : ICategoryService
                 DisplayOrder = c.DisplayOrder,
                 IsActive = c.IsActive,
                 SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-                ProductCount = c.Products.Count(p => !p.IsDeleted)
+                ProductCount = c.Products.Count(p => !p.IsDeleted),
+                ExternalCode = c.ExternalCode,
+                ExternalId = c.ExternalId,
+                LastSyncedAt = c.LastSyncedAt
             }).ToList();
 
         return Result<List<CategoryListDto>>.Success(dtos);
@@ -188,7 +194,10 @@ public class CategoryService : ICategoryService
                 DisplayOrder = c.DisplayOrder,
                 IsActive = c.IsActive,
                 SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-                ProductCount = c.Products.Count(p => !p.IsDeleted)
+                ProductCount = c.Products.Count(p => !p.IsDeleted),
+                ExternalCode = c.ExternalCode,
+                ExternalId = c.ExternalId,
+                LastSyncedAt = c.LastSyncedAt
             }).ToList();
 
         return Result<List<CategoryListDto>>.Success(dtos);
@@ -383,8 +392,12 @@ public class CategoryService : ICategoryService
             ImageUrl = category.ImageUrl,
             DisplayOrder = category.DisplayOrder,
             IsActive = category.IsActive,
+            Slug = category.Slug,
             CreatedAt = category.CreatedAt,
-            UpdatedAt = category.UpdatedAt
+            UpdatedAt = category.UpdatedAt,
+            ExternalCode = category.ExternalCode,
+            ExternalId = category.ExternalId,
+            LastSyncedAt = category.LastSyncedAt
         };
     }
 
@@ -405,7 +418,10 @@ public class CategoryService : ICategoryService
             ImageUrl = category.ImageUrl,
             DisplayOrder = category.DisplayOrder,
             IsActive = category.IsActive,
-            SubCategories = subCategories
+            SubCategories = subCategories,
+            ExternalCode = category.ExternalCode,
+            ExternalId = category.ExternalId,
+            LastSyncedAt = category.LastSyncedAt
         };
     }
 }

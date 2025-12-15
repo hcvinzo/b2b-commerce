@@ -5,9 +5,10 @@ using B2BCommerce.Backend.Domain.Exceptions;
 namespace B2BCommerce.Backend.Domain.Entities;
 
 /// <summary>
-/// Defines a product attribute template (e.g., "Screen Size", "Memory Capacity")
+/// Defines a product attribute template (e.g., "Screen Size", "Memory Capacity").
+/// Inherits from ExternalEntity to support external system synchronization.
 /// </summary>
-public class AttributeDefinition : BaseEntity, IAggregateRoot
+public class AttributeDefinition : ExternalEntity, IAggregateRoot
 {
     /// <summary>
     /// Unique code for the attribute (e.g., "screen_size", "memory_capacity")
@@ -106,6 +107,53 @@ public class AttributeDefinition : BaseEntity, IAggregateRoot
     }
 
     /// <summary>
+    /// Creates an attribute definition from an external system (LOGO ERP).
+    /// Uses ExternalId as the primary upsert key.
+    /// </summary>
+    /// <param name="externalId">External system ID (required)</param>
+    /// <param name="code">Attribute code (required, unique)</param>
+    /// <param name="name">Display name in Turkish (required)</param>
+    /// <param name="type">Data type for this attribute</param>
+    /// <param name="nameEn">Display name in English (optional)</param>
+    /// <param name="unit">Unit of measurement (optional)</param>
+    /// <param name="isFilterable">Whether this attribute should appear in product filters</param>
+    /// <param name="isRequired">Default required status</param>
+    /// <param name="isVisibleOnProductPage">Whether to display on product detail page</param>
+    /// <param name="displayOrder">Display order in UI</param>
+    /// <param name="externalCode">External system code (optional)</param>
+    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
+    public static AttributeDefinition CreateFromExternal(
+        string externalId,
+        string code,
+        string name,
+        AttributeType type,
+        string? nameEn = null,
+        string? unit = null,
+        bool isFilterable = true,
+        bool isRequired = false,
+        bool isVisibleOnProductPage = true,
+        int displayOrder = 0,
+        string? externalCode = null,
+        Guid? specificId = null)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            throw new ArgumentException("External ID is required", nameof(externalId));
+        }
+
+        var attr = Create(code, name, type, nameEn, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
+
+        if (specificId.HasValue)
+        {
+            attr.Id = specificId.Value;
+        }
+
+        attr.SetExternalIdentifiers(externalCode, externalId);
+        attr.MarkAsSynced();
+        return attr;
+    }
+
+    /// <summary>
     /// Updates the attribute definition details
     /// </summary>
     public void Update(
@@ -129,6 +177,30 @@ public class AttributeDefinition : BaseEntity, IAggregateRoot
         IsRequired = isRequired;
         IsVisibleOnProductPage = isVisibleOnProductPage;
         DisplayOrder = displayOrder;
+    }
+
+    /// <summary>
+    /// Updates attribute definition from external system sync (LOGO ERP).
+    /// ExternalCode is optional and can be updated if provided.
+    /// </summary>
+    public void UpdateFromExternal(
+        string name,
+        string? nameEn,
+        string? unit,
+        bool isFilterable,
+        bool isRequired,
+        bool isVisibleOnProductPage,
+        int displayOrder,
+        string? externalCode = null)
+    {
+        Update(name, nameEn, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
+
+        if (externalCode != null)
+        {
+            SetExternalIdentifiers(externalCode, ExternalId);
+        }
+
+        MarkAsSynced();
     }
 
     /// <summary>
@@ -166,6 +238,34 @@ public class AttributeDefinition : BaseEntity, IAggregateRoot
         {
             _predefinedValues.Remove(value);
         }
+    }
+
+    /// <summary>
+    /// Updates an existing predefined value
+    /// </summary>
+    public void UpdatePredefinedValue(Guid valueId, string value, string? displayText, int displayOrder)
+    {
+        var existing = _predefinedValues.FirstOrDefault(v => v.Id == valueId);
+        if (existing == null)
+        {
+            throw new DomainException($"Value with ID '{valueId}' not found");
+        }
+
+        // Check for duplicate value (excluding current)
+        if (_predefinedValues.Any(v => v.Id != valueId && v.Value.Equals(value, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new DomainException($"Value '{value}' already exists");
+        }
+
+        existing.Update(value, displayText, displayOrder);
+    }
+
+    /// <summary>
+    /// Finds a predefined value by its value string
+    /// </summary>
+    public AttributeValue? FindPredefinedValueByValue(string value)
+    {
+        return _predefinedValues.FirstOrDefault(v => v.Value.Equals(value, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

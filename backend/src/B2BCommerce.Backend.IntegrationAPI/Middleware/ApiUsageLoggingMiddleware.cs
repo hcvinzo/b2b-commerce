@@ -12,16 +12,19 @@ public class ApiUsageLoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ApiUsageLoggingMiddleware> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public ApiUsageLoggingMiddleware(
         RequestDelegate next,
-        ILogger<ApiUsageLoggingMiddleware> logger)
+        ILogger<ApiUsageLoggingMiddleware> logger,
+        IServiceScopeFactory scopeFactory)
     {
         _next = next;
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
-    public async Task InvokeAsync(HttpContext context, IApiKeyUsageLogRepository usageLogRepository, IUnitOfWork unitOfWork)
+    public async Task InvokeAsync(HttpContext context)
     {
         var stopwatch = Stopwatch.StartNew();
         string? errorMessage = null;
@@ -45,26 +48,34 @@ public class ApiUsageLoggingMiddleware
                 && validationResult.IsValid
                 && validationResult.ApiKeyId.HasValue)
             {
-                try
+                // Use a separate scope to avoid DbContext concurrency issues
+                _ = Task.Run(async () =>
                 {
-                    var usageLog = ApiKeyUsageLog.Create(
-                        apiKeyId: validationResult.ApiKeyId.Value,
-                        endpoint: context.Request.Path.Value ?? "/",
-                        httpMethod: context.Request.Method,
-                        ipAddress: GetClientIpAddress(context),
-                        userAgent: context.Request.Headers.UserAgent.FirstOrDefault(),
-                        responseStatusCode: context.Response.StatusCode,
-                        responseTimeMs: (int)stopwatch.ElapsedMilliseconds,
-                        errorMessage: errorMessage);
+                    try
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var usageLogRepository = scope.ServiceProvider.GetRequiredService<IApiKeyUsageLogRepository>();
+                        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-                    await usageLogRepository.AddAsync(usageLog);
-                    await unitOfWork.SaveChangesAsync();
-                }
-                catch (Exception ex)
-                {
-                    // Don't fail the request if logging fails
-                    _logger.LogError(ex, "Failed to log API usage for key {ApiKeyId}", validationResult.ApiKeyId);
-                }
+                        var usageLog = ApiKeyUsageLog.Create(
+                            apiKeyId: validationResult.ApiKeyId.Value,
+                            endpoint: context.Request.Path.Value ?? "/",
+                            httpMethod: context.Request.Method,
+                            ipAddress: GetClientIpAddress(context),
+                            userAgent: context.Request.Headers.UserAgent.FirstOrDefault(),
+                            responseStatusCode: context.Response.StatusCode,
+                            responseTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                            errorMessage: errorMessage);
+
+                        await usageLogRepository.AddAsync(usageLog);
+                        await unitOfWork.SaveChangesAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Don't fail the request if logging fails
+                        _logger.LogError(ex, "Failed to log API usage for key {ApiKeyId}", validationResult.ApiKeyId);
+                    }
+                });
             }
         }
     }

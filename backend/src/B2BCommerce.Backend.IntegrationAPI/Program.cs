@@ -29,12 +29,32 @@ try
     // Add Infrastructure services (DbContext, Repositories, Identity, Services)
     builder.Services.AddInfrastructure(builder.Configuration);
 
+    // Override Identity cookie behavior to return 401 instead of redirecting to login page
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
+
     // Configure API Key settings
     builder.Services.Configure<ApiKeySettings>(
         builder.Configuration.GetSection("ApiKeySettings"));
 
-    // Add API Key Authentication
-    builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.AuthenticationScheme)
+    // Add API Key Authentication - must set all default schemes to override Identity's defaults
+    builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = ApiKeyAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = ApiKeyAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultScheme = ApiKeyAuthenticationDefaults.AuthenticationScheme;
+        })
         .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
             ApiKeyAuthenticationDefaults.AuthenticationScheme,
             options => { });
@@ -58,6 +78,10 @@ try
             policy.RequireClaim("scope", "customers:read", "customers:*", "*"));
         options.AddPolicy("customers:write", policy =>
             policy.RequireClaim("scope", "customers:write", "customers:*", "*"));
+        options.AddPolicy("attributes:read", policy =>
+            policy.RequireClaim("scope", "attributes:read", "attributes:*", "*"));
+        options.AddPolicy("attributes:write", policy =>
+            policy.RequireClaim("scope", "attributes:write", "attributes:*", "*"));
     });
 
     // Add API Explorer and Swagger
@@ -83,6 +107,8 @@ API keys are assigned scopes that control access:
 - `orders:write` - Create, update orders
 - `customers:read` - Read customer data
 - `customers:write` - Create, update customers
+- `attributes:read` - Read attribute definitions
+- `attributes:write` - Create, update, delete attributes
 - `*` - Full access to all endpoints
 
 ## Rate Limiting

@@ -41,4 +41,49 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
             .OrderBy(c => c.DisplayOrder)
             .ToListAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Gets a category by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    public async Task<Category?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(c => c.ExternalId == externalId && !c.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if a category exists by its external ID
+    /// </summary>
+    public async Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AnyAsync(c => c.ExternalId == externalId && !c.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets a category by its external code (optional reference for LOGO ERP)
+    /// </summary>
+    public async Task<Category?> GetByExternalCodeAsync(string externalCode, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(c => c.ExternalCode == externalCode && !c.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if a category exists by its external code
+    /// </summary>
+    public async Task<bool> ExistsByExternalCodeAsync(string externalCode, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AnyAsync(c => c.ExternalCode == externalCode && !c.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets a category by its URL-friendly slug
+    /// </summary>
+    public async Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(c => c.Slug == slug && !c.IsDeleted, cancellationToken);
+    }
 }

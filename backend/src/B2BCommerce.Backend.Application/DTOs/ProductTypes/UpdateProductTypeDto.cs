@@ -14,4 +14,9 @@ public class UpdateProductTypeDto
     /// Admin description
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Whether new products can use this type
+    /// </summary>
+    public bool IsActive { get; set; } = true;
 }

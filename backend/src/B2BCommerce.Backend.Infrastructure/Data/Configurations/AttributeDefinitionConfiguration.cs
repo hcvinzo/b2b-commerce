@@ -70,6 +70,15 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
         builder.Property(a => a.DeletedBy)
             .HasMaxLength(100);
 
+        // ExternalEntity properties
+        builder.Property(a => a.ExternalId)
+            .HasMaxLength(100);
+
+        builder.Property(a => a.ExternalCode)
+            .HasMaxLength(100);
+
+        builder.Property(a => a.LastSyncedAt);
+
         // Relationships
         builder.HasMany(a => a.PredefinedValues)
             .WithOne(v => v.AttributeDefinition)
@@ -80,6 +89,15 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
         builder.HasIndex(a => a.Code)
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");
+
+        // Unique index on ExternalId (primary upsert key)
+        builder.HasIndex(a => a.ExternalId)
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalId\" IS NOT NULL");
+
+        // Non-unique index on ExternalCode (optional reference)
+        builder.HasIndex(a => a.ExternalCode)
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
 
         builder.HasIndex(a => a.IsFilterable);
 

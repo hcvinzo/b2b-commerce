@@ -430,8 +430,8 @@ public class ApiKeyService : IApiKeyService
             };
         }
 
-        // Update last used (fire and forget - don't block validation)
-        _ = _unitOfWork.ApiKeys.UpdateLastUsedAsync(key.Id, ipAddress, CancellationToken.None);
+        // Update last used timestamp
+        await _unitOfWork.ApiKeys.UpdateLastUsedAsync(key.Id, ipAddress, cancellationToken);
 
         return new ApiKeyValidationResult
         {

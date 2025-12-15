@@ -3,6 +3,7 @@ using System;
 using B2BCommerce.Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace B2BCommerce.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215120750_ChangeExternalIdToUpsertKey")]
+    partial class ChangeExternalIdToUpsertKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,14 +55,6 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
-                    b.Property<string>("ExternalCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ExternalId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -79,9 +74,6 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
-
-                    b.Property<DateTime?>("LastSyncedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -113,13 +105,6 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("DisplayOrder");
-
-                    b.HasIndex("ExternalCode")
-                        .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
-
-                    b.HasIndex("ExternalId")
-                        .IsUnique()
-                        .HasFilter("\"IsDeleted\" = false AND \"ExternalId\" IS NOT NULL");
 
                     b.HasIndex("IsDeleted");
 

@@ -101,18 +101,24 @@ public abstract class BaseEntity
 ```csharp
 public abstract class ExternalEntity : BaseEntity, IExternalEntity
 {
-    public string? ExternalCode { get; protected set; }  // Code in external system
-    public string? ExternalId { get; protected set; }    // ID in external system
+    public string? ExternalId { get; protected set; }    // PRIMARY upsert key from external system
+    public string? ExternalCode { get; protected set; }  // OPTIONAL additional reference code
     public DateTime? LastSyncedAt { get; protected set; }
 
     public void MarkAsSynced() => LastSyncedAt = DateTime.UtcNow;
+    public void SetExternalIdentifiers(string? code, string? id) { ... }
 
     // Factory method pattern for external creation
-    // Child entities implement: static T CreateFromExternal(string externalCode, ...)
+    // Child entities implement: static T CreateFromExternal(string externalId, ...)
 }
 ```
 
 **Entities extending ExternalEntity**: `Product`, `Category`, `Brand`, `Customer`
+
+**ExternalEntity Methods** (on child entities):
+- `CreateFromExternal(externalId, name, ..., externalCode?, specificId?)` - Factory method for creating from external sync (externalId is PRIMARY key)
+- `UpdateFromExternal(...)` - Method for updating from external sync
+- `MarkAsSynced()` - Called after sync to set LastSyncedAt
 
 ### Entity Rules
 
@@ -136,11 +142,12 @@ public class Product : ExternalEntity, IAggregateRoot
         return product;
     }
 
-    // Factory method for external system sync
-    public static Product CreateFromExternal(string externalCode, string sku, string name, ...)
+    // Factory method for external system sync (ExternalId is PRIMARY key)
+    public static Product CreateFromExternal(string externalId, string sku, string name, ..., string? externalCode = null, Guid? specificId = null)
     {
         var product = Create(sku, name, ...);
-        product.ExternalCode = externalCode;
+        if (specificId.HasValue) product.Id = specificId.Value;
+        product.SetExternalIdentifiers(externalCode, externalId);
         product.MarkAsSynced();
         return product;
     }
@@ -553,6 +560,66 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 ```csharp
 services.AddAuthentication("ApiKey")
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+```
+
+### Integration API Endpoints
+
+For ExternalEntity entities, provide ExternalId-based upsert and lookup endpoints:
+
+**External Entity Identity Fields**:
+- `ExternalId` (string) - **PRIMARY upsert key** from external system (e.g., LOGO ERP ID)
+- `ExternalCode` (string) - **OPTIONAL** additional reference code
+- `Id` (Guid) - Internal database ID
+
+**Upsert Endpoint** - Creates or updates by ExternalId or Id:
+```csharp
+// POST /api/v1/categories - Upsert by ExtId or Id
+[HttpPost]
+[Authorize(Policy = "categories:write")]
+public async Task<IActionResult> UpsertCategory([FromBody] CategorySyncRequest request)
+{
+    // One of ExtId or Id is required
+    // If only Id provided, ExtId is set to Id.ToString()
+    var command = new UpsertCategoryCommand
+    {
+        Id = request.Id,                      // Optional internal ID (for update or create with specific ID)
+        ExternalId = request.ExtId,           // PRIMARY upsert key
+        ExternalCode = request.ExtCode,       // Optional reference
+        Name = request.Name,
+        ParentExternalId = request.ParentId,  // Parent lookup by ExternalId
+        ParentExternalCode = request.ParentCode,  // Parent lookup by ExternalCode (fallback)
+        ...
+    };
+    return OkResponse(await _mediator.Send(command));
+}
+```
+
+**Lookup Endpoints**:
+```csharp
+// GET /api/v1/categories/{id:guid} - By internal ID
+// GET /api/v1/categories/ext/{extId} - By ExternalId (primary lookup)
+// GET /api/v1/categories/ext/{extId}/subcategories - Get subcategories by parent's ExternalId
+```
+
+**Action Endpoints by ExternalId**:
+```csharp
+// DELETE /api/v1/categories/ext/{extId} - Delete by ExternalId
+// POST /api/v1/categories/ext/{extId}/activate - Activate by ExternalId
+// POST /api/v1/categories/ext/{extId}/deactivate - Deactivate by ExternalId
+```
+
+**Repository Methods for ExternalEntity**:
+```csharp
+public interface ICategoryRepository : IGenericRepository<Category>
+{
+    // PRIMARY lookup by ExternalId
+    Task<Category?> GetByExternalIdAsync(string externalId, CancellationToken ct = default);
+    Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken ct = default);
+
+    // FALLBACK lookup by ExternalCode (backward compatibility)
+    Task<Category?> GetByExternalCodeAsync(string externalCode, CancellationToken ct = default);
+    Task<bool> ExistsByExternalCodeAsync(string externalCode, CancellationToken ct = default);
+}
 ```
 
 ### Response Format

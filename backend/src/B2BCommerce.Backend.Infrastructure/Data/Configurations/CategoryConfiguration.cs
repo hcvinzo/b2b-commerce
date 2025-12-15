@@ -46,6 +46,15 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         // Default ProductType FK
         builder.Property(c => c.DefaultProductTypeId);
 
+        // External entity fields (from ExternalEntity base class)
+        builder.Property(c => c.ExternalCode)
+            .HasMaxLength(100);
+
+        builder.Property(c => c.ExternalId)
+            .HasMaxLength(100);
+
+        builder.Property(c => c.LastSyncedAt);
+
         // Audit properties
         builder.Property(c => c.CreatedAt)
             .IsRequired();
@@ -98,5 +107,16 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasFilter("\"IsDeleted\" = false");
 
         builder.HasIndex(c => c.DefaultProductTypeId);
+
+        // External ID unique index (primary upsert key, non-deleted, non-null only)
+        builder.HasIndex(c => c.ExternalId)
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalId\" IS NOT NULL");
+
+        // External code index (optional field, non-unique for lookups)
+        builder.HasIndex(c => c.ExternalCode)
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
+
+        builder.HasIndex(c => c.LastSyncedAt);
     }
 }

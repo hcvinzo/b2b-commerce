@@ -13,8 +13,14 @@ public class CategoryDto
     public string? ImageUrl { get; set; }
     public int DisplayOrder { get; set; }
     public bool IsActive { get; set; }
+    public string? Slug { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    // External entity fields
+    public string? ExternalCode { get; set; }
+    public string? ExternalId { get; set; }
+    public DateTime? LastSyncedAt { get; set; }
 }
 
 /// <summary>
@@ -30,6 +36,11 @@ public class CategoryListDto
     public bool IsActive { get; set; }
     public int SubCategoryCount { get; set; }
     public int ProductCount { get; set; }
+
+    // External entity fields
+    public string? ExternalCode { get; set; }
+    public string? ExternalId { get; set; }
+    public DateTime? LastSyncedAt { get; set; }
 }
 
 /// <summary>
@@ -44,4 +55,9 @@ public class CategoryTreeDto
     public int DisplayOrder { get; set; }
     public bool IsActive { get; set; }
     public List<CategoryTreeDto> SubCategories { get; set; } = new();
+
+    // External entity fields
+    public string? ExternalCode { get; set; }
+    public string? ExternalId { get; set; }
+    public DateTime? LastSyncedAt { get; set; }
 }

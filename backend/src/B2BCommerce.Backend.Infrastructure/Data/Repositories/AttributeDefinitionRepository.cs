@@ -44,4 +44,31 @@ public class AttributeDefinitionRepository : GenericRepository<AttributeDefiniti
             .Include(a => a.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder))
             .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
     }
+
+    /// <summary>
+    /// Gets an attribute definition by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    public async Task<AttributeDefinition?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(a => a.ExternalId == externalId && !a.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets attribute definition with predefined values by external ID
+    /// </summary>
+    public async Task<AttributeDefinition?> GetWithPredefinedValuesByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(a => a.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder))
+            .FirstOrDefaultAsync(a => a.ExternalId == externalId && !a.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if an attribute definition exists by its external ID
+    /// </summary>
+    public async Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AnyAsync(a => a.ExternalId == externalId && !a.IsDeleted, cancellationToken);
+    }
 }

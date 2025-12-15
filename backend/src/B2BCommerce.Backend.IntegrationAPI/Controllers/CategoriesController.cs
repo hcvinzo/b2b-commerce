@@ -3,11 +3,13 @@ using B2BCommerce.Backend.Application.Features.Categories.Commands.CreateCategor
 using B2BCommerce.Backend.Application.Features.Categories.Commands.DeactivateCategory;
 using B2BCommerce.Backend.Application.Features.Categories.Commands.DeleteCategory;
 using B2BCommerce.Backend.Application.Features.Categories.Commands.UpdateCategory;
+using B2BCommerce.Backend.Application.Features.Categories.Commands.UpsertCategory;
 using B2BCommerce.Backend.Application.Features.Categories.Queries.GetCategories;
 using B2BCommerce.Backend.Application.Features.Categories.Queries.GetCategoryById;
 using B2BCommerce.Backend.Application.Features.Categories.Queries.GetCategoryTree;
 using B2BCommerce.Backend.Application.Features.Categories.Queries.GetRootCategories;
 using B2BCommerce.Backend.Application.Features.Categories.Queries.GetSubCategories;
+using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.IntegrationAPI.DTOs.Categories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -22,13 +24,16 @@ public class CategoriesController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<CategoriesController> _logger;
+    private readonly IUnitOfWork _unitOfWork;
 
     public CategoriesController(
         IMediator mediator,
-        ILogger<CategoriesController> logger)
+        ILogger<CategoriesController> logger,
+        IUnitOfWork unitOfWork)
     {
         _mediator = mediator;
         _logger = logger;
+        _unitOfWork = unitOfWork;
     }
 
     /// <summary>
@@ -37,11 +42,24 @@ public class CategoriesController : BaseApiController
     [HttpGet]
     [Authorize(Policy = "categories:read")]
     [ProducesResponseType(typeof(Models.PagedApiResponse<CategoryListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCategories([FromQuery] CategoryFilterDto filter)
     {
+        // Resolve ParentCategoryExtId to ParentCategoryId if provided
+        Guid? parentCategoryId = filter.ParentCategoryId;
+        if (!parentCategoryId.HasValue && !string.IsNullOrEmpty(filter.ParentCategoryExtId))
+        {
+            var parentCategory = await _unitOfWork.Categories.GetByExternalIdAsync(filter.ParentCategoryExtId);
+            if (parentCategory == null)
+            {
+                return NotFoundResponse($"Parent category with external ID '{filter.ParentCategoryExtId}' not found");
+            }
+            parentCategoryId = parentCategory.Id;
+        }
+
         var query = new GetCategoriesQuery(
             filter.Search,
-            filter.ParentCategoryId,
+            parentCategoryId,
             filter.IsActive,
             filter.PageNumber,
             filter.PageSize,
@@ -83,6 +101,25 @@ public class CategoriesController : BaseApiController
         }
 
         return OkResponse(MapToCategoryDto(result.Data!));
+    }
+
+    /// <summary>
+    /// Get category by external ID (primary lookup)
+    /// </summary>
+    [HttpGet("ext/{extId}")]
+    [Authorize(Policy = "categories:read")]
+    [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCategoryByExtId(string extId)
+    {
+        var category = await _unitOfWork.Categories.GetByExternalIdAsync(extId);
+
+        if (category == null)
+        {
+            return NotFoundResponse($"Category with external ID '{extId}' not found");
+        }
+
+        return OkResponse(await MapCategoryToDto(category));
     }
 
     /// <summary>
@@ -151,83 +188,89 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Create a new category
+    /// Get subcategories by parent's external ID
     /// </summary>
-    [HttpPost]
-    [Authorize(Policy = "categories:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto dto)
+    [HttpGet("ext/{extId}/subcategories")]
+    [Authorize(Policy = "categories:read")]
+    [ProducesResponseType(typeof(Models.ApiResponse<List<CategoryListDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSubCategoriesByExtId(string extId, [FromQuery] bool activeOnly = true)
     {
-        var command = new CreateCategoryCommand(
-            dto.Name,
-            dto.Description,
-            dto.ParentCategoryId,
-            dto.ImageUrl,
-            dto.DisplayOrder,
-            dto.IsActive,
-            GetClientName());
+        var parentCategory = await _unitOfWork.Categories.GetByExternalIdAsync(extId);
 
-        var result = await _mediator.Send(command);
+        if (parentCategory == null)
+        {
+            return NotFoundResponse($"Category with external ID '{extId}' not found");
+        }
+
+        var query = new GetSubCategoriesQuery(parentCategory.Id, activeOnly);
+        var result = await _mediator.Send(query);
 
         if (!result.IsSuccess)
         {
-            if (result.ErrorCode == "INVALID_PARENT")
-            {
-                return BadRequestResponse(result.ErrorMessage ?? "Invalid parent category", result.ErrorCode);
-            }
-            if (result.ErrorCode == "DUPLICATE_NAME")
-            {
-                return ConflictResponse(result.ErrorMessage ?? "Duplicate category name", result.ErrorCode);
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to create category", result.ErrorCode);
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to get subcategories", result.ErrorCode);
         }
 
-        _logger.LogInformation(
-            "Category {CategoryId} created by API client {ClientName}",
-            result.Data!.Id,
-            GetClientName());
-
-        return CreatedResponse(MapToCategoryDto(result.Data!), $"/api/v1/categories/{result.Data!.Id}");
+        var dtos = result.Data!.Select(MapToCategoryListDto).ToList();
+        return OkResponse(dtos);
     }
 
     /// <summary>
-    /// Update an existing category
+    /// Upserts category. If category with given external ID or internal ID exists, it is updated; otherwise, a new category is created.
+    /// One of ExtId or Id is required. If only Id is provided, ExtId will be set to Id.ToString().
     /// </summary>
-    [HttpPut("{id:guid}")]
+    [HttpPost()]
     [Authorize(Policy = "categories:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto dto)
+    public async Task<IActionResult> UpsertCategory([FromBody] CategorySyncRequest request)
     {
-        var command = new UpdateCategoryCommand(
-            id,
-            dto.Name,
-            dto.Description,
-            dto.ImageUrl,
-            dto.DisplayOrder,
-            dto.IsActive,
-            GetClientName());
+        // Validate: One of ExtId or Id is required
+        if (string.IsNullOrEmpty(request.ExtId) && !request.Id.HasValue)
+        {
+            return BadRequestResponse("One of ExtId or Id is required", "ID_REQUIRED");
+        }
+
+        // If only Id is provided, set ExtId to Id.ToString()
+        var externalId = request.ExtId;
+        if (string.IsNullOrEmpty(externalId) && request.Id.HasValue)
+        {
+            externalId = request.Id.Value.ToString();
+        }
+
+        var command = new UpsertCategoryCommand
+        {
+            Id = request.Id,
+            ExternalId = externalId,
+            ExternalCode = request.ExtCode,
+            Name = request.Name,
+            Description = request.Description,
+            ParentExternalId = request.ParentId,
+            ParentExternalCode = request.ParentCode,
+            ImageUrl = request.ImageUrl,
+            DisplayOrder = request.DisplayOrder,
+            IsActive = request.IsActive,
+            ModifiedBy = GetClientName()
+        };
 
         var result = await _mediator.Send(command);
 
         if (!result.IsSuccess)
         {
+            if (result.ErrorCode == "PARENT_NOT_FOUND")
+            {
+                return BadRequestResponse(result.ErrorMessage ?? "Parent category not found", result.ErrorCode);
+            }
             if (result.ErrorCode == "NOT_FOUND")
             {
-                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+                return NotFoundResponse(result.ErrorMessage ?? "Category not found");
             }
-            if (result.ErrorCode == "DUPLICATE_NAME")
-            {
-                return ConflictResponse(result.ErrorMessage ?? "Duplicate category name", result.ErrorCode);
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to update category", result.ErrorCode);
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to sync category", result.ErrorCode);
         }
 
         _logger.LogInformation(
-            "Category {CategoryId} updated by API client {ClientName}",
-            id,
+            "Category {ExternalId} synced by API client {ClientName}",
+            externalId,
             GetClientName());
 
         return OkResponse(MapToCategoryDto(result.Data!));
@@ -268,61 +311,69 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Activate a category
+    /// Delete a category by external ID (soft delete)
     /// </summary>
-    [HttpPost("{id:guid}/activate")]
+    [HttpDelete("ext/{extId}")]
     [Authorize(Policy = "categories:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ActivateCategory(Guid id)
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteCategoryByExtId(string extId)
     {
-        var command = new ActivateCategoryCommand(id, GetClientName());
+        var category = await _unitOfWork.Categories.GetByExternalIdAsync(extId);
+
+        if (category == null)
+        {
+            return NotFoundResponse($"Category with external ID '{extId}' not found");
+        }
+
+        var command = new DeleteCategoryCommand(category.Id, GetClientName());
         var result = await _mediator.Send(command);
 
         if (!result.IsSuccess)
         {
-            if (result.ErrorCode == "NOT_FOUND")
+            if (result.ErrorCode == "HAS_SUBCATEGORIES" || result.ErrorCode == "HAS_PRODUCTS")
             {
-                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
+                return BadRequestResponse(result.ErrorMessage ?? "Cannot delete category", result.ErrorCode);
             }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to activate category", result.ErrorCode);
+            return BadRequestResponse(result.ErrorMessage ?? "Failed to delete category", result.ErrorCode);
         }
 
         _logger.LogInformation(
-            "Category {CategoryId} activated by API client {ClientName}",
-            id,
+            "Category with external ID {ExternalId} deleted by API client {ClientName}",
+            extId,
             GetClientName());
 
-        return OkResponse(MapToCategoryDto(result.Data!));
+        return OkResponse<object?>(null, "Category deleted successfully");
     }
 
-    /// <summary>
-    /// Deactivate a category
-    /// </summary>
-    [HttpPost("{id:guid}/deactivate")]
-    [Authorize(Policy = "categories:write")]
-    [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeactivateCategory(Guid id)
+    private async Task<CategoryDto> MapCategoryToDto(Domain.Entities.Category category)
     {
-        var command = new DeactivateCategoryCommand(id, GetClientName());
-        var result = await _mediator.Send(command);
-
-        if (!result.IsSuccess)
+        // Get parent name if exists
+        string? parentCategoryName = null;
+        if (category.ParentCategoryId.HasValue)
         {
-            if (result.ErrorCode == "NOT_FOUND")
-            {
-                return NotFoundResponse(result.ErrorMessage ?? $"Category with ID {id} not found");
-            }
-            return BadRequestResponse(result.ErrorMessage ?? "Failed to deactivate category", result.ErrorCode);
+            var parent = await _unitOfWork.Categories.GetByIdAsync(category.ParentCategoryId.Value);
+            parentCategoryName = parent?.Name;
         }
 
-        _logger.LogInformation(
-            "Category {CategoryId} deactivated by API client {ClientName}",
-            id,
-            GetClientName());
-
-        return OkResponse(MapToCategoryDto(result.Data!));
+        return new CategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Description = category.Description,
+            ParentCategoryId = category.ParentCategoryId,
+            ParentCategoryName = parentCategoryName,
+            ImageUrl = category.ImageUrl,
+            DisplayOrder = category.DisplayOrder,
+            IsActive = category.IsActive,
+            Slug = category.Slug,
+            CreatedAt = category.CreatedAt,
+            UpdatedAt = category.UpdatedAt,
+            ExternalCode = category.ExternalCode,
+            ExternalId = category.ExternalId,
+            LastSyncedAt = category.LastSyncedAt
+        };
     }
 
     #region Private Mapping Methods
@@ -339,8 +390,12 @@ public class CategoriesController : BaseApiController
             ImageUrl = source.ImageUrl,
             DisplayOrder = source.DisplayOrder,
             IsActive = source.IsActive,
+            Slug = source.Slug,
             CreatedAt = source.CreatedAt,
-            UpdatedAt = source.UpdatedAt
+            UpdatedAt = source.UpdatedAt,
+            ExternalCode = source.ExternalCode,
+            ExternalId = source.ExternalId,
+            LastSyncedAt = source.LastSyncedAt
         };
     }
 
@@ -355,7 +410,10 @@ public class CategoriesController : BaseApiController
             DisplayOrder = source.DisplayOrder,
             IsActive = source.IsActive,
             SubCategoryCount = source.SubCategoryCount,
-            ProductCount = source.ProductCount
+            ProductCount = source.ProductCount,
+            ExternalCode = source.ExternalCode,
+            ExternalId = source.ExternalId,
+            LastSyncedAt = source.LastSyncedAt
         };
     }
 
@@ -369,7 +427,10 @@ public class CategoriesController : BaseApiController
             ImageUrl = source.ImageUrl,
             DisplayOrder = source.DisplayOrder,
             IsActive = source.IsActive,
-            SubCategories = source.SubCategories.Select(MapToCategoryTreeDto).ToList()
+            SubCategories = source.SubCategories.Select(MapToCategoryTreeDto).ToList(),
+            ExternalCode = source.ExternalCode,
+            ExternalId = source.ExternalId,
+            LastSyncedAt = source.LastSyncedAt
         };
     }
 

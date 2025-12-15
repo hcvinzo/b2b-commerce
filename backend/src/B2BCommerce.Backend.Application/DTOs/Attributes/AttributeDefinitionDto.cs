@@ -63,6 +63,21 @@ public class AttributeDefinitionDto
     public List<AttributeValueDto> PredefinedValues { get; set; } = new();
 
     /// <summary>
+    /// External system ID (primary upsert key for ERP sync)
+    /// </summary>
+    public string? ExternalId { get; set; }
+
+    /// <summary>
+    /// External system code (optional reference)
+    /// </summary>
+    public string? ExternalCode { get; set; }
+
+    /// <summary>
+    /// When the entity was last synced with external system
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
+
+    /// <summary>
     /// Date created
     /// </summary>
     public DateTime CreatedAt { get; set; }

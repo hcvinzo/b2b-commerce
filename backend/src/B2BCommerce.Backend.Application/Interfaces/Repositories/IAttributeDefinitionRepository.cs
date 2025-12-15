@@ -29,4 +29,28 @@ public interface IAttributeDefinitionRepository : IGenericRepository<AttributeDe
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>AttributeDefinition with predefined values</returns>
     Task<AttributeDefinition?> GetWithPredefinedValuesAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets an attribute definition by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>AttributeDefinition if found, null otherwise</returns>
+    Task<AttributeDefinition?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets attribute definition with predefined values by external ID
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>AttributeDefinition with predefined values</returns>
+    Task<AttributeDefinition?> GetWithPredefinedValuesByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if an attribute definition exists by its external ID
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if exists, false otherwise</returns>
+    Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
 }
