@@ -8,7 +8,7 @@ namespace B2BCommerce.Backend.Domain.Entities;
 /// <summary>
 /// Product entity representing items that can be ordered
 /// </summary>
-public class Product : BaseEntity, IAggregateRoot
+public class Product : ExternalEntity, IAggregateRoot
 {
     public string Name { get; private set; }
     public string Description { get; private set; }
@@ -503,6 +503,89 @@ public class Product : BaseEntity, IAggregateRoot
     public ProductAttributeValue? GetAttributeValue(Guid attributeDefinitionId)
     {
         return _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+    }
+
+    #endregion
+
+    #region External System Integration
+
+    /// <summary>
+    /// Creates a product from an external system (LOGO ERP).
+    /// Uses ExternalId as the primary upsert key.
+    /// </summary>
+    public static Product CreateFromExternal(
+        string externalId,
+        string sku,
+        string name,
+        string description,
+        Guid categoryId,
+        Money listPrice,
+        int stockQuantity,
+        int minimumOrderQuantity = 1,
+        decimal taxRate = 0.20m,
+        Guid? brandId = null,
+        Guid? productTypeId = null,
+        bool isActive = true,
+        string? externalCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            throw new ArgumentException("External ID is required", nameof(externalId));
+        }
+
+        var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate);
+
+        product.BrandId = brandId;
+        product.ProductTypeId = productTypeId;
+
+        if (!isActive)
+        {
+            product.Deactivate();
+        }
+
+        product.SetExternalIdentifiers(externalCode, externalId);
+        product.MarkAsSynced();
+        return product;
+    }
+
+    /// <summary>
+    /// Updates product from external system sync
+    /// </summary>
+    public void UpdateFromExternal(
+        string name,
+        string description,
+        Guid categoryId,
+        Guid? brandId,
+        Guid? productTypeId,
+        bool isActive,
+        string? externalCode = null)
+    {
+        UpdateBasicInfo(name, description, categoryId, brandId);
+
+        if (productTypeId.HasValue)
+        {
+            SetProductType(productTypeId.Value);
+        }
+        else
+        {
+            ClearProductType();
+        }
+
+        if (isActive)
+        {
+            Activate();
+        }
+        else
+        {
+            Deactivate();
+        }
+
+        if (externalCode != null)
+        {
+            SetExternalIdentifiers(externalCode, ExternalId);
+        }
+
+        MarkAsSynced();
     }
 
     #endregion

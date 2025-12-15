@@ -39,4 +39,44 @@ public interface IProductRepository : IGenericRepository<Product>
         Guid? brandId = null,
         bool activeOnly = true,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a product by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product if found, null otherwise</returns>
+    Task<Product?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets product with all related data by external ID
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product with related data</returns>
+    Task<Product?> GetWithDetailsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets product with all related data by SKU
+    /// </summary>
+    /// <param name="sku">Product SKU</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product with related data</returns>
+    Task<Product?> GetWithDetailsBySKUAsync(string sku, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets product with all related data by ID
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product with related data</returns>
+    Task<Product?> GetWithDetailsByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a product exists by its external ID
+    /// </summary>
+    /// <param name="externalId">External system ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if exists, false otherwise</returns>
+    Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
 }

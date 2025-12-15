@@ -141,6 +141,41 @@ public class ProductDto
     public decimal? Height { get; set; }
 
     /// <summary>
+    /// Product type identifier
+    /// </summary>
+    public Guid? ProductTypeId { get; set; }
+
+    /// <summary>
+    /// Product type name
+    /// </summary>
+    public string? ProductTypeName { get; set; }
+
+    /// <summary>
+    /// Product type external ID
+    /// </summary>
+    public string? ProductTypeExtId { get; set; }
+
+    /// <summary>
+    /// Category external ID
+    /// </summary>
+    public string? CategoryExtId { get; set; }
+
+    /// <summary>
+    /// External system ID (LOGO ERP primary key)
+    /// </summary>
+    public string? ExternalId { get; set; }
+
+    /// <summary>
+    /// External system code (optional reference)
+    /// </summary>
+    public string? ExternalCode { get; set; }
+
+    /// <summary>
+    /// Date of last synchronization with external system
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
+
+    /// <summary>
     /// Date created
     /// </summary>
     public DateTime CreatedAt { get; set; }

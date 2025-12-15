@@ -177,6 +177,15 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.DeletedBy)
             .HasMaxLength(100);
 
+        // ExternalEntity properties
+        builder.Property(p => p.ExternalId)
+            .HasMaxLength(100);
+
+        builder.Property(p => p.ExternalCode)
+            .HasMaxLength(100);
+
+        builder.Property(p => p.LastSyncedAt);
+
         // ProductType FK (optional for backward compatibility)
         builder.Property(p => p.ProductTypeId);
 
@@ -211,5 +220,14 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => p.IsActive);
 
         builder.HasIndex(p => p.IsDeleted);
+
+        // Unique index on ExternalId (primary upsert key)
+        builder.HasIndex(p => p.ExternalId)
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalId\" IS NOT NULL");
+
+        // Non-unique index on ExternalCode (optional reference)
+        builder.HasIndex(p => p.ExternalCode)
+            .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
     }
 }

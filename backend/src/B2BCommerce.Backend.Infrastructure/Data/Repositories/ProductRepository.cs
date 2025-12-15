@@ -99,4 +99,57 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Gets a product by its external ID (primary key for LOGO ERP integration)
+    /// </summary>
+    public async Task<Product?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(p => p.ExternalId == externalId && !p.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets product with all related data by external ID
+    /// </summary>
+    public async Task<Product?> GetWithDetailsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.ProductType)
+            .FirstOrDefaultAsync(p => p.ExternalId == externalId && !p.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets product with all related data by SKU
+    /// </summary>
+    public async Task<Product?> GetWithDetailsBySKUAsync(string sku, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.ProductType)
+            .FirstOrDefaultAsync(p => p.SKU == sku && !p.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets product with all related data by ID
+    /// </summary>
+    public async Task<Product?> GetWithDetailsByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.ProductType)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if a product exists by its external ID
+    /// </summary>
+    public async Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AnyAsync(p => p.ExternalId == externalId && !p.IsDeleted, cancellationToken);
+    }
 }
