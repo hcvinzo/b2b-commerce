@@ -13,6 +13,7 @@ import {
   Building2,
   SlidersHorizontal,
   Layers,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -79,6 +80,11 @@ export const navigation: NavGroup[] = [
         title: "Product Types",
         url: "/product-types",
         icon: Layers,
+      },
+      {
+        title: "Brands",
+        url: "/brands",
+        icon: Tag,
       },
     ],
   },
