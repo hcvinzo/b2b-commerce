@@ -39,6 +39,10 @@ public class Brand : ExternalEntity, IAggregateRoot
             Products = new List<Product>()
         };
 
+        // Auto-populate ExternalId for Integration API compatibility
+        // This ensures entities created by B2B Commerce can be referenced by external systems
+        brand.SetExternalIdentifiers(externalCode: null, externalId: brand.Id.ToString());
+
         return brand;
     }
 

@@ -86,7 +86,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         // Validate that Select/MultiSelect types should have predefined values
         // This is just a warning during creation, values can be added later
 
-        return new AttributeDefinition
+        var attribute = new AttributeDefinition
         {
             Code = code.Trim().ToLowerInvariant(),
             Name = name.Trim(),
@@ -97,6 +97,12 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
             IsVisibleOnProductPage = isVisibleOnProductPage,
             DisplayOrder = displayOrder
         };
+
+        // Auto-populate ExternalId for Integration API compatibility
+        // This ensures entities created by B2B Commerce can be referenced by external systems
+        attribute.SetExternalIdentifiers(externalCode: null, externalId: attribute.Id.ToString());
+
+        return attribute;
     }
 
     /// <summary>

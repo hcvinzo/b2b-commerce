@@ -144,6 +144,10 @@ public class Product : ExternalEntity, IAggregateRoot
         // Determine initial status based on required fields
         product.Status = product.CanActivate() ? ProductStatus.Active : ProductStatus.Draft;
 
+        // Auto-populate ExternalId for Integration API compatibility
+        // This ensures entities created by B2B Commerce can be referenced by external systems
+        product.SetExternalIdentifiers(externalCode: null, externalId: product.Id.ToString());
+
         return product;
     }
 
