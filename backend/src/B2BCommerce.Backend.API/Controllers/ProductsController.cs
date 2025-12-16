@@ -203,7 +203,7 @@ public class ProductsController : ControllerBase
             request.Tier5Price,
             request.StockQuantity,
             request.MinimumOrderQuantity,
-            request.IsActive,
+            request.Status,
             request.IsSerialTracked,
             request.TaxRate,
             request.MainImageUrl,

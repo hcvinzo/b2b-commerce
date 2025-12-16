@@ -1,3 +1,5 @@
+using B2BCommerce.Backend.Domain.Enums;
+
 namespace B2BCommerce.Backend.Application.DTOs.Products;
 
 /// <summary>
@@ -71,9 +73,9 @@ public class UpdateProductDto
     public int MinimumOrderQuantity { get; set; }
 
     /// <summary>
-    /// Whether product is active
+    /// Product status (Draft, Active, Inactive)
     /// </summary>
-    public bool IsActive { get; set; }
+    public ProductStatus? Status { get; set; }
 
     /// <summary>
     /// Whether product is serial tracked

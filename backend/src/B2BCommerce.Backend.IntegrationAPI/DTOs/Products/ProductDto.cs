@@ -1,3 +1,5 @@
+using B2BCommerce.Backend.Domain.Enums;
+
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Products;
 
 /// <summary>
@@ -51,6 +53,15 @@ public class ProductDto
     public decimal TaxRate { get; set; }
 
     // Status
+    /// <summary>
+    /// Product status (Draft = 0, Active = 1, Inactive = 2)
+    /// </summary>
+    public ProductStatus Status { get; set; }
+
+    /// <summary>
+    /// Whether product is active (computed from Status == Active).
+    /// Kept for backward compatibility.
+    /// </summary>
     public bool IsActive { get; set; }
     public bool IsSerialTracked { get; set; }
 
@@ -106,6 +117,16 @@ public class ProductListDto
     public decimal ListPrice { get; set; }
     public string Currency { get; set; } = "TRY";
     public int StockQuantity { get; set; }
+
+    /// <summary>
+    /// Product status (Draft = 0, Active = 1, Inactive = 2)
+    /// </summary>
+    public ProductStatus Status { get; set; }
+
+    /// <summary>
+    /// Whether product is active (computed from Status == Active).
+    /// Kept for backward compatibility.
+    /// </summary>
     public bool IsActive { get; set; }
     public string? MainImageUrl { get; set; }
 

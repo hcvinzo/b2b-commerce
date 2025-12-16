@@ -33,7 +33,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useProducts, useDeleteProduct } from "@/hooks/use-products";
 import { useCategoriesFlat } from "@/hooks/use-categories";
 import { formatCurrency } from "@/lib/utils";
-import { ProductFilters } from "@/types/entities";
+import { ProductFilters, ProductStatus } from "@/types/entities";
 
 export default function ProductsPage() {
   const [filters, setFilters] = useState<ProductFilters>({
@@ -66,7 +66,7 @@ export default function ProductsPage() {
   const handleStatusChange = (value: string) => {
     setFilters((prev) => ({
       ...prev,
-      isActive: value === "all" ? undefined : value === "active",
+      status: value === "all" ? undefined : (value as ProductStatus),
       page: 1,
     }));
   };
@@ -131,13 +131,7 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
           <Select
-            value={
-              filters.isActive === undefined
-                ? "all"
-                : filters.isActive
-                ? "active"
-                : "inactive"
-            }
+            value={filters.status || "all"}
             onValueChange={handleStatusChange}
           >
             <SelectTrigger className="w-[140px]">
@@ -145,8 +139,9 @@ export default function ProductsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -202,9 +197,15 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={product.isActive ? "default" : "secondary"}
+                      variant={
+                        product.status === "Active"
+                          ? "default"
+                          : product.status === "Draft"
+                          ? "outline"
+                          : "secondary"
+                      }
                     >
-                      {product.isActive ? "Active" : "Inactive"}
+                      {product.status || (product.isActive ? "Active" : "Inactive")}
                     </Badge>
                   </TableCell>
                   <TableCell>

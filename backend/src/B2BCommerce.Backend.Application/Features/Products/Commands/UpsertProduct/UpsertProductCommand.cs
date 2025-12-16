@@ -1,6 +1,7 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.Common.CQRS;
 using B2BCommerce.Backend.Application.DTOs.Products;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Features.Products.Commands.UpsertProduct;
 
@@ -140,9 +141,12 @@ public record UpsertProductCommand : ICommand<Result<ProductDto>>
     // Status
 
     /// <summary>
-    /// Whether product is active
+    /// Product status (Draft, Active, Inactive).
+    /// If not provided, status is auto-determined based on required fields:
+    /// - Active if all required fields (Category, ProductType, ListPrice, TaxRate) are present
+    /// - Draft otherwise
     /// </summary>
-    public bool IsActive { get; init; } = true;
+    public ProductStatus? Status { get; init; }
 
     // Images
 

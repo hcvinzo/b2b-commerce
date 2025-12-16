@@ -42,6 +42,16 @@ export interface CreateCategoryDto {
 
 export interface UpdateCategoryDto extends Partial<CreateCategoryDto> {}
 
+// Product Status
+export type ProductStatus = "Draft" | "Active" | "Inactive";
+
+// Numeric values for ProductStatus (matching backend)
+export const ProductStatusValues = {
+  Draft: 0,
+  Active: 1,
+  Inactive: 2,
+} as const;
+
 // Product
 export interface Product extends ExternalEntity {
   sku: string;
@@ -73,6 +83,9 @@ export interface Product extends ExternalEntity {
   width?: number;
   height?: number;
   depth?: number;
+  /** Product lifecycle status (Draft, Active, Inactive) */
+  status: ProductStatus;
+  /** @deprecated Use status === "Active" instead */
   isActive: boolean;
   isFeatured: boolean;
   isSerialTracked: boolean;
@@ -116,6 +129,9 @@ export interface CreateProductDto {
   minOrderQuantity?: number;
   maxOrderQuantity?: number;
   unitOfMeasure?: string;
+  /** Product status (Draft, Active, Inactive) */
+  status?: ProductStatus;
+  /** @deprecated Use status instead */
   isActive?: boolean;
   isFeatured?: boolean;
 }
@@ -128,6 +144,9 @@ export interface ProductFilters {
   search?: string;
   categoryId?: string;
   brandId?: string;
+  /** Filter by status */
+  status?: ProductStatus;
+  /** @deprecated Use status instead */
   isActive?: boolean;
   sortBy?: string;
   sortOrder?: "asc" | "desc";

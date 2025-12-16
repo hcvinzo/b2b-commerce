@@ -112,9 +112,14 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .IsRequired()
             .HasDefaultValue(1);
 
-        builder.Property(p => p.IsActive)
+        // Product status - stored as integer in database
+        builder.Property(p => p.Status)
             .IsRequired()
-            .HasDefaultValue(true);
+            .HasDefaultValue(Domain.Enums.ProductStatus.Draft)
+            .HasConversion<int>();
+
+        // IsActive is a computed property (no column in database)
+        builder.Ignore(p => p.IsActive);
 
         builder.Property(p => p.IsSerialTracked)
             .IsRequired()
@@ -217,7 +222,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasIndex(p => p.ProductTypeId);
 
-        builder.HasIndex(p => p.IsActive);
+        builder.HasIndex(p => p.Status);
 
         builder.HasIndex(p => p.IsDeleted);
 

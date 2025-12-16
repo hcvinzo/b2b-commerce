@@ -220,12 +220,23 @@ public class ProductService : IProductService
                 );
             }
 
+            // Update status if provided
+            if (dto.Status.HasValue)
+            {
+                product.SetStatus(dto.Status.Value);
+            }
+
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product updated with ID {ProductId}", product.Id);
 
             return Result<ProductDto>.Success(MapToProductDto(product));
+        }
+        catch (Domain.Exceptions.DomainException ex)
+        {
+            _logger.LogWarning(ex, "Domain validation error updating product");
+            return Result<ProductDto>.Failure(ex.Message, "DOMAIN_VALIDATION_ERROR");
         }
         catch (ArgumentException ex)
         {
@@ -263,13 +274,21 @@ public class ProductService : IProductService
             return Result.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
 
-        product.Activate();
-        _unitOfWork.Products.Update(product);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            product.Activate();
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Product activated with ID {ProductId}", id);
+            _logger.LogInformation("Product activated with ID {ProductId}", id);
 
-        return Result.Success();
+            return Result.Success();
+        }
+        catch (Domain.Exceptions.DomainException ex)
+        {
+            _logger.LogWarning(ex, "Cannot activate product {ProductId}: {Message}", id, ex.Message);
+            return Result.Failure(ex.Message, "ACTIVATION_FAILED");
+        }
     }
 
     public async Task<Result> DeactivateAsync(Guid id, CancellationToken cancellationToken = default)
@@ -310,6 +329,7 @@ public class ProductService : IProductService
             Tier5Price = product.Tier5Price?.Amount,
             StockQuantity = product.StockQuantity,
             MinimumOrderQuantity = product.MinimumOrderQuantity,
+            Status = product.Status,
             IsActive = product.IsActive,
             IsSerialTracked = product.IsSerialTracked,
             TaxRate = product.TaxRate,
@@ -337,6 +357,7 @@ public class ProductService : IProductService
             ListPrice = product.ListPrice.Amount,
             Currency = product.ListPrice.Currency,
             StockQuantity = product.StockQuantity,
+            Status = product.Status,
             IsActive = product.IsActive,
             MainImageUrl = product.MainImageUrl
         };

@@ -172,7 +172,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 taxRate: request.TaxRate,
                 brandId: brandId,
                 productTypeId: productTypeId,
-                isActive: request.IsActive,
+                requestedStatus: request.Status,
                 externalCode: request.ExternalCode);
 
             // Set images
@@ -212,7 +212,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 categoryId: categoryId.Value,
                 brandId: brandId,
                 productTypeId: productTypeId,
-                isActive: request.IsActive,
+                requestedStatus: request.Status,
                 externalCode: request.ExternalCode);
 
             // Update pricing
@@ -285,6 +285,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             Tier5Price = product.Tier5Price?.Amount,
             StockQuantity = product.StockQuantity,
             MinimumOrderQuantity = product.MinimumOrderQuantity,
+            Status = product.Status,
             IsActive = product.IsActive,
             IsSerialTracked = product.IsSerialTracked,
             TaxRate = product.TaxRate,

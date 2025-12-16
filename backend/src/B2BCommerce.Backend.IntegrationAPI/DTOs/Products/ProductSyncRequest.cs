@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Products;
 
@@ -131,9 +132,12 @@ public class ProductSyncRequest
     // Status
 
     /// <summary>
-    /// Whether product is active
+    /// Product status (Draft = 0, Active = 1, Inactive = 2).
+    /// If not provided, status is auto-determined based on required fields:
+    /// - Active if all required fields (Category, ProductType, ListPrice, TaxRate) are present
+    /// - Draft otherwise
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public ProductStatus? Status { get; set; }
 
     // Images
 

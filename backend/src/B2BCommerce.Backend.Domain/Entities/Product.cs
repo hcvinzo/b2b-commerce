@@ -38,7 +38,18 @@ public class Product : ExternalEntity, IAggregateRoot
     // Stock
     public int StockQuantity { get; private set; }
     public int MinimumOrderQuantity { get; private set; }
-    public bool IsActive { get; private set; }
+
+    /// <summary>
+    /// Product lifecycle status (Draft, Active, Inactive)
+    /// </summary>
+    public ProductStatus Status { get; private set; }
+
+    /// <summary>
+    /// Computed property for backward compatibility.
+    /// Returns true only when Status is Active.
+    /// </summary>
+    public bool IsActive => Status == ProductStatus.Active;
+
     public bool IsSerialTracked { get; private set; }
 
     // Tax
@@ -79,7 +90,9 @@ public class Product : ExternalEntity, IAggregateRoot
     }
 
     /// <summary>
-    /// Creates a new Product instance
+    /// Creates a new Product instance.
+    /// Product will be created as Active if all required fields are provided,
+    /// otherwise as Draft.
     /// </summary>
     public static Product Create(
         string name,
@@ -89,19 +102,28 @@ public class Product : ExternalEntity, IAggregateRoot
         Money listPrice,
         int stockQuantity,
         int minimumOrderQuantity = 1,
-        decimal taxRate = 0.18m)
+        decimal taxRate = 0.18m,
+        Guid? productTypeId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new ArgumentException("Product name cannot be null or empty", nameof(name));
+        }
 
         if (string.IsNullOrWhiteSpace(sku))
+        {
             throw new ArgumentException("Product SKU cannot be null or empty", nameof(sku));
+        }
 
         if (stockQuantity < 0)
+        {
             throw new ArgumentException("Stock quantity cannot be negative", nameof(stockQuantity));
+        }
 
         if (minimumOrderQuantity < 1)
+        {
             throw new ArgumentException("Minimum order quantity must be at least 1", nameof(minimumOrderQuantity));
+        }
 
         var product = new Product
         {
@@ -109,15 +131,18 @@ public class Product : ExternalEntity, IAggregateRoot
             Description = description ?? string.Empty,
             SKU = sku,
             CategoryId = categoryId,
-            ListPrice = listPrice ?? throw new ArgumentNullException(nameof(listPrice)),
+            ListPrice = listPrice ?? Money.Zero("TRY"),
             StockQuantity = stockQuantity,
             MinimumOrderQuantity = minimumOrderQuantity,
             TaxRate = taxRate,
-            IsActive = true,
+            ProductTypeId = productTypeId,
             IsSerialTracked = false,
             ImageUrls = new List<string>(),
             Specifications = new Dictionary<string, string>()
         };
+
+        // Determine initial status based on required fields
+        product.Status = product.CanActivate() ? ProductStatus.Active : ProductStatus.Draft;
 
         return product;
     }
@@ -134,16 +159,24 @@ public class Product : ExternalEntity, IAggregateRoot
         decimal taxRate = 0.18m)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new ArgumentException("Product name cannot be null or empty", nameof(name));
+        }
 
         if (string.IsNullOrWhiteSpace(sku))
+        {
             throw new ArgumentException("Product SKU cannot be null or empty", nameof(sku));
+        }
 
         if (stockQuantity < 0)
+        {
             throw new ArgumentException("Stock quantity cannot be negative", nameof(stockQuantity));
+        }
 
         if (minimumOrderQuantity < 1)
+        {
             throw new ArgumentException("Minimum order quantity must be at least 1", nameof(minimumOrderQuantity));
+        }
 
         Name = name;
         Description = description ?? string.Empty;
@@ -153,7 +186,7 @@ public class Product : ExternalEntity, IAggregateRoot
         StockQuantity = stockQuantity;
         MinimumOrderQuantity = minimumOrderQuantity;
         TaxRate = taxRate;
-        IsActive = true;
+        Status = ProductStatus.Draft; // Start as Draft, needs validation to activate
         IsSerialTracked = false;
         ImageUrls = new List<string>();
         Specifications = new Dictionary<string, string>();
@@ -222,15 +255,99 @@ public class Product : ExternalEntity, IAggregateRoot
         StockQuantity += quantity;
     }
 
-    public void Activate()
+    #region Status Management
+
+    /// <summary>
+    /// Checks if the product has all required fields to be activated.
+    /// Required fields: CategoryId, ProductTypeId, ListPrice > 0, TaxRate set
+    /// </summary>
+    public bool CanActivate()
     {
-        IsActive = true;
+        return CategoryId != Guid.Empty
+            && ProductTypeId.HasValue
+            && ProductTypeId.Value != Guid.Empty
+            && ListPrice is not null
+            && ListPrice.Amount > 0
+            && TaxRate >= 0;
     }
 
+    /// <summary>
+    /// Gets the list of missing fields that prevent activation
+    /// </summary>
+    public List<string> GetMissingActivationFields()
+    {
+        var missingFields = new List<string>();
+
+        if (CategoryId == Guid.Empty)
+        {
+            missingFields.Add("Category");
+        }
+
+        if (!ProductTypeId.HasValue || ProductTypeId.Value == Guid.Empty)
+        {
+            missingFields.Add("ProductType");
+        }
+
+        if (ListPrice is null || ListPrice.Amount <= 0)
+        {
+            missingFields.Add("ListPrice");
+        }
+
+        if (TaxRate < 0)
+        {
+            missingFields.Add("TaxRate");
+        }
+
+        return missingFields;
+    }
+
+    /// <summary>
+    /// Activates the product if all required fields are present
+    /// </summary>
+    /// <exception cref="DomainException">Thrown when required fields are missing</exception>
+    public void Activate()
+    {
+        if (!CanActivate())
+        {
+            var missingFields = GetMissingActivationFields();
+            throw new DomainException($"Cannot activate product. Missing required fields: {string.Join(", ", missingFields)}");
+        }
+
+        Status = ProductStatus.Active;
+    }
+
+    /// <summary>
+    /// Deactivates the product (sets to Inactive status)
+    /// </summary>
     public void Deactivate()
     {
-        IsActive = false;
+        Status = ProductStatus.Inactive;
     }
+
+    /// <summary>
+    /// Sets the product to Draft status
+    /// </summary>
+    public void SetDraft()
+    {
+        Status = ProductStatus.Draft;
+    }
+
+    /// <summary>
+    /// Sets the product status directly.
+    /// For Active status, validates required fields first.
+    /// </summary>
+    public void SetStatus(ProductStatus status)
+    {
+        if (status == ProductStatus.Active && !CanActivate())
+        {
+            var missingFields = GetMissingActivationFields();
+            throw new DomainException($"Cannot set product to Active status. Missing required fields: {string.Join(", ", missingFields)}");
+        }
+
+        Status = status;
+    }
+
+    #endregion
 
     public void SetMainImage(string imageUrl)
     {
@@ -512,6 +629,7 @@ public class Product : ExternalEntity, IAggregateRoot
     /// <summary>
     /// Creates a product from an external system (LOGO ERP).
     /// Uses ExternalId as the primary upsert key.
+    /// Product starts as Draft if required fields are missing, otherwise follows requestedStatus.
     /// </summary>
     public static Product CreateFromExternal(
         string externalId,
@@ -525,7 +643,7 @@ public class Product : ExternalEntity, IAggregateRoot
         decimal taxRate = 0.20m,
         Guid? brandId = null,
         Guid? productTypeId = null,
-        bool isActive = true,
+        ProductStatus? requestedStatus = null,
         string? externalCode = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -533,14 +651,22 @@ public class Product : ExternalEntity, IAggregateRoot
             throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate);
+        var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate, productTypeId);
 
         product.BrandId = brandId;
-        product.ProductTypeId = productTypeId;
 
-        if (!isActive)
+        // Override status if explicitly requested and allowed
+        if (requestedStatus.HasValue)
         {
-            product.Deactivate();
+            if (requestedStatus.Value == ProductStatus.Active && !product.CanActivate())
+            {
+                // Cannot activate, keep as Draft
+                product.Status = ProductStatus.Draft;
+            }
+            else
+            {
+                product.Status = requestedStatus.Value;
+            }
         }
 
         product.SetExternalIdentifiers(externalCode, externalId);
@@ -549,7 +675,55 @@ public class Product : ExternalEntity, IAggregateRoot
     }
 
     /// <summary>
-    /// Updates product from external system sync
+    /// Creates a product from an external system with minimal required data.
+    /// Always creates as Draft status for later completion.
+    /// </summary>
+    public static Product CreateDraftFromExternal(
+        string externalId,
+        string sku,
+        string name,
+        string? externalCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            throw new ArgumentException("External ID is required", nameof(externalId));
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Product name is required", nameof(name));
+        }
+
+        if (string.IsNullOrWhiteSpace(sku))
+        {
+            throw new ArgumentException("Product SKU is required", nameof(sku));
+        }
+
+        var product = new Product
+        {
+            Name = name,
+            Description = string.Empty,
+            SKU = sku,
+            CategoryId = Guid.Empty,
+            ListPrice = Money.Zero("TRY"),
+            StockQuantity = 0,
+            MinimumOrderQuantity = 1,
+            TaxRate = 0,
+            ProductTypeId = null,
+            Status = ProductStatus.Draft,
+            IsSerialTracked = false,
+            ImageUrls = new List<string>(),
+            Specifications = new Dictionary<string, string>()
+        };
+
+        product.SetExternalIdentifiers(externalCode, externalId);
+        product.MarkAsSynced();
+        return product;
+    }
+
+    /// <summary>
+    /// Updates product from external system sync.
+    /// Status handling: Active only if CanActivate(), otherwise stays Draft or becomes Inactive.
     /// </summary>
     public void UpdateFromExternal(
         string name,
@@ -557,7 +731,7 @@ public class Product : ExternalEntity, IAggregateRoot
         Guid categoryId,
         Guid? brandId,
         Guid? productTypeId,
-        bool isActive,
+        ProductStatus? requestedStatus = null,
         string? externalCode = null)
     {
         UpdateBasicInfo(name, description, categoryId, brandId);
@@ -571,16 +745,33 @@ public class Product : ExternalEntity, IAggregateRoot
             ClearProductType();
         }
 
-        if (isActive)
+        // Handle status
+        if (requestedStatus.HasValue)
         {
-            Activate();
+            if (requestedStatus.Value == ProductStatus.Active)
+            {
+                // Try to activate, will throw if missing fields
+                if (CanActivate())
+                {
+                    Status = ProductStatus.Active;
+                }
+                // If can't activate, keep current status (likely Draft)
+            }
+            else
+            {
+                Status = requestedStatus.Value;
+            }
         }
         else
         {
-            Deactivate();
+            // No explicit status - auto-determine based on data completeness
+            if (CanActivate() && Status == ProductStatus.Draft)
+            {
+                Status = ProductStatus.Active;
+            }
         }
 
-        if (externalCode != null)
+        if (externalCode is not null)
         {
             SetExternalIdentifiers(externalCode, ExternalId);
         }
