@@ -43,7 +43,8 @@ public class CreateProductCommandHandler : ICommandHandler<CreateProductCommand,
             Weight = request.Weight,
             Length = request.Length,
             Width = request.Width,
-            Height = request.Height
+            Height = request.Height,
+            MainProductId = request.MainProductId
         };
 
         return await _productService.CreateAsync(createDto, cancellationToken);

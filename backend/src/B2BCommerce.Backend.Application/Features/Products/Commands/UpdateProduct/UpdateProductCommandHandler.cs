@@ -43,7 +43,9 @@ public class UpdateProductCommandHandler : ICommandHandler<UpdateProductCommand,
             Weight = request.Weight,
             Length = request.Length,
             Width = request.Width,
-            Height = request.Height
+            Height = request.Height,
+            MainProductId = request.MainProductId,
+            ClearMainProduct = request.ClearMainProduct
         };
 
         return await _productService.UpdateAsync(request.Id, updateDto, cancellationToken);

@@ -121,4 +121,16 @@ public class UpdateProductDto
     /// Height in centimeters
     /// </summary>
     public decimal? Height { get; set; }
+
+    /// <summary>
+    /// Main product ID (if this is a variant/SKU of another product).
+    /// Set to null to clear the main product relationship.
+    /// </summary>
+    public Guid? MainProductId { get; set; }
+
+    /// <summary>
+    /// Whether to clear the main product relationship.
+    /// When true, MainProductId is ignored and the relationship is removed.
+    /// </summary>
+    public bool ClearMainProduct { get; set; }
 }

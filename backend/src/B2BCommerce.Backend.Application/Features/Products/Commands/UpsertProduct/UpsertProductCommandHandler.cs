@@ -118,6 +118,30 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             }
         }
 
+        // 3.5 Resolve MainProduct (by ID or ExternalId) - optional
+        Guid? mainProductId = request.MainProductId;
+        if (!mainProductId.HasValue && !string.IsNullOrEmpty(request.MainProductExtId))
+        {
+            var mainProductEntity = await _unitOfWork.Products.GetByExternalIdAsync(request.MainProductExtId, cancellationToken);
+            if (mainProductEntity == null)
+            {
+                return Result<ProductDto>.Failure(
+                    $"Main product not found by ExternalId: {request.MainProductExtId}",
+                    "MAIN_PRODUCT_NOT_FOUND");
+            }
+            mainProductId = mainProductEntity.Id;
+        }
+        else if (mainProductId.HasValue)
+        {
+            var mainProductEntity = await _unitOfWork.Products.GetByIdAsync(mainProductId.Value, cancellationToken);
+            if (mainProductEntity == null)
+            {
+                return Result<ProductDto>.Failure(
+                    $"Main product not found by Id: {request.MainProductId}",
+                    "MAIN_PRODUCT_NOT_FOUND");
+            }
+        }
+
         // 4. Find existing product (by Id, ExternalId, or SKU)
         Product? product = null;
         bool createWithSpecificId = false;
@@ -173,7 +197,8 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 brandId: brandId,
                 productTypeId: productTypeId,
                 requestedStatus: request.Status,
-                externalCode: request.ExternalCode);
+                externalCode: request.ExternalCode,
+                mainProductId: mainProductId);
 
             // Set images
             if (!string.IsNullOrEmpty(request.MainImageUrl))
@@ -213,7 +238,8 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 brandId: brandId,
                 productTypeId: productTypeId,
                 requestedStatus: request.Status,
-                externalCode: request.ExternalCode);
+                externalCode: request.ExternalCode,
+                mainProductId: mainProductId);
 
             // Update pricing
             var listPrice = new Money(request.ListPrice, request.Currency);
@@ -304,7 +330,13 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             ProductTypeId = product.ProductTypeId,
             ProductTypeName = product.ProductType?.Name,
             ProductTypeExtId = product.ProductType?.ExternalId,
-            CategoryExtId = product.Category?.ExternalId
+            CategoryExtId = product.Category?.ExternalId,
+            MainProductId = product.MainProductId,
+            MainProductSku = product.MainProduct?.SKU,
+            MainProductExtId = product.MainProduct?.ExternalId,
+            IsVariant = product.IsVariant,
+            IsMainProduct = product.IsMainProduct,
+            VariantCount = product.Variants?.Count ?? 0
         };
     }
 }

@@ -30,7 +30,7 @@ public class ProductService : IProductService
             return Result<ProductDto>.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
 
-        return Result<ProductDto>.Success(MapToProductDto(product));
+        return Result<ProductDto>.Success(await MapToProductDtoAsync(product, cancellationToken));
     }
 
     public async Task<Result<ProductDto>> GetBySKUAsync(string sku, CancellationToken cancellationToken = default)
@@ -41,7 +41,7 @@ public class ProductService : IProductService
             return Result<ProductDto>.Failure("Product not found", "PRODUCT_NOT_FOUND");
         }
 
-        return Result<ProductDto>.Success(MapToProductDto(product));
+        return Result<ProductDto>.Success(await MapToProductDtoAsync(product, cancellationToken));
     }
 
     public async Task<Result<PagedResult<ProductListDto>>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
@@ -146,12 +146,23 @@ public class ProductService : IProductService
             // Set dimensions
             product.UpdateDimensions(dto.Weight, dto.Length, dto.Width, dto.Height);
 
+            // Set main product (variant relationship)
+            if (dto.MainProductId.HasValue)
+            {
+                var mainProduct = await _unitOfWork.Products.GetByIdAsync(dto.MainProductId.Value, cancellationToken);
+                if (mainProduct is null)
+                {
+                    return Result<ProductDto>.Failure("Main product not found", "MAIN_PRODUCT_NOT_FOUND");
+                }
+                product.SetMainProduct(dto.MainProductId.Value);
+            }
+
             await _unitOfWork.Products.AddAsync(product, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product created with ID {ProductId} and SKU {SKU}", product.Id, product.SKU);
 
-            return Result<ProductDto>.Success(MapToProductDto(product));
+            return Result<ProductDto>.Success(await MapToProductDtoAsync(product, cancellationToken));
         }
         catch (ArgumentException ex)
         {
@@ -226,12 +237,27 @@ public class ProductService : IProductService
                 product.SetStatus(dto.Status.Value);
             }
 
+            // Update main product (variant relationship)
+            if (dto.ClearMainProduct)
+            {
+                product.ClearMainProduct();
+            }
+            else if (dto.MainProductId.HasValue)
+            {
+                var mainProduct = await _unitOfWork.Products.GetByIdAsync(dto.MainProductId.Value, cancellationToken);
+                if (mainProduct is null)
+                {
+                    return Result<ProductDto>.Failure("Main product not found", "MAIN_PRODUCT_NOT_FOUND");
+                }
+                product.SetMainProduct(dto.MainProductId.Value);
+            }
+
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Product updated with ID {ProductId}", product.Id);
 
-            return Result<ProductDto>.Success(MapToProductDto(product));
+            return Result<ProductDto>.Success(await MapToProductDtoAsync(product, cancellationToken));
         }
         catch (Domain.Exceptions.DomainException ex)
         {
@@ -308,7 +334,7 @@ public class ProductService : IProductService
         return Result.Success();
     }
 
-    private static ProductDto MapToProductDto(Product product)
+    private static ProductDto MapToProductDto(Product product, Product? mainProduct = null, int variantCount = 0)
     {
         return new ProductDto
         {
@@ -341,8 +367,32 @@ public class ProductService : IProductService
             Width = product.Width,
             Height = product.Height,
             CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt ?? product.CreatedAt
+            UpdatedAt = product.UpdatedAt ?? product.CreatedAt,
+            MainProductId = product.MainProductId,
+            MainProductSku = mainProduct?.SKU,
+            MainProductExtId = mainProduct?.ExternalId,
+            IsVariant = product.IsVariant,
+            IsMainProduct = product.IsMainProduct,
+            VariantCount = variantCount
         };
+    }
+
+    private async Task<ProductDto> MapToProductDtoAsync(Product product, CancellationToken cancellationToken)
+    {
+        Product? mainProduct = null;
+        int variantCount = 0;
+
+        if (product.MainProductId.HasValue)
+        {
+            mainProduct = await _unitOfWork.Products.GetByIdAsync(product.MainProductId.Value, cancellationToken);
+        }
+
+        if (product.IsMainProduct)
+        {
+            variantCount = await _unitOfWork.Products.GetVariantCountAsync(product.Id, cancellationToken);
+        }
+
+        return MapToProductDto(product, mainProduct, variantCount);
     }
 
     private static ProductListDto MapToProductListDto(Product product)
@@ -359,7 +409,10 @@ public class ProductService : IProductService
             StockQuantity = product.StockQuantity,
             Status = product.Status,
             IsActive = product.IsActive,
-            MainImageUrl = product.MainImageUrl
+            MainImageUrl = product.MainImageUrl,
+            MainProductId = product.MainProductId,
+            IsVariant = product.IsVariant,
+            VariantCount = product.Variants?.Count ?? 0
         };
     }
 }

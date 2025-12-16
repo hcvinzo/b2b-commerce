@@ -196,4 +196,34 @@ public class ProductDto
     /// Date last updated
     /// </summary>
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Main product ID (if this is a variant/SKU)
+    /// </summary>
+    public Guid? MainProductId { get; set; }
+
+    /// <summary>
+    /// Main product SKU (for display)
+    /// </summary>
+    public string? MainProductSku { get; set; }
+
+    /// <summary>
+    /// Main product ExternalId (for Integration API)
+    /// </summary>
+    public string? MainProductExtId { get; set; }
+
+    /// <summary>
+    /// Whether this product is a variant (has a MainProductId)
+    /// </summary>
+    public bool IsVariant { get; set; }
+
+    /// <summary>
+    /// Whether this product is a main product (can have variants)
+    /// </summary>
+    public bool IsMainProduct { get; set; }
+
+    /// <summary>
+    /// Number of variants if this is a main product
+    /// </summary>
+    public int VariantCount { get; set; }
 }

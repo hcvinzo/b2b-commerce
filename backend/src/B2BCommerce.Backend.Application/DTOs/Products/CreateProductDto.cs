@@ -119,4 +119,9 @@ public class CreateProductDto
     /// Height in centimeters
     /// </summary>
     public decimal? Height { get; set; }
+
+    /// <summary>
+    /// Main product ID (if this is a variant/SKU of another product)
+    /// </summary>
+    public Guid? MainProductId { get; set; }
 }

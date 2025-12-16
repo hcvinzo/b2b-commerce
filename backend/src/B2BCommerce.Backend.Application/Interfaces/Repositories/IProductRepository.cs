@@ -79,4 +79,20 @@ public interface IProductRepository : IGenericRepository<Product>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the count of variants for a main product
+    /// </summary>
+    /// <param name="mainProductId">Main product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of variants</returns>
+    Task<int> GetVariantCountAsync(Guid mainProductId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all variants of a main product
+    /// </summary>
+    /// <param name="mainProductId">Main product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of variant products</returns>
+    Task<IEnumerable<Product>> GetVariantsAsync(Guid mainProductId, CancellationToken cancellationToken = default);
 }

@@ -77,6 +77,27 @@ public class ProductDto
 
     public DateTime? LastSyncedAt { get; set; }
 
+    // Variant support
+    /// <summary>
+    /// Main product's ExternalId (if this is a variant/SKU)
+    /// </summary>
+    public string? MainProductId { get; set; }
+
+    /// <summary>
+    /// Whether this product is a variant (has a MainProductId)
+    /// </summary>
+    public bool IsVariant { get; set; }
+
+    /// <summary>
+    /// Whether this product is a main product (can have variants)
+    /// </summary>
+    public bool IsMainProduct { get; set; }
+
+    /// <summary>
+    /// Number of variants if this is a main product
+    /// </summary>
+    public int VariantCount { get; set; }
+
     // Audit
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -131,4 +152,20 @@ public class ProductListDto
     public string? MainImageUrl { get; set; }
 
     public DateTime? LastSyncedAt { get; set; }
+
+    // Variant support
+    /// <summary>
+    /// Main product's ExternalId (if this is a variant/SKU)
+    /// </summary>
+    public string? MainProductId { get; set; }
+
+    /// <summary>
+    /// Whether this product is a variant (has a MainProductId)
+    /// </summary>
+    public bool IsVariant { get; set; }
+
+    /// <summary>
+    /// Number of variants if this is a main product
+    /// </summary>
+    public int VariantCount { get; set; }
 }

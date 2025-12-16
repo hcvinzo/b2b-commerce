@@ -152,4 +152,24 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     {
         return await _dbSet.AnyAsync(p => p.ExternalId == externalId && !p.IsDeleted, cancellationToken);
     }
+
+    /// <summary>
+    /// Gets the count of variants for a main product
+    /// </summary>
+    public async Task<int> GetVariantCountAsync(Guid mainProductId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.CountAsync(p => p.MainProductId == mainProductId && !p.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets all variants of a main product
+    /// </summary>
+    public async Task<IEnumerable<Product>> GetVariantsAsync(Guid mainProductId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Where(p => p.MainProductId == mainProductId && !p.IsDeleted)
+            .ToListAsync(cancellationToken);
+    }
 }

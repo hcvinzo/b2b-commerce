@@ -182,6 +182,19 @@ public record UpsertProductCommand : ICommand<Result<ProductDto>>
     /// </summary>
     public decimal? Height { get; init; }
 
+    // Variant support
+
+    /// <summary>
+    /// Main product internal ID (for internal references)
+    /// </summary>
+    public Guid? MainProductId { get; init; }
+
+    /// <summary>
+    /// Main product external ID (for external system references).
+    /// When set, this product becomes a variant of the specified main product.
+    /// </summary>
+    public string? MainProductExtId { get; init; }
+
     // Audit
 
     /// <summary>

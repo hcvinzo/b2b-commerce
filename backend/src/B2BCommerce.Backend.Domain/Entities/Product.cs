@@ -27,6 +27,12 @@ public class Product : ExternalEntity, IAggregateRoot
 
     public Guid? BrandId { get; private set; }
 
+    /// <summary>
+    /// FK to the main product for variants. If null, this is a main product.
+    /// Variants share the same MainProductId pointing to the parent product.
+    /// </summary>
+    public Guid? MainProductId { get; private set; }
+
     // Pricing
     public Money ListPrice { get; private set; }
     public Money? Tier1Price { get; private set; }
@@ -71,6 +77,17 @@ public class Product : ExternalEntity, IAggregateRoot
     public Category? Category { get; set; }
     public Brand? Brand { get; set; }
 
+    /// <summary>
+    /// Navigation to the main product (for variants)
+    /// </summary>
+    public Product? MainProduct { get; private set; }
+
+    /// <summary>
+    /// Navigation to variants of this product (if this is a main product)
+    /// </summary>
+    private readonly List<Product> _variants = new();
+    public IReadOnlyCollection<Product> Variants => _variants.AsReadOnly();
+
     // Multi-category support
     private readonly List<ProductCategory> _productCategories = new();
     public IReadOnlyCollection<ProductCategory> ProductCategories => _productCategories.AsReadOnly();
@@ -94,6 +111,7 @@ public class Product : ExternalEntity, IAggregateRoot
     /// Product will be created as Active if all required fields are provided,
     /// otherwise as Draft.
     /// </summary>
+    /// <param name="mainProductId">Optional: If provided, this product will be a variant of the main product</param>
     public static Product Create(
         string name,
         string description,
@@ -103,7 +121,8 @@ public class Product : ExternalEntity, IAggregateRoot
         int stockQuantity,
         int minimumOrderQuantity = 1,
         decimal taxRate = 0.18m,
-        Guid? productTypeId = null)
+        Guid? productTypeId = null,
+        Guid? mainProductId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -136,6 +155,7 @@ public class Product : ExternalEntity, IAggregateRoot
             MinimumOrderQuantity = minimumOrderQuantity,
             TaxRate = taxRate,
             ProductTypeId = productTypeId,
+            MainProductId = mainProductId,
             IsSerialTracked = false,
             ImageUrls = new List<string>(),
             Specifications = new Dictionary<string, string>()
@@ -416,6 +436,47 @@ public class Product : ExternalEntity, IAggregateRoot
 
     #endregion
 
+    #region Variant Management
+
+    /// <summary>
+    /// Gets whether this product is a variant (has a main product)
+    /// </summary>
+    public bool IsVariant => MainProductId.HasValue;
+
+    /// <summary>
+    /// Gets whether this product is a main product (has variants or can have variants)
+    /// </summary>
+    public bool IsMainProduct => !MainProductId.HasValue;
+
+    /// <summary>
+    /// Sets this product as a variant of another product
+    /// </summary>
+    /// <param name="mainProductId">The ID of the main product</param>
+    public void SetMainProduct(Guid mainProductId)
+    {
+        if (mainProductId == Guid.Empty)
+        {
+            throw new DomainException("MainProductId cannot be empty");
+        }
+
+        if (mainProductId == Id)
+        {
+            throw new DomainException("A product cannot be a variant of itself");
+        }
+
+        MainProductId = mainProductId;
+    }
+
+    /// <summary>
+    /// Removes the variant relationship (makes this a standalone product)
+    /// </summary>
+    public void ClearMainProduct()
+    {
+        MainProductId = null;
+    }
+
+    #endregion
+
     #region Multi-Category Management
 
     /// <summary>
@@ -635,6 +696,7 @@ public class Product : ExternalEntity, IAggregateRoot
     /// Uses ExternalId as the primary upsert key.
     /// Product starts as Draft if required fields are missing, otherwise follows requestedStatus.
     /// </summary>
+    /// <param name="mainProductId">Optional: Internal ID of the main product if this is a variant</param>
     public static Product CreateFromExternal(
         string externalId,
         string sku,
@@ -648,14 +710,15 @@ public class Product : ExternalEntity, IAggregateRoot
         Guid? brandId = null,
         Guid? productTypeId = null,
         ProductStatus? requestedStatus = null,
-        string? externalCode = null)
+        string? externalCode = null,
+        Guid? mainProductId = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
             throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate, productTypeId);
+        var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate, productTypeId, mainProductId);
 
         product.BrandId = brandId;
 
@@ -729,6 +792,7 @@ public class Product : ExternalEntity, IAggregateRoot
     /// Updates product from external system sync.
     /// Status handling: Active only if CanActivate(), otherwise stays Draft or becomes Inactive.
     /// </summary>
+    /// <param name="mainProductId">Optional: Internal ID of the main product if this is a variant. Pass null to clear.</param>
     public void UpdateFromExternal(
         string name,
         string description,
@@ -736,7 +800,8 @@ public class Product : ExternalEntity, IAggregateRoot
         Guid? brandId,
         Guid? productTypeId,
         ProductStatus? requestedStatus = null,
-        string? externalCode = null)
+        string? externalCode = null,
+        Guid? mainProductId = null)
     {
         UpdateBasicInfo(name, description, categoryId, brandId);
 
@@ -747,6 +812,16 @@ public class Product : ExternalEntity, IAggregateRoot
         else
         {
             ClearProductType();
+        }
+
+        // Update variant relationship
+        if (mainProductId.HasValue)
+        {
+            SetMainProduct(mainProductId.Value);
+        }
+        else
+        {
+            ClearMainProduct();
         }
 
         // Handle status

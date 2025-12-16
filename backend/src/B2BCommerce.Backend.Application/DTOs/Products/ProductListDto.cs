@@ -61,4 +61,19 @@ public class ProductListDto
     /// Main image URL
     /// </summary>
     public string? MainImageUrl { get; set; }
+
+    /// <summary>
+    /// Main product ID (if this is a variant/SKU)
+    /// </summary>
+    public Guid? MainProductId { get; set; }
+
+    /// <summary>
+    /// Whether this product is a variant (has a MainProductId)
+    /// </summary>
+    public bool IsVariant { get; set; }
+
+    /// <summary>
+    /// Number of variants if this is a main product
+    /// </summary>
+    public int VariantCount { get; set; }
 }

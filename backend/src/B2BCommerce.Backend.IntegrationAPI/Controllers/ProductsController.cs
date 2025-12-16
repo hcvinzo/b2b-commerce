@@ -174,6 +174,7 @@ public class ProductsController : BaseApiController
             Length = request.Length,
             Width = request.Width,
             Height = request.Height,
+            MainProductExtId = request.MainProductId,
             ModifiedBy = GetClientName()
         };
 
@@ -186,6 +187,7 @@ public class ProductsController : BaseApiController
                 "CATEGORY_NOT_FOUND" => BadRequestResponse(result.ErrorMessage ?? "Category not found", result.ErrorCode),
                 "PRODUCT_TYPE_NOT_FOUND" => BadRequestResponse(result.ErrorMessage ?? "ProductType not found", result.ErrorCode),
                 "BRAND_NOT_FOUND" => BadRequestResponse(result.ErrorMessage ?? "Brand not found", result.ErrorCode),
+                "MAIN_PRODUCT_NOT_FOUND" => BadRequestResponse(result.ErrorMessage ?? "Main product not found", result.ErrorCode),
                 "CATEGORY_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "Category is required", result.ErrorCode),
                 "EXTERNAL_ID_REQUIRED" => BadRequestResponse(result.ErrorMessage ?? "Id is required for new products", result.ErrorCode),
                 _ => BadRequestResponse(result.ErrorMessage ?? "Failed to sync product", result.ErrorCode)
@@ -367,6 +369,10 @@ public class ProductsController : BaseApiController
             Width = product.Width,
             Height = product.Height,
             LastSyncedAt = product.LastSyncedAt,
+            MainProductId = product.MainProduct?.ExternalId,
+            IsVariant = product.IsVariant,
+            IsMainProduct = product.IsMainProduct,
+            VariantCount = product.Variants?.Count ?? 0,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
         };
@@ -390,7 +396,10 @@ public class ProductsController : BaseApiController
             Status = product.Status,
             IsActive = product.IsActive,
             MainImageUrl = product.MainImageUrl,
-            LastSyncedAt = product.LastSyncedAt
+            LastSyncedAt = product.LastSyncedAt,
+            MainProductId = product.MainProduct?.ExternalId,
+            IsVariant = product.IsVariant,
+            VariantCount = product.Variants?.Count ?? 0
         };
     }
 
@@ -429,6 +438,10 @@ public class ProductsController : BaseApiController
             Width = source.Width,
             Height = source.Height,
             LastSyncedAt = source.LastSyncedAt,
+            MainProductId = source.MainProductExtId,
+            IsVariant = source.IsVariant,
+            IsMainProduct = source.IsMainProduct,
+            VariantCount = source.VariantCount,
             CreatedAt = source.CreatedAt,
             UpdatedAt = source.UpdatedAt
         };

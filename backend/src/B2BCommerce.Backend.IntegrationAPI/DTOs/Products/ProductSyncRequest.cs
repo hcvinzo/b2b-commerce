@@ -178,6 +178,15 @@ public class ProductSyncRequest
     /// </summary>
     [Range(0, double.MaxValue)]
     public decimal? Height { get; set; }
+
+    // Variant support
+
+    /// <summary>
+    /// Main product's ExternalId (if this is a variant/SKU of another product).
+    /// When set, this product becomes a variant of the specified main product.
+    /// </summary>
+    [StringLength(100)]
+    public string? MainProductId { get; set; }
 }
 
 /// <summary>

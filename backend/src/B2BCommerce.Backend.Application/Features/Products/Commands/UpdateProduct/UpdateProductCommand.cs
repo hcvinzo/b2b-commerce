@@ -32,4 +32,6 @@ public record UpdateProductCommand(
     decimal? Weight,
     decimal? Length,
     decimal? Width,
-    decimal? Height) : ICommand<Result<ProductDto>>;
+    decimal? Height,
+    Guid? MainProductId,
+    bool ClearMainProduct = false) : ICommand<Result<ProductDto>>;
