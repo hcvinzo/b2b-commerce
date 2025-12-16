@@ -226,4 +226,9 @@ public class ProductDto
     /// Number of variants if this is a main product
     /// </summary>
     public int VariantCount { get; set; }
+
+    /// <summary>
+    /// Attribute values for this product
+    /// </summary>
+    public List<ProductAttributeValueOutputDto> AttributeValues { get; set; } = new();
 }

@@ -80,18 +80,22 @@ export interface Product extends ExternalEntity {
   maxOrderQuantity?: number;
   unitOfMeasure: string;
   weight?: number;
+  length?: number;
   width?: number;
   height?: number;
-  depth?: number;
   /** Product lifecycle status (Draft, Active, Inactive) */
   status: ProductStatus;
   /** @deprecated Use status === "Active" instead */
   isActive: boolean;
   isFeatured: boolean;
   isSerialTracked: boolean;
+  taxRate: number;
+  mainImageUrl?: string;
+  imageUrls?: string[];
   images: ProductImage[];
   specifications: ProductSpecification[];
   attributes: ProductAttribute[];
+  attributeValues: ProductAttributeValueOutput[];
 }
 
 export interface ProductImage {
@@ -114,6 +118,34 @@ export interface ProductAttribute {
   value: string;
 }
 
+// Product Attribute Value (from backend ProductAttributeValueOutputDto)
+export interface ProductAttributeValueOutput {
+  attributeDefinitionId: string;
+  attributeCode: string;
+  attributeName: string;
+  attributeType: AttributeType;
+  unit?: string;
+  textValue?: string;
+  numericValue?: number;
+  selectValueId?: string;
+  selectValueText?: string;
+  multiSelectValueIds?: string[];
+  multiSelectValueTexts?: string[];
+  booleanValue?: boolean;
+  dateValue?: string;
+}
+
+// Product Attribute Value Input (for create/update operations)
+export interface ProductAttributeValueInput {
+  attributeDefinitionId: string;
+  textValue?: string;
+  numericValue?: number;
+  selectValueId?: string;
+  multiSelectValueIds?: string[];
+  booleanValue?: boolean;
+  dateValue?: string;
+}
+
 export interface CreateProductDto {
   sku: string;
   name: string;
@@ -125,15 +157,29 @@ export interface CreateProductDto {
   listPrice: number;
   listPriceCurrency?: string;
   dealerPrice?: number;
+  tier1Price?: number;
+  tier2Price?: number;
+  tier3Price?: number;
+  tier4Price?: number;
+  tier5Price?: number;
   stockQuantity?: number;
   minOrderQuantity?: number;
   maxOrderQuantity?: number;
   unitOfMeasure?: string;
+  isSerialTracked?: boolean;
+  taxRate?: number;
+  mainImageUrl?: string;
+  imageUrls?: string[];
+  weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
   /** Product status (Draft, Active, Inactive) */
   status?: ProductStatus;
   /** @deprecated Use status instead */
   isActive?: boolean;
   isFeatured?: boolean;
+  attributeValues?: ProductAttributeValueInput[];
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> {}

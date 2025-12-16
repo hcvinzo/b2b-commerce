@@ -31,4 +31,6 @@ public record CreateProductCommand(
     decimal? Length,
     decimal? Width,
     decimal? Height,
-    Guid? MainProductId) : ICommand<Result<ProductDto>>;
+    Guid? MainProductId,
+    Guid? ProductTypeId,
+    List<ProductAttributeValueInputDto>? AttributeValues) : ICommand<Result<ProductDto>>;

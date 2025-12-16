@@ -164,7 +164,9 @@ public class ProductsController : ControllerBase
             request.Length,
             request.Width,
             request.Height,
-            request.MainProductId);
+            request.MainProductId,
+            request.ProductTypeId,
+            request.AttributeValues);
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -215,7 +217,10 @@ public class ProductsController : ControllerBase
             request.Width,
             request.Height,
             request.MainProductId,
-            request.ClearMainProduct);
+            request.ClearMainProduct,
+            request.ProductTypeId,
+            request.ClearProductType,
+            request.AttributeValues);
 
         var result = await _mediator.Send(command, cancellationToken);
 

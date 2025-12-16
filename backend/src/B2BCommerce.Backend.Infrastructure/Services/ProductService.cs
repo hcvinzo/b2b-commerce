@@ -157,6 +157,27 @@ public class ProductService : IProductService
                 product.SetMainProduct(dto.MainProductId.Value);
             }
 
+            // Set product type
+            if (dto.ProductTypeId.HasValue)
+            {
+                var productType = await _unitOfWork.ProductTypes.GetByIdAsync(dto.ProductTypeId.Value, cancellationToken);
+                if (productType is null)
+                {
+                    return Result<ProductDto>.Failure("Product type not found", "PRODUCT_TYPE_NOT_FOUND");
+                }
+                product.SetProductType(dto.ProductTypeId.Value);
+            }
+
+            // Set attribute values
+            if (dto.AttributeValues is not null)
+            {
+                var setAttributesResult = await SetProductAttributeValuesAsync(product, dto.AttributeValues, cancellationToken);
+                if (!setAttributesResult.IsSuccess)
+                {
+                    return Result<ProductDto>.Failure(setAttributesResult.ErrorMessage ?? "Failed to set attributes", setAttributesResult.ErrorCode ?? "ATTRIBUTE_ERROR");
+                }
+            }
+
             await _unitOfWork.Products.AddAsync(product, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -252,6 +273,33 @@ public class ProductService : IProductService
                 product.SetMainProduct(dto.MainProductId.Value);
             }
 
+            // Update product type
+            if (dto.ClearProductType)
+            {
+                product.ClearProductType();
+            }
+            else if (dto.ProductTypeId.HasValue)
+            {
+                var productType = await _unitOfWork.ProductTypes.GetByIdAsync(dto.ProductTypeId.Value, cancellationToken);
+                if (productType is null)
+                {
+                    return Result<ProductDto>.Failure("Product type not found", "PRODUCT_TYPE_NOT_FOUND");
+                }
+                product.SetProductType(dto.ProductTypeId.Value);
+            }
+
+            // Update attribute values
+            if (dto.AttributeValues is not null)
+            {
+                // Clear existing attribute values and set new ones
+                product.ClearAttributeValues();
+                var setAttributesResult = await SetProductAttributeValuesAsync(product, dto.AttributeValues, cancellationToken);
+                if (!setAttributesResult.IsSuccess)
+                {
+                    return Result<ProductDto>.Failure(setAttributesResult.ErrorMessage ?? "Failed to set attributes", setAttributesResult.ErrorCode ?? "ATTRIBUTE_ERROR");
+                }
+            }
+
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -334,7 +382,7 @@ public class ProductService : IProductService
         return Result.Success();
     }
 
-    private static ProductDto MapToProductDto(Product product, Product? mainProduct = null, int variantCount = 0)
+    private ProductDto MapToProductDto(Product product, Product? mainProduct = null, int variantCount = 0)
     {
         return new ProductDto
         {
@@ -366,6 +414,8 @@ public class ProductService : IProductService
             Length = product.Length,
             Width = product.Width,
             Height = product.Height,
+            ProductTypeId = product.ProductTypeId,
+            ProductTypeName = product.ProductType?.Name,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt ?? product.CreatedAt,
             MainProductId = product.MainProductId,
@@ -373,7 +423,8 @@ public class ProductService : IProductService
             MainProductExtId = mainProduct?.ExternalId,
             IsVariant = product.IsVariant,
             IsMainProduct = product.IsMainProduct,
-            VariantCount = variantCount
+            VariantCount = variantCount,
+            AttributeValues = MapAttributeValues(product)
         };
     }
 
@@ -414,5 +465,118 @@ public class ProductService : IProductService
             IsVariant = product.IsVariant,
             VariantCount = product.Variants?.Count ?? 0
         };
+    }
+
+    private async Task<Result> SetProductAttributeValuesAsync(
+        Product product,
+        List<ProductAttributeValueInputDto> attributeValues,
+        CancellationToken cancellationToken)
+    {
+        foreach (var attrValue in attributeValues)
+        {
+            var attributeDef = await _unitOfWork.AttributeDefinitions.GetByIdAsync(attrValue.AttributeDefinitionId, cancellationToken);
+            if (attributeDef is null)
+            {
+                return Result.Failure($"Attribute definition not found: {attrValue.AttributeDefinitionId}", "ATTRIBUTE_NOT_FOUND");
+            }
+
+            // Set value based on attribute type
+            switch (attributeDef.Type)
+            {
+                case Domain.Enums.AttributeType.Text:
+                    if (attrValue.TextValue is not null)
+                    {
+                        product.SetTextAttribute(attrValue.AttributeDefinitionId, attrValue.TextValue);
+                    }
+                    break;
+
+                case Domain.Enums.AttributeType.Number:
+                    if (attrValue.NumericValue.HasValue)
+                    {
+                        product.SetNumericAttribute(attrValue.AttributeDefinitionId, attrValue.NumericValue.Value);
+                    }
+                    break;
+
+                case Domain.Enums.AttributeType.Select:
+                    if (attrValue.SelectValueId.HasValue)
+                    {
+                        product.SetSelectAttribute(attrValue.AttributeDefinitionId, attrValue.SelectValueId.Value);
+                    }
+                    break;
+
+                case Domain.Enums.AttributeType.MultiSelect:
+                    if (attrValue.MultiSelectValueIds is not null && attrValue.MultiSelectValueIds.Count > 0)
+                    {
+                        product.SetMultiSelectAttribute(attrValue.AttributeDefinitionId, attrValue.MultiSelectValueIds);
+                    }
+                    break;
+
+                case Domain.Enums.AttributeType.Boolean:
+                    if (attrValue.BooleanValue.HasValue)
+                    {
+                        product.SetBooleanAttribute(attrValue.AttributeDefinitionId, attrValue.BooleanValue.Value);
+                    }
+                    break;
+
+                case Domain.Enums.AttributeType.Date:
+                    if (attrValue.DateValue.HasValue)
+                    {
+                        product.SetDateAttribute(attrValue.AttributeDefinitionId, attrValue.DateValue.Value);
+                    }
+                    break;
+            }
+        }
+
+        return Result.Success();
+    }
+
+    private List<ProductAttributeValueOutputDto> MapAttributeValues(Product product)
+    {
+        var result = new List<ProductAttributeValueOutputDto>();
+
+        foreach (var attrValue in product.AttributeValues)
+        {
+            var attributeDef = attrValue.AttributeDefinition;
+            if (attributeDef is null)
+            {
+                continue;
+            }
+
+            var dto = new ProductAttributeValueOutputDto
+            {
+                AttributeDefinitionId = attrValue.AttributeDefinitionId,
+                AttributeCode = attributeDef.Code,
+                AttributeName = attributeDef.Name,
+                AttributeType = attributeDef.Type,
+                Unit = attributeDef.Unit,
+                TextValue = attrValue.TextValue,
+                NumericValue = attrValue.NumericValue,
+                SelectValueId = attrValue.AttributeValueId,
+                BooleanValue = attrValue.BooleanValue,
+                DateValue = attrValue.DateValue
+            };
+
+            // Get display text for select value
+            if (attrValue.AttributeValueId.HasValue && attributeDef.PredefinedValues is not null)
+            {
+                var selectedValue = attributeDef.PredefinedValues.FirstOrDefault(v => v.Id == attrValue.AttributeValueId);
+                dto.SelectValueText = selectedValue?.DisplayText ?? selectedValue?.Value;
+            }
+
+            // Get display texts for multi-select values
+            var multiSelectIds = attrValue.GetMultiSelectValueIds();
+            if (multiSelectIds.Count > 0 && attributeDef.PredefinedValues is not null)
+            {
+                dto.MultiSelectValueIds = multiSelectIds;
+                dto.MultiSelectValueTexts = attributeDef.PredefinedValues
+                    .Where(v => multiSelectIds.Contains(v.Id))
+                    .Select(v => v.DisplayText ?? v.Value)
+                    .ToList();
+            }
+
+            result.Add(dto);
+        }
+
+        return result;
     }
 }

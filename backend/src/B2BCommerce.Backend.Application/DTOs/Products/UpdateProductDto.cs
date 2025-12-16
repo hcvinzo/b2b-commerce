@@ -133,4 +133,20 @@ public class UpdateProductDto
     /// When true, MainProductId is ignored and the relationship is removed.
     /// </summary>
     public bool ClearMainProduct { get; set; }
+
+    /// <summary>
+    /// Product type ID (defines available attributes)
+    /// </summary>
+    public Guid? ProductTypeId { get; set; }
+
+    /// <summary>
+    /// Whether to clear the product type.
+    /// When true, ProductTypeId is ignored and the relationship is removed.
+    /// </summary>
+    public bool ClearProductType { get; set; }
+
+    /// <summary>
+    /// Attribute values for this product
+    /// </summary>
+    public List<ProductAttributeValueInputDto>? AttributeValues { get; set; }
 }

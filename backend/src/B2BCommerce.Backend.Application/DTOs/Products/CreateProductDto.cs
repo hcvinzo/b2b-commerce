@@ -124,4 +124,14 @@ public class CreateProductDto
     /// Main product ID (if this is a variant/SKU of another product)
     /// </summary>
     public Guid? MainProductId { get; set; }
+
+    /// <summary>
+    /// Product type ID (defines available attributes)
+    /// </summary>
+    public Guid? ProductTypeId { get; set; }
+
+    /// <summary>
+    /// Attribute values for this product
+    /// </summary>
+    public List<ProductAttributeValueInputDto>? AttributeValues { get; set; }
 }
