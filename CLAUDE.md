@@ -32,7 +32,7 @@ dotnet ef migrations add <MigrationName> --project src/B2BCommerce.Backend.Infra
 ASPNETCORE_ENVIRONMENT=Development dotnet ef database update --project src/B2BCommerce.Backend.Infrastructure --startup-project src/B2BCommerce.Backend.API
 ```
 
-### Frontend
+### Frontend (Dealer Portal)
 ```bash
 # Development
 cd frontend && npm run dev
@@ -45,6 +45,203 @@ npm run build:test
 
 # Output: frontend/out/ (static export)
 ```
+
+### Admin Panel
+```bash
+# Development
+cd admin && npm run dev
+
+# Build for production
+cd admin && npm run build
+```
+
+---
+
+## Admin Panel Architecture
+
+**Tech Stack**: Next.js 16, React 19, TypeScript, TailwindCSS, shadcn/ui, React Query (TanStack Query)
+
+### Project Structure
+
+```
+admin/src/
+├── app/
+│   ├── (auth)/                    # Auth route group (login, forgot-password)
+│   │   ├── login/page.tsx
+│   │   └── layout.tsx
+│   ├── (dashboard)/               # Dashboard route group (protected)
+│   │   ├── layout.tsx             # Sidebar + header layout
+│   │   ├── categories/page.tsx
+│   │   ├── products/page.tsx
+│   │   ├── customers/page.tsx
+│   │   └── orders/page.tsx
+│   └── layout.tsx                 # Root layout (providers)
+├── components/
+│   ├── ui/                        # shadcn/ui components
+│   │   ├── button.tsx
+│   │   ├── dialog.tsx
+│   │   ├── tree-select.tsx        # Custom hierarchical dropdown
+│   │   └── ...
+│   ├── forms/                     # Form components
+│   │   ├── category-form.tsx
+│   │   └── product-form.tsx
+│   └── layout/                    # Layout components
+│       ├── sidebar.tsx
+│       └── header.tsx
+├── hooks/                         # React Query hooks
+│   ├── use-categories.ts
+│   ├── use-products.ts
+│   └── use-auth.ts
+├── lib/
+│   ├── api/                       # API client functions
+│   │   ├── client.ts              # Axios instance
+│   │   ├── categories.ts
+│   │   └── products.ts
+│   └── validations/               # Zod schemas
+│       ├── category.ts
+│       └── product.ts
+└── types/
+    └── entities.ts                # TypeScript interfaces
+```
+
+### Field Naming Conventions (Backend ↔ Frontend)
+
+**IMPORTANT**: Backend uses PascalCase in C# which becomes camelCase in JSON responses. However, some field names differ:
+
+| Backend (C#) | Backend (JSON) | Frontend Form | Notes |
+|--------------|----------------|---------------|-------|
+| `ParentCategoryId` | `parentCategoryId` | `parentId` | Form uses shorter name, map when submitting |
+| `SubCategories` | `subCategories` | `children` | Tree structure, requires mapping |
+
+**Example - Category Form Submission**:
+```typescript
+// Form schema uses parentId
+const categorySchema = z.object({
+  name: z.string(),
+  parentId: z.string().optional(),  // Form field name
+  // ...
+});
+
+// Map to backend field when submitting
+const handleFormSubmit = async (data: CategoryFormData) => {
+  await createCategory.mutateAsync({
+    name: data.name,
+    parentCategoryId: data.parentId || undefined,  // Backend expects parentCategoryId
+    // ...
+  });
+};
+```
+
+**Example - Category Tree Mapping**:
+```typescript
+// Backend response
+interface CategoryTreeDto {
+  id: string;
+  name: string;
+  subCategories?: CategoryTreeDto[];  // Backend field name
+}
+
+// Frontend interface
+interface Category {
+  id: string;
+  name: string;
+  children?: Category[];  // Frontend field name
+}
+
+// Mapping function in API layer
+function mapCategoryTree(dto: CategoryTreeDto): Category {
+  return {
+    id: dto.id,
+    name: dto.name,
+    children: dto.subCategories?.map(mapCategoryTree),  // Map subCategories → children
+  };
+}
+```
+
+### React Query Patterns
+
+**Hooks Location**: `admin/src/hooks/use-{entity}.ts`
+
+```typescript
+// Example: use-categories.ts
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories,
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+```
+
+### API Client Pattern
+
+**Location**: `admin/src/lib/api/{entity}.ts`
+
+```typescript
+// Categories API example
+const CATEGORIES_BASE = "/categories";
+
+export async function getCategories(): Promise<Category[]> {
+  const response = await apiClient.get<CategoryTreeDto[]>(`${CATEGORIES_BASE}/tree?activeOnly=false`);
+  return response.data.map(mapCategoryTree);  // Map backend → frontend
+}
+
+export async function createCategory(data: CreateCategoryDto): Promise<Category> {
+  const response = await apiClient.post<Category>(CATEGORIES_BASE, data);
+  return response.data;
+}
+```
+
+### Form Validation with Zod
+
+**Location**: `admin/src/lib/validations/{entity}.ts`
+
+```typescript
+export const categorySchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  description: z.string().max(500).optional(),
+  parentId: z.string().optional(),
+  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  displayOrder: z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type CategoryFormData = z.infer<typeof categorySchema>;
+```
+
+### shadcn/ui Component Notes
+
+**Command/Combobox Scrolling**: Do NOT wrap CommandList with ScrollArea - it has built-in scrolling:
+```tsx
+// ✅ CORRECT - Use max-h on CommandList
+<CommandList className="max-h-[300px]">
+  <CommandGroup>{items}</CommandGroup>
+</CommandList>
+
+// ❌ WRONG - Double scrollbar
+<CommandList>
+  <ScrollArea className="h-[300px]">
+    <CommandGroup>{items}</CommandGroup>
+  </ScrollArea>
+</CommandList>
+```
+
+**TreeSelect Component**: Custom hierarchical dropdown for parent selection:
+- Location: `admin/src/components/ui/tree-select.tsx`
+- Renders categories as indented tree in Command/Popover
+- Supports `excludeId` to prevent selecting self as parent
+- Search within dropdown supported
+
+---
 
 ## Architecture
 

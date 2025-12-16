@@ -3,9 +3,46 @@ import { Category, CreateCategoryDto, UpdateCategoryDto } from "@/types/entities
 
 const CATEGORIES_BASE = "/categories";
 
+// Backend CategoryTreeDto uses subCategories, frontend uses children
+interface CategoryTreeDto {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  displayOrder: number;
+  isActive: boolean;
+  externalCode?: string;
+  externalId?: string;
+  lastSyncedAt?: string;
+  subCategories?: CategoryTreeDto[];
+}
+
+// Map backend CategoryTreeDto to frontend Category type
+function mapCategoryTree(dto: CategoryTreeDto): Category {
+  return {
+    id: dto.id,
+    name: dto.name,
+    slug: "", // Not returned in tree endpoint
+    description: dto.description,
+    imageUrl: dto.imageUrl,
+    displayOrder: dto.displayOrder,
+    isActive: dto.isActive,
+    level: 0, // Will be calculated client-side if needed
+    path: "",
+    productCount: 0,
+    externalCode: dto.externalCode,
+    externalId: dto.externalId,
+    lastSyncedAt: dto.lastSyncedAt,
+    createdAt: "",
+    isDeleted: false,
+    children: dto.subCategories?.map(mapCategoryTree),
+  };
+}
+
 export async function getCategories(): Promise<Category[]> {
-  const response = await apiClient.get<Category[]>(`${CATEGORIES_BASE}/tree`);
-  return response.data;
+  // activeOnly=false to show all categories (including inactive) in admin
+  const response = await apiClient.get<CategoryTreeDto[]>(`${CATEGORIES_BASE}/tree?activeOnly=false`);
+  return response.data.map(mapCategoryTree);
 }
 
 export async function getCategoriesFlat(): Promise<PaginatedResponse<Category>> {

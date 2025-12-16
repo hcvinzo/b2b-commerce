@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,14 +12,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Form,
   FormControl,
   FormField,
@@ -27,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { forgotPassword } from "@/lib/api/auth";
+import { AuthCard } from "../_components/auth-card";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -64,52 +58,53 @@ export default function ForgotPasswordPage() {
 
   if (isSubmitted) {
     return (
-      <div className="w-full max-w-md p-4">
-        <Card>
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Mail className="h-6 w-6 text-primary" />
+      <div className="w-full max-w-sm md:max-w-4xl">
+        <AuthCard>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                <Mail className="h-8 w-8 text-primary" />
               </div>
+              <h1 className="text-xl font-bold">Check your email</h1>
+              <p className="text-muted-foreground text-balance">
+                We have sent password reset instructions to your email address.
+              </p>
             </div>
-            <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
-            <CardDescription>
-              We have sent password reset instructions to your email address.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex flex-col gap-4">
             <Button asChild variant="outline" className="w-full">
               <Link href="/login">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to login
               </Link>
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </AuthCard>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md p-4">
-      <Card>
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">
-                V
-              </span>
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">Forgot password?</CardTitle>
-          <CardDescription>
-            Enter your email and we&apos;ll send you instructions to reset your
-            password.
-          </CardDescription>
-        </CardHeader>
+    <div className="w-full max-w-sm md:max-w-4xl">
+      <AuthCard>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <Image
+                    src="/images/logo-wb.jpg"
+                    alt="Vesmarket"
+                    width={200}
+                    height={200}
+                    className="rounded-lg"
+                  />
+                </div>
+                <h1 className="text-xl font-bold">Forgot password?</h1>
+                <p className="text-muted-foreground text-balance">
+                  Enter your email and we&apos;ll send you instructions to reset
+                  your password.
+                </p>
+              </div>
+
               <FormField
                 control={form.control}
                 name="email"
@@ -119,7 +114,7 @@ export default function ForgotPasswordPage() {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="admin@vesmarket.com"
+                        placeholder="your@email.com"
                         disabled={isLoading}
                         {...field}
                       />
@@ -128,22 +123,22 @@ export default function ForgotPasswordPage() {
                   </FormItem>
                 )}
               />
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send reset instructions
               </Button>
+
               <Button asChild variant="ghost" className="w-full">
                 <Link href="/login">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to login
                 </Link>
               </Button>
-            </CardFooter>
+            </div>
           </form>
         </Form>
-      </Card>
+      </AuthCard>
     </div>
   );
 }

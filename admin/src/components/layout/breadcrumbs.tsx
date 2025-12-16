@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
@@ -64,22 +65,24 @@ export function Breadcrumbs() {
             );
 
           return (
-            <BreadcrumbItem key={href}>
+            <Fragment key={href}>
               <BreadcrumbSeparator>
                 <ChevronRight className="h-4 w-4" />
               </BreadcrumbSeparator>
-              {isLast ? (
-                <BreadcrumbPage>
-                  {isId ? `#${segment.slice(0, 8)}...` : name}
-                </BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink asChild>
-                  <Link href={href}>
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>
                     {isId ? `#${segment.slice(0, 8)}...` : name}
-                  </Link>
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
+                  </BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link href={href}>
+                      {isId ? `#${segment.slice(0, 8)}...` : name}
+                    </Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
           );
         })}
       </BreadcrumbList>

@@ -1,24 +1,45 @@
 import { apiClient } from "./client";
-import { User } from "@/types/entities";
 
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
+// Response from backend /auth/login endpoint
 export interface LoginResponse {
-  accessToken: string;
+  token: string; // Backend returns "token", not "accessToken"
   refreshToken: string;
-  user: User;
+  expiresAt: string;
+  customerId: string;
+  email: string;
+  companyName: string;
+  isApproved: boolean;
 }
 
 export interface RefreshTokenRequest {
   refreshToken: string;
 }
 
+// Response from backend /auth/refresh endpoint
 export interface RefreshTokenResponse {
-  accessToken: string;
+  token: string; // Backend returns "token", not "accessToken"
   refreshToken: string;
+  expiresAt: string;
+  customerId: string;
+  email: string;
+  companyName: string;
+  isApproved: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
 }
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
@@ -36,19 +57,11 @@ export async function refreshToken(
   return response.data;
 }
 
-export async function getCurrentUser(): Promise<User> {
-  const response = await apiClient.get<User>("/auth/me");
-  return response.data;
-}
-
 export async function logout(): Promise<void> {
   await apiClient.post("/auth/logout");
 }
 
-export async function changePassword(data: {
-  currentPassword: string;
-  newPassword: string;
-}): Promise<void> {
+export async function changePassword(data: ChangePasswordRequest): Promise<void> {
   await apiClient.post("/auth/change-password", data);
 }
 
@@ -56,9 +69,6 @@ export async function forgotPassword(email: string): Promise<void> {
   await apiClient.post("/auth/forgot-password", { email });
 }
 
-export async function resetPassword(data: {
-  token: string;
-  newPassword: string;
-}): Promise<void> {
+export async function resetPassword(data: ResetPasswordRequest): Promise<void> {
   await apiClient.post("/auth/reset-password", data);
 }

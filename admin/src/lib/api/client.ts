@@ -1,5 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import Cookies from "js-cookie";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAccessToken,
+  setRefreshToken,
+  clearAuthCookies,
+} from "@/lib/utils/cookies";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -14,7 +20,7 @@ export const apiClient = axios.create({
 // Request interceptor - add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = Cookies.get("accessToken");
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -36,30 +42,24 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = Cookies.get("refreshToken");
+        const refreshToken = getRefreshToken();
         if (refreshToken) {
           const response = await axios.post(`${API_URL}/auth/refresh`, {
             refreshToken,
           });
 
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
+          // Backend returns "token", not "accessToken"
+          const { token, refreshToken: newRefreshToken } = response.data;
 
-          Cookies.set("accessToken", accessToken, {
-            secure: true,
-            sameSite: "strict",
-          });
-          Cookies.set("refreshToken", newRefreshToken, {
-            secure: true,
-            sameSite: "strict",
-          });
+          setAccessToken(token);
+          setRefreshToken(newRefreshToken);
 
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${token}`;
           return apiClient(originalRequest);
         }
       } catch {
         // Refresh failed - redirect to login
-        Cookies.remove("accessToken");
-        Cookies.remove("refreshToken");
+        clearAuthCookies();
         window.location.href = "/login";
         return Promise.reject(error);
       }

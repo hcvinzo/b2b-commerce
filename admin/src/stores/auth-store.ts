@@ -1,8 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import Cookies from "js-cookie";
 import { apiClient } from "@/lib/api/client";
 import { User } from "@/types/entities";
+import { decodeJwt, isTokenExpired, getRoleFromPayload } from "@/lib/utils/jwt";
+import {
+  setAccessToken,
+  setRefreshToken,
+  getAccessToken,
+  getRefreshToken,
+  clearAuthCookies,
+} from "@/lib/utils/cookies";
 
 interface AuthState {
   user: User | null;
@@ -12,6 +19,29 @@ interface AuthState {
   logout: () => void;
   checkAuth: () => Promise<void>;
   setUser: (user: User) => void;
+}
+
+/**
+ * Build User object from JWT token claims
+ */
+function buildUserFromToken(token: string): User {
+  const decoded = decodeJwt(token);
+
+  // Construct display name from available fields
+  let name = decoded.email;
+  if (decoded.firstName) {
+    name = `${decoded.firstName} ${decoded.lastName || ""}`.trim();
+  } else if (decoded.companyName) {
+    name = decoded.companyName;
+  }
+
+  return {
+    id: decoded.userId || decoded.sub,
+    email: decoded.email,
+    name,
+    role: getRoleFromPayload(decoded),
+    isActive: true,
+  };
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,16 +58,15 @@ export const useAuthStore = create<AuthState>()(
             email,
             password,
           });
-          const { accessToken, refreshToken, user } = response.data;
+          // Backend returns "token", not "accessToken"
+          const { token, refreshToken } = response.data;
 
-          Cookies.set("accessToken", accessToken, {
-            secure: true,
-            sameSite: "strict",
-          });
-          Cookies.set("refreshToken", refreshToken, {
-            secure: true,
-            sameSite: "strict",
-          });
+          // Store tokens in cookies
+          setAccessToken(token);
+          setRefreshToken(refreshToken);
+
+          // Build user from JWT claims
+          const user = buildUserFromToken(token);
 
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
@@ -47,23 +76,44 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        Cookies.remove("accessToken");
-        Cookies.remove("refreshToken");
+        clearAuthCookies();
         set({ user: null, isAuthenticated: false });
         window.location.href = "/login";
       },
 
       checkAuth: async () => {
-        const token = Cookies.get("accessToken");
+        const token = getAccessToken();
+
+        // No token - not authenticated
         if (!token) {
           set({ isAuthenticated: false, isLoading: false });
           return;
         }
 
+        // Check if token is expired
+        if (isTokenExpired(token)) {
+          // Token expired - try to use refresh token
+          const refreshTokenValue = getRefreshToken();
+          if (!refreshTokenValue) {
+            // No refresh token - user needs to login again
+            clearAuthCookies();
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return;
+          }
+          // Note: Token refresh will be handled by the axios interceptor
+          // on the next API call. For now, mark as not authenticated
+          // so the user is redirected to login
+          set({ user: null, isAuthenticated: false, isLoading: false });
+          return;
+        }
+
         try {
-          const response = await apiClient.get("/auth/me");
-          set({ user: response.data, isAuthenticated: true, isLoading: false });
+          // Token is valid - build user from JWT claims
+          const user = buildUserFromToken(token);
+          set({ user, isAuthenticated: true, isLoading: false });
         } catch {
+          // Failed to decode token
+          clearAuthCookies();
           set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },

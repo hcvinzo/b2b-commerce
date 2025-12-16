@@ -18,7 +18,6 @@ export interface ExternalEntity extends BaseEntity {
 // Category
 export interface Category extends ExternalEntity {
   name: string;
-  nameEn?: string;
   slug: string;
   description?: string;
   parentId?: string;
@@ -34,9 +33,8 @@ export interface Category extends ExternalEntity {
 
 export interface CreateCategoryDto {
   name: string;
-  nameEn?: string;
   description?: string;
-  parentId?: string;
+  parentCategoryId?: string;
   imageUrl?: string;
   displayOrder?: number;
   isActive?: boolean;

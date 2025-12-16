@@ -17,13 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { TreeSelect } from "@/components/ui/tree-select";
 import { categorySchema, type CategoryFormData } from "@/lib/validations/category";
 import { Category } from "@/types/entities";
 
@@ -48,7 +42,6 @@ export function CategoryForm({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: "",
-      nameEn: "",
       description: "",
       parentId: "",
       imageUrl: "",
@@ -57,9 +50,6 @@ export function CategoryForm({
       ...defaultValues,
     },
   });
-
-  // Filter out the current category and its children from parent options
-  const availableParents = categories.filter((cat) => cat.id !== excludeId);
 
   return (
     <Form {...form}>
@@ -81,44 +71,20 @@ export function CategoryForm({
 
           <FormField
             control={form.control}
-            name="nameEn"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category Name (English)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter category name in English" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="parentId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Parent Category</FormLabel>
-                <Select
-                  onValueChange={(value) =>
-                    field.onChange(value === "none" ? "" : value)
-                  }
-                  defaultValue={field.value || "none"}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select parent category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">No Parent (Root Category)</SelectItem>
-                    {availableParents.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.path || category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <TreeSelect
+                    categories={categories}
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    excludeId={excludeId}
+                    placeholder="Select parent category"
+                    disabled={isLoading}
+                  />
+                </FormControl>
                 <FormDescription>
                   Leave empty to create a root category
                 </FormDescription>
