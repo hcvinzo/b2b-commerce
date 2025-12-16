@@ -11,6 +11,8 @@ import {
   FileText,
   UserCog,
   Building2,
+  SlidersHorizontal,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,6 +69,16 @@ export const navigation: NavGroup[] = [
         title: "Categories",
         url: "/categories",
         icon: FolderTree,
+      },
+      {
+        title: "Attributes",
+        url: "/attributes",
+        icon: SlidersHorizontal,
+      },
+      {
+        title: "Product Types",
+        url: "/product-types",
+        icon: Layers,
       },
     ],
   },

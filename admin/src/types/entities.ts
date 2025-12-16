@@ -273,10 +273,59 @@ export interface Brand extends ExternalEntity {
 export interface ProductType extends BaseEntity {
   code: string;
   name: string;
-  nameEn?: string;
   description?: string;
   isActive: boolean;
-  attributeDefinitions: AttributeDefinition[];
+  attributes: ProductTypeAttribute[];
+  externalId?: string;
+  externalCode?: string;
+  lastSyncedAt?: string;
+}
+
+// Product Type for list views (lighter)
+export interface ProductTypeListItem extends BaseEntity {
+  code: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  attributeCount: number;
+  productCount: number;
+  externalId?: string;
+  externalCode?: string;
+  lastSyncedAt?: string;
+}
+
+// Product Type Attribute (junction between ProductType and AttributeDefinition)
+export interface ProductTypeAttribute {
+  id: string;
+  attributeDefinitionId: string;
+  attributeExternalId?: string;
+  attributeCode: string;
+  attributeName: string;
+  attributeType: AttributeType;
+  unit?: string;
+  isRequired: boolean; // Overrides AttributeDefinition.isRequired for this product type
+  displayOrder: number;
+  predefinedValues?: AttributeValue[];
+}
+
+// DTOs for ProductType operations
+export interface CreateProductTypeDto {
+  code: string;
+  name: string;
+  description?: string;
+  attributes?: AddAttributeToProductTypeDto[];
+}
+
+export interface UpdateProductTypeDto {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface AddAttributeToProductTypeDto {
+  attributeDefinitionId: string;
+  isRequired?: boolean;
+  displayOrder?: number;
 }
 
 // Attribute Definition
@@ -290,7 +339,7 @@ export interface AttributeDefinition extends ExternalEntity {
   isRequired: boolean;
   isVisibleOnProductPage: boolean;
   displayOrder: number;
-  values: AttributeValue[];
+  predefinedValues: AttributeValue[];
 }
 
 export interface AttributeValue {
@@ -300,13 +349,44 @@ export interface AttributeValue {
   displayOrder: number;
 }
 
-export type AttributeType =
-  | "Text"
-  | "Number"
-  | "Select"
-  | "MultiSelect"
-  | "Boolean"
-  | "Date";
+// Backend sends integer enum values: 1=Text, 2=Number, 3=Select, 4=MultiSelect, 5=Boolean, 6=Date
+export type AttributeType = 1 | 2 | 3 | 4 | 5 | 6;
+
+export const AttributeTypeEnum = {
+  Text: 1,
+  Number: 2,
+  Select: 3,
+  MultiSelect: 4,
+  Boolean: 5,
+  Date: 6,
+} as const;
+
+export interface CreateAttributeDefinitionDto {
+  code: string;
+  name: string;
+  type: AttributeType | string;
+  unit?: string;
+  isFilterable?: boolean;
+  isRequired?: boolean;
+  isVisibleOnProductPage?: boolean;
+  displayOrder?: number;
+  predefinedValues?: CreateAttributeValueDto[];
+}
+
+export interface UpdateAttributeDefinitionDto {
+  name?: string;
+  unit?: string;
+  isFilterable?: boolean;
+  isRequired?: boolean;
+  isVisibleOnProductPage?: boolean;
+  displayOrder?: number;
+}
+
+export interface CreateAttributeValueDto {
+  value: string;
+  displayText?: string;
+  displayOrder?: number;
+}
 
 // User
 export interface User {

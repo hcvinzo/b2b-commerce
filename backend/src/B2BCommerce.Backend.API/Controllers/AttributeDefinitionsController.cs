@@ -32,12 +32,14 @@ public class AttributeDefinitionsController : ControllerBase
     /// <summary>
     /// Get all attribute definitions
     /// </summary>
+    /// <param name="includeValues">If true, includes predefined values in the response (default: false)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<AttributeDefinitionDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetAll([FromQuery] bool includeValues = false, CancellationToken cancellationToken = default)
     {
-        var query = new GetAttributeDefinitionsQuery();
+        var query = new GetAttributeDefinitionsQuery(includeValues);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)

@@ -43,12 +43,14 @@ public class AddAttributeToProductTypeCommandHandler : ICommandHandler<AddAttrib
         }
 
         // Add the attribute
-        productType.AddAttribute(
+        var productTypeAttribute = productType.AddAttribute(
             request.AttributeDefinitionId,
             request.IsRequired,
             request.DisplayOrder);
 
-        _unitOfWork.ProductTypes.Update(productType);
+        // Explicitly add the new ProductTypeAttribute to the context
+        // The parent entity is already tracked, so we don't need to call Update()
+        await _unitOfWork.ProductTypes.AddProductTypeAttributeAsync(productTypeAttribute, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Reload with updated attributes

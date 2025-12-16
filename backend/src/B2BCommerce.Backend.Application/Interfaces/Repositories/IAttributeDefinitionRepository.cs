@@ -23,6 +23,13 @@ public interface IAttributeDefinitionRepository : IGenericRepository<AttributeDe
     Task<IEnumerable<AttributeDefinition>> GetFilterableAttributesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all attribute definitions with predefined values loaded
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of attribute definitions with values</returns>
+    Task<IEnumerable<AttributeDefinition>> GetAllWithValuesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets attribute definition with predefined values loaded
     /// </summary>
     /// <param name="id">Attribute definition ID</param>

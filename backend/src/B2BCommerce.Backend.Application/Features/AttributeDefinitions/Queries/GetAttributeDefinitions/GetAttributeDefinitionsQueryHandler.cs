@@ -22,7 +22,10 @@ public class GetAttributeDefinitionsQueryHandler : IQueryHandler<GetAttributeDef
 
     public async Task<Result<IEnumerable<AttributeDefinitionDto>>> Handle(GetAttributeDefinitionsQuery request, CancellationToken cancellationToken)
     {
-        var attributeDefinitions = await _unitOfWork.AttributeDefinitions.GetAllAsync(cancellationToken);
+        var attributeDefinitions = request.IncludeValues
+            ? await _unitOfWork.AttributeDefinitions.GetAllWithValuesAsync(cancellationToken)
+            : await _unitOfWork.AttributeDefinitions.GetAllAsync(cancellationToken);
+
         var dtos = _mapper.Map<IEnumerable<AttributeDefinitionDto>>(attributeDefinitions);
         return Result<IEnumerable<AttributeDefinitionDto>>.Success(dtos);
     }

@@ -13,7 +13,11 @@ import {
   FolderOpen,
   Search,
   X,
+  Download,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +54,7 @@ import {
 import { Category } from "@/types/entities";
 import { CategoryFormData } from "@/lib/validations/category";
 import { cn } from "@/lib/utils";
+import { exportToExcel, exportToCSV, flattenCategories } from "@/lib/export";
 
 // Helper to highlight matching text
 function HighlightText({ text, highlight }: { text: string; highlight: string }) {
@@ -428,6 +433,32 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleExport = (format: "xlsx" | "csv") => {
+    if (!categories?.length) return;
+
+    const flatData = flattenCategories(categories);
+    const columns = [
+      { key: "name" as const, header: "Name" },
+      { key: "parentName" as const, header: "Parent Category" },
+      { key: "path" as const, header: "Full Path" },
+      { key: "description" as const, header: "Description" },
+      { key: "displayOrder" as const, header: "Display Order" },
+      { key: "isActive" as const, header: "Active" },
+      { key: "productCount" as const, header: "Product Count" },
+      { key: "level" as const, header: "Level" },
+    ];
+
+    const filename = `categories-${new Date().toISOString().split("T")[0]}`;
+
+    if (format === "xlsx") {
+      exportToExcel(flatData, columns, filename, "Categories");
+    } else {
+      exportToCSV(flatData, columns, filename);
+    }
+
+    toast.success(`Categories exported as ${format.toUpperCase()}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -453,6 +484,28 @@ export default function CategoriesPage() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!categories?.length}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleExport("xlsx")}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("csv")}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    CSV (.csv)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline" size="sm" onClick={handleExpandAll}>
                 Expand All
               </Button>

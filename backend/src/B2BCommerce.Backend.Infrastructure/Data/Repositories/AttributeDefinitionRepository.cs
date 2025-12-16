@@ -36,6 +36,18 @@ public class AttributeDefinitionRepository : GenericRepository<AttributeDefiniti
     }
 
     /// <summary>
+    /// Gets all attribute definitions with predefined values loaded
+    /// </summary>
+    public async Task<IEnumerable<AttributeDefinition>> GetAllWithValuesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(a => a.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder))
+            .Where(a => !a.IsDeleted)
+            .OrderBy(a => a.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Gets attribute definition with predefined values loaded
     /// </summary>
     public async Task<AttributeDefinition?> GetWithPredefinedValuesAsync(Guid id, CancellationToken cancellationToken = default)

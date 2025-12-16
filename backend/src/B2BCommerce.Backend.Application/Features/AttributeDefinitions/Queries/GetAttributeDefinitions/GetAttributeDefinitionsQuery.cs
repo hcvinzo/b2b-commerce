@@ -7,4 +7,5 @@ namespace B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.
 /// <summary>
 /// Query to get all attribute definitions
 /// </summary>
-public record GetAttributeDefinitionsQuery() : IQuery<Result<IEnumerable<AttributeDefinitionDto>>>;
+/// <param name="IncludeValues">If true, includes predefined values in the response (default: false)</param>
+public record GetAttributeDefinitionsQuery(bool IncludeValues = false) : IQuery<Result<IEnumerable<AttributeDefinitionDto>>>;

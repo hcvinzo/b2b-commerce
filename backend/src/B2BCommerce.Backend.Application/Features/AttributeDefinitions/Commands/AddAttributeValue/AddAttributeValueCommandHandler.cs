@@ -41,7 +41,9 @@ public class AddAttributeValueCommandHandler : ICommandHandler<AddAttributeValue
             request.DisplayText,
             request.DisplayOrder);
 
-        _unitOfWork.AttributeDefinitions.Update(attributeDefinition);
+        // Explicitly add the new AttributeValue to the context
+        // The parent entity is already tracked, so we don't need to call Update()
+        await _unitOfWork.AttributeDefinitions.AddAttributeValueAsync(attributeValue, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<AttributeValueDto>.Success(_mapper.Map<AttributeValueDto>(attributeValue));
