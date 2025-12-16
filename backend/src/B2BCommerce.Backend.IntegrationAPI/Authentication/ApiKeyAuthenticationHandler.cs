@@ -58,9 +58,13 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         }
 
         // Create claims
+        // Use UserId as NameIdentifier for audit trail (CreatedBy, UpdatedBy)
+        // Falls back to ApiKeyId if UserId is not set
+        var nameIdentifier = validationResult.UserId ?? validationResult.ApiKeyId.ToString()!;
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, validationResult.ApiKeyId.ToString()!),
+            new Claim(ClaimTypes.NameIdentifier, nameIdentifier),
+            new Claim("api_key_id", validationResult.ApiKeyId.ToString()!),
             new Claim("api_client_id", validationResult.ApiClientId.ToString()!),
             new Claim("client_name", validationResult.ClientName ?? string.Empty),
             new Claim("rate_limit", validationResult.RateLimitPerMinute.ToString())

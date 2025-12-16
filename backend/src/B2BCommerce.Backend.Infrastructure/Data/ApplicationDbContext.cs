@@ -1,3 +1,4 @@
+using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities;
 using B2BCommerce.Backend.Domain.Entities.Integration;
 using B2BCommerce.Backend.Infrastructure.Identity;
@@ -11,9 +12,19 @@ namespace B2BCommerce.Backend.Infrastructure.Data;
 /// </summary>
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
+    private readonly ICurrentUserService? _currentUserService;
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
+    }
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        ICurrentUserService currentUserService)
+        : base(options)
+    {
+        _currentUserService = currentUserService;
     }
 
     // Domain entities
@@ -91,6 +102,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        var userId = _currentUserService?.UserId;
+
         // Update audit fields
         var entries = ChangeTracker.Entries()
             .Where(e => e.Entity is Domain.Common.BaseEntity &&
@@ -103,12 +116,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             if (entry.State == EntityState.Added)
             {
                 entity.CreatedAt = DateTime.UtcNow;
-                // CreatedBy should be set by the service/controller
+                // Auto-set CreatedBy if not already set
+                entity.CreatedBy ??= userId;
             }
             else if (entry.State == EntityState.Modified)
             {
+                entry.Property(nameof(Domain.Common.BaseEntity.CreatedAt)).IsModified = false;
+                entry.Property(nameof(Domain.Common.BaseEntity.CreatedBy)).IsModified = false;
                 entity.UpdatedAt = DateTime.UtcNow;
-                // UpdatedBy should be set by the service/controller
+                // Auto-set UpdatedBy from current user
+                entity.UpdatedBy = userId;
             }
         }
 

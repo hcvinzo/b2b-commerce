@@ -9,6 +9,11 @@ public class ApiKeyValidationResult
     public Guid? ApiKeyId { get; set; }
     public Guid? ApiClientId { get; set; }
     public string? ClientName { get; set; }
+    /// <summary>
+    /// The user ID associated with the API client.
+    /// Used for audit trail tracking (CreatedBy, UpdatedBy).
+    /// </summary>
+    public string? UserId { get; set; }
     public List<string> Permissions { get; set; } = new();
     public int RateLimitPerMinute { get; set; }
     public string? ErrorCode { get; set; }
@@ -21,6 +26,7 @@ public class ApiKeyValidationResult
         Guid apiKeyId,
         Guid apiClientId,
         string clientName,
+        string? userId,
         IEnumerable<string> permissions,
         int rateLimitPerMinute)
     {
@@ -30,6 +36,7 @@ public class ApiKeyValidationResult
             ApiKeyId = apiKeyId,
             ApiClientId = apiClientId,
             ClientName = clientName,
+            UserId = userId,
             Permissions = permissions.ToList(),
             RateLimitPerMinute = rateLimitPerMinute
         };

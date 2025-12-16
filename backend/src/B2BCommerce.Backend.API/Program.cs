@@ -1,6 +1,8 @@
 using System.Text;
 using B2BCommerce.Backend.API.Middleware;
+using B2BCommerce.Backend.API.Services;
 using B2BCommerce.Backend.Application;
+using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -24,6 +26,10 @@ try
 
     // Add services to the container
     builder.Services.AddControllers();
+
+    // Add HttpContextAccessor and CurrentUserService for audit fields
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
     // Add Application services (AutoMapper, FluentValidation)
     builder.Services.AddApplication();

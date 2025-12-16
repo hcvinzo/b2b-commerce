@@ -439,6 +439,7 @@ public class ApiKeyService : IApiKeyService
             ApiKeyId = key.Id,
             ApiClientId = key.ApiClientId,
             ClientName = key.ApiClient.Name,
+            UserId = key.ApiClient.UserId,
             Permissions = key.Permissions.Select(p => p.Scope).ToList(),
             RateLimitPerMinute = key.RateLimitPerMinute
         };

@@ -1,7 +1,9 @@
 using B2BCommerce.Backend.Application;
+using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Infrastructure;
 using B2BCommerce.Backend.IntegrationAPI.Authentication;
 using B2BCommerce.Backend.IntegrationAPI.Middleware;
+using B2BCommerce.Backend.IntegrationAPI.Services;
 using Serilog;
 
 // Configure Serilog
@@ -22,6 +24,10 @@ try
 
     // Add services to the container
     builder.Services.AddControllers();
+
+    // Add HttpContextAccessor and CurrentUserService for audit fields
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
     // Add Application services (AutoMapper, FluentValidation)
     builder.Services.AddApplication();

@@ -14,6 +14,12 @@ public class ApiClient : BaseEntity, IAggregateRoot
     public string? ContactPhone { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>
+    /// The user ID associated with this API client.
+    /// Used for audit trail tracking (CreatedBy, UpdatedBy).
+    /// </summary>
+    public string? UserId { get; private set; }
+
     // Navigation
     private readonly List<ApiKey> _apiKeys = new();
     public IReadOnlyCollection<ApiKey> ApiKeys => _apiKeys.AsReadOnly();
@@ -104,6 +110,20 @@ public class ApiClient : BaseEntity, IAggregateRoot
         {
             key.Revoke("Parent client deactivated", deactivatedBy);
         }
+    }
+
+    /// <summary>
+    /// Sets the associated user for this API client.
+    /// Used for audit trail tracking.
+    /// </summary>
+    public void SetUser(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new DomainException("User ID is required");
+        }
+
+        UserId = userId;
     }
 
     /// <summary>
