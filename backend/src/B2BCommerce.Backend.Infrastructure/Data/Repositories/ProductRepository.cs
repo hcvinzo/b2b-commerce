@@ -14,6 +14,19 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     }
 
     /// <summary>
+    /// Gets all products with necessary includes for ProductService
+    /// </summary>
+    public override async Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.Brand)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .Where(p => !p.IsDeleted)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Gets a product by ID with all necessary includes for ProductService
     /// </summary>
     public override async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)

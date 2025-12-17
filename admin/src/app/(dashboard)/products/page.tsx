@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -152,6 +153,7 @@ export default function ProductsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[60px]">Image</TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Product Name</TableHead>
               <TableHead>Category</TableHead>
@@ -165,20 +167,37 @@ export default function ProductsPage() {
             {isLoading ? (
               [...Array(5)].map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <Skeleton className="h-10 w-full" />
                   </TableCell>
                 </TableRow>
               ))
             ) : data?.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10">
+                <TableCell colSpan={8} className="text-center py-10">
                   <p className="text-muted-foreground">No products found</p>
                 </TableCell>
               </TableRow>
             ) : (
               data?.items.map((product) => (
                 <TableRow key={product.id}>
+                  <TableCell>
+                    {product.mainImageUrl ? (
+                      <div className="relative h-10 w-10 overflow-hidden rounded-md bg-muted">
+                        <Image
+                          src={product.mainImageUrl}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground text-xs">
+                        N/A
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">{product.sku}</TableCell>
                   <TableCell>
                     <Link

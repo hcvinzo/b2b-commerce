@@ -105,6 +105,28 @@ export default function ProductDetailPage() {
                 unitOfMeasure: product.unitOfMeasure,
                 isActive: product.isActive,
                 isFeatured: product.isFeatured,
+                mainImageUrl: product.mainImageUrl || "",
+                imageUrls: product.imageUrls || [],
+                taxRate: product.taxRate,
+                tier1Price: product.tier1Price,
+                tier2Price: product.tier2Price,
+                tier3Price: product.tier3Price,
+                tier4Price: product.tier4Price,
+                tier5Price: product.tier5Price,
+                weight: product.weight,
+                length: product.length,
+                width: product.width,
+                height: product.height,
+                isSerialTracked: product.isSerialTracked,
+                attributeValues: product.attributeValues?.map(av => ({
+                  attributeDefinitionId: av.attributeDefinitionId,
+                  textValue: av.textValue,
+                  numericValue: av.numericValue,
+                  selectValueId: av.selectValueId,
+                  multiSelectValueIds: av.multiSelectValueIds,
+                  booleanValue: av.booleanValue,
+                  dateValue: av.dateValue,
+                })) || [],
               }}
               onSubmit={handleSubmit}
               onCancel={() => router.push(`/products/${id}`)}

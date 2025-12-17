@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +94,19 @@ export function ProductForm({
   });
 
   const watchProductTypeId = form.watch("productTypeId");
+
+  // Show toast when form has validation errors
+  useEffect(() => {
+    const errors = form.formState.errors;
+    if (Object.keys(errors).length > 0 && form.formState.isSubmitted) {
+      const errorMessages = Object.entries(errors)
+        .map(([field, error]) => `${field}: ${error?.message}`)
+        .join(", ");
+      toast.error("Validation Error", {
+        description: errorMessages,
+      });
+    }
+  }, [form.formState.errors, form.formState.isSubmitted]);
 
   return (
     <Form {...form}>

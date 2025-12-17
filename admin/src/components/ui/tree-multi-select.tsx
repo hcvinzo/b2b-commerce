@@ -172,23 +172,27 @@ export function TreeMultiSelect({
                   )}
                   <span className="max-w-[150px] truncate">{cat.name}</span>
                   {index !== 0 && (
-                    <button
-                      type="button"
-                      className="ml-1 rounded-full outline-none hover:bg-secondary"
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="ml-1 rounded-full outline-none hover:bg-secondary cursor-pointer"
                       onClick={(e) => handleSetPrimary(cat.id, e)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSetPrimary(cat.id, e as unknown as React.MouseEvent)}
                       title="Set as primary"
                     >
                       <Star className="h-3 w-3" />
-                    </button>
+                    </span>
                   )}
-                  <button
-                    type="button"
-                    className="ml-1 rounded-full outline-none hover:bg-secondary"
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="ml-1 rounded-full outline-none hover:bg-secondary cursor-pointer"
                     onClick={(e) => handleRemove(cat.id, e)}
+                    onKeyDown={(e) => e.key === "Enter" && handleRemove(cat.id, e as unknown as React.MouseEvent)}
                     title="Remove"
                   >
                     <X className="h-3 w-3" />
-                  </button>
+                  </span>
                 </Badge>
               ))
             ) : (
