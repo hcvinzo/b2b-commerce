@@ -4,201 +4,210 @@ using B2BCommerce.Backend.Domain.Enums;
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Products;
 
 /// <summary>
-/// Request DTO for syncing a product from external system (LOGO ERP).
-/// Id = ExternalId (string) - the primary upsert key.
-/// Code = ExternalCode (string) - optional secondary reference.
-/// All related entity IDs (CategoryId, BrandId, ProductTypeId) are ExternalIds.
+/// Harici sistemden (LOGO ERP) ürün senkronizasyonu için istek nesnesi.
+/// Id = ExternalId (string) - birincil upsert anahtarı.
+/// Code = ExternalCode (string) - isteğe bağlı ikincil referans.
+/// Tüm ilişkili entity ID'leri (CategoryId, BrandId, ProductTypeId) de ExternalId'lerdir.
 /// </summary>
 public class ProductSyncRequest
 {
     /// <summary>
-    /// External ID (PRIMARY upsert key - required for new products).
-    /// This is the ID from the source system (LOGO ERP).
+    /// Harici ID (BİRİNCİL upsert anahtarı - yeni ürünler için zorunlu).
+    /// Kaynak sistemden gelen ID (LOGO ERP).
     /// </summary>
+    /// <example>PRD001</example>
     [StringLength(100)]
     public string? Id { get; set; }
 
     /// <summary>
-    /// External code (OPTIONAL secondary reference)
+    /// Harici kod (İSTEĞE BAĞLI ikincil referans)
     /// </summary>
+    /// <example>LAPTOP-001</example>
     [StringLength(100)]
     public string? Code { get; set; }
 
     /// <summary>
-    /// Stock Keeping Unit (required, unique, used as fallback for matching)
+    /// Stok Takip Birimi (zorunlu, benzersiz, eşleştirme için yedek olarak kullanılır)
     /// </summary>
-    [Required]
-    [StringLength(100, MinimumLength = 1)]
+    /// <example>SKU-LAPTOP-001</example>
+    [Required(ErrorMessage = "SKU zorunludur")]
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "SKU 1-100 karakter arasında olmalıdır")]
     public string SKU { get; set; } = null!;
 
     /// <summary>
-    /// Product name
+    /// Ürün adı (zorunlu)
     /// </summary>
-    [Required]
-    [StringLength(200, MinimumLength = 1)]
+    /// <example>Dell Latitude 5520 Laptop</example>
+    [Required(ErrorMessage = "Ürün adı zorunludur")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Ürün adı 1-200 karakter arasında olmalıdır")]
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Product description
+    /// Ürün açıklaması
     /// </summary>
-    [StringLength(5000)]
+    /// <example>Intel Core i7, 16GB RAM, 512GB SSD dizüstü bilgisayar</example>
+    [StringLength(5000, ErrorMessage = "Açıklama 5000 karakteri geçemez")]
     public string? Description { get; set; }
 
     /// <summary>
-    /// Category external ID (required - one of CategoryId or SKU must resolve to a category)
+    /// Kategorinin harici ID'si (kategori atamak için zorunlu)
     /// </summary>
+    /// <example>CAT-BILGISAYAR</example>
     [StringLength(100)]
     public string? CategoryId { get; set; }
 
     /// <summary>
-    /// Brand external ID (optional)
+    /// Markanın harici ID'si (isteğe bağlı)
     /// </summary>
+    /// <example>BRAND-DELL</example>
     [StringLength(100)]
     public string? BrandId { get; set; }
 
     /// <summary>
-    /// Product type external ID (optional)
+    /// Ürün tipinin harici ID'si (isteğe bağlı)
     /// </summary>
+    /// <example>TYPE-LAPTOP</example>
     [StringLength(100)]
     public string? ProductTypeId { get; set; }
 
-    // Pricing
-
     /// <summary>
-    /// List price amount (required)
+    /// Liste fiyatı (KDV hariç, zorunlu)
     /// </summary>
-    [Required]
-    [Range(0, double.MaxValue)]
+    /// <example>25000.00</example>
+    [Required(ErrorMessage = "Liste fiyatı zorunludur")]
+    [Range(0, double.MaxValue, ErrorMessage = "Liste fiyatı 0 veya daha büyük olmalıdır")]
     public decimal ListPrice { get; set; }
 
     /// <summary>
-    /// Currency code (default: TRY)
+    /// Para birimi kodu (varsayılan: TRY)
     /// </summary>
-    [StringLength(3)]
+    /// <example>TRY</example>
+    [StringLength(3, ErrorMessage = "Para birimi kodu 3 karakter olmalıdır")]
     public string Currency { get; set; } = "TRY";
 
     /// <summary>
-    /// Tier 1 price amount
+    /// Kademe 1 fiyatı (en yüksek seviye bayi fiyatı)
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>24000.00</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Kademe 1 fiyatı 0 veya daha büyük olmalıdır")]
     public decimal? Tier1Price { get; set; }
 
     /// <summary>
-    /// Tier 2 price amount
+    /// Kademe 2 fiyatı
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>23500.00</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Kademe 2 fiyatı 0 veya daha büyük olmalıdır")]
     public decimal? Tier2Price { get; set; }
 
     /// <summary>
-    /// Tier 3 price amount
+    /// Kademe 3 fiyatı
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>23000.00</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Kademe 3 fiyatı 0 veya daha büyük olmalıdır")]
     public decimal? Tier3Price { get; set; }
 
     /// <summary>
-    /// Tier 4 price amount
+    /// Kademe 4 fiyatı
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>22500.00</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Kademe 4 fiyatı 0 veya daha büyük olmalıdır")]
     public decimal? Tier4Price { get; set; }
 
     /// <summary>
-    /// Tier 5 price amount
+    /// Kademe 5 fiyatı (en düşük seviye)
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>22000.00</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Kademe 5 fiyatı 0 veya daha büyük olmalıdır")]
     public decimal? Tier5Price { get; set; }
 
-    // Stock
-
     /// <summary>
-    /// Current stock quantity
+    /// Mevcut stok miktarı
     /// </summary>
-    [Range(0, int.MaxValue)]
+    /// <example>150</example>
+    [Range(0, int.MaxValue, ErrorMessage = "Stok miktarı 0 veya daha büyük olmalıdır")]
     public int StockQuantity { get; set; } = 0;
 
     /// <summary>
-    /// Minimum order quantity
+    /// Minimum sipariş miktarı
     /// </summary>
-    [Range(1, int.MaxValue)]
+    /// <example>1</example>
+    [Range(1, int.MaxValue, ErrorMessage = "Minimum sipariş miktarı en az 1 olmalıdır")]
     public int MinimumOrderQuantity { get; set; } = 1;
 
-    // Tax
-
     /// <summary>
-    /// Tax rate (e.g., 0.20 for 20%)
+    /// KDV oranı (0.00 - 1.00 arası, örn: 0.20 = %20)
     /// </summary>
-    [Range(0, 1)]
+    /// <example>0.20</example>
+    [Range(0, 1, ErrorMessage = "KDV oranı 0 ile 1 arasında olmalıdır")]
     public decimal TaxRate { get; set; } = 0.20m;
 
-    // Status
-
     /// <summary>
-    /// Product status (Draft = 0, Active = 1, Inactive = 2).
-    /// If not provided, status is auto-determined based on required fields:
-    /// - Active if all required fields (Category, ProductType, ListPrice, TaxRate) are present
-    /// - Draft otherwise
+    /// Ürün durumu (Draft = 0, Active = 1, Inactive = 2).
+    /// Belirtilmezse, zorunlu alanlar dolu ise Active, değilse Draft olur.
     /// </summary>
+    /// <example>1</example>
     public ProductStatus? Status { get; set; }
 
-    // Images
-
     /// <summary>
-    /// Main product image URL
+    /// Ana ürün görseli URL'i
     /// </summary>
-    [StringLength(500)]
+    /// <example>https://cdn.example.com/images/products/laptop-001.jpg</example>
+    [StringLength(500, ErrorMessage = "Görsel URL'i 500 karakteri geçemez")]
     public string? MainImageUrl { get; set; }
 
     /// <summary>
-    /// Additional image URLs (max 20)
+    /// Ek ürün görselleri URL listesi (maksimum 20 adet)
     /// </summary>
-    [MaxLength(20)]
+    [MaxLength(20, ErrorMessage = "En fazla 20 ek görsel eklenebilir")]
     public List<string>? ImageUrls { get; set; }
 
-    // Dimensions
-
     /// <summary>
-    /// Weight in kilograms
+    /// Ağırlık (kilogram)
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>2.5</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Ağırlık 0 veya daha büyük olmalıdır")]
     public decimal? Weight { get; set; }
 
     /// <summary>
-    /// Length in centimeters
+    /// Uzunluk (santimetre)
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>35.0</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Uzunluk 0 veya daha büyük olmalıdır")]
     public decimal? Length { get; set; }
 
     /// <summary>
-    /// Width in centimeters
+    /// Genişlik (santimetre)
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>24.0</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Genişlik 0 veya daha büyük olmalıdır")]
     public decimal? Width { get; set; }
 
     /// <summary>
-    /// Height in centimeters
+    /// Yükseklik (santimetre)
     /// </summary>
-    [Range(0, double.MaxValue)]
+    /// <example>2.5</example>
+    [Range(0, double.MaxValue, ErrorMessage = "Yükseklik 0 veya daha büyük olmalıdır")]
     public decimal? Height { get; set; }
 
-    // Variant support
-
     /// <summary>
-    /// Main product's ExternalId (if this is a variant/SKU of another product).
-    /// When set, this product becomes a variant of the specified main product.
+    /// Ana ürünün harici ID'si (bu bir varyant ise).
+    /// Belirtildiğinde, bu ürün belirtilen ana ürünün varyantı olur.
     /// </summary>
+    /// <example>PRD-MAIN-001</example>
     [StringLength(100)]
     public string? MainProductId { get; set; }
 }
 
 /// <summary>
-/// Request DTO for bulk syncing products from external system.
+/// Harici sistemden toplu ürün senkronizasyonu için istek nesnesi.
 /// </summary>
 public class BulkProductSyncRequest
 {
     /// <summary>
-    /// List of products to sync
+    /// Senkronize edilecek ürünler listesi (1-1000 adet)
     /// </summary>
-    [Required]
-    [MinLength(1)]
-    [MaxLength(1000)]
+    [Required(ErrorMessage = "Ürün listesi zorunludur")]
+    [MinLength(1, ErrorMessage = "En az 1 ürün gereklidir")]
+    [MaxLength(1000, ErrorMessage = "Tek seferde en fazla 1000 ürün gönderilebilir")]
     public List<ProductSyncRequest> Products { get; set; } = new();
 }

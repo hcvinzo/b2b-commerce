@@ -3,94 +3,125 @@ using System.ComponentModel.DataAnnotations;
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.ProductTypes;
 
 /// <summary>
-/// Request DTO for syncing a product type from external system.
-/// Id = ExternalId (string) - the primary upsert key.
-/// Code is the business code (not ExternalCode).
+/// Harici sistemden ürün tipi senkronizasyonu için istek nesnesi.
+/// Id = ExternalId (string) - birincil upsert anahtarı.
+/// Code iş mantığı kodudur (ExternalCode değil).
 /// </summary>
+/// <remarks>
+/// Bu istek nesnesi, ERP sistemlerinden ürün tiplerini senkronize etmek için kullanılır.
+/// Aynı Id ile mevcut kayıt varsa güncellenir, yoksa yeni kayıt oluşturulur (upsert).
+///
+/// **Özellik Ataması:**
+/// - Attributes dizisi ile özellikleri atayabilirsiniz
+/// - Özellikler AttributeId (harici ID) veya AttributeCode (iş mantığı kodu) ile eşleştirilir
+/// - Güncelleme sırasında tam değiştirme (full replacement) uygulanır
+/// </remarks>
 public class ProductTypeSyncRequest
 {
     /// <summary>
-    /// External ID (PRIMARY upsert key).
-    /// This is the ID from the source system (LOGO ERP).
-    /// Required for creating new product types.
+    /// Harici ID (BİRİNCİL upsert anahtarı).
+    /// Kaynak sistemdeki (LOGO ERP) benzersiz ID.
+    /// Yeni ürün tipi oluşturmak için zorunludur.
     /// </summary>
-    [StringLength(100)]
+    /// <example>TYPE-LAPTOP</example>
+    [StringLength(100, ErrorMessage = "Harici ID en fazla 100 karakter olabilir")]
     public string? Id { get; set; }
 
     /// <summary>
-    /// Unique business code for the product type (required, e.g., "memory_card", "ssd").
-    /// Used as fallback for matching if Id is not provided.
+    /// Benzersiz iş mantığı kodu (zorunlu, örn: "laptop", "monitor", "ssd").
+    /// Id sağlanmadığında eşleştirme için yedek anahtar olarak kullanılır.
     /// </summary>
-    [Required]
-    [StringLength(100, MinimumLength = 1)]
+    /// <example>laptop</example>
+    [Required(ErrorMessage = "Ürün tipi kodu zorunludur")]
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "Ürün tipi kodu 1-100 karakter arasında olmalıdır")]
     public string Code { get; set; } = null!;
 
     /// <summary>
-    /// Display name (required)
+    /// Görünen ad (zorunlu, Türkçe)
     /// </summary>
-    [Required]
-    [StringLength(200, MinimumLength = 1)]
+    /// <example>Dizüstü Bilgisayar</example>
+    [Required(ErrorMessage = "Ürün tipi adı zorunludur")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Ürün tipi adı 1-200 karakter arasında olmalıdır")]
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Admin description
+    /// Yönetici referansı için açıklama
     /// </summary>
-    [StringLength(1000)]
+    /// <example>Taşınabilir bilgisayarlar kategorisi - RAM, işlemci, ekran boyutu özellikleri içerir</example>
+    [StringLength(1000, ErrorMessage = "Açıklama en fazla 1000 karakter olabilir")]
     public string? Description { get; set; }
 
     /// <summary>
-    /// Whether new products can use this type
+    /// Yeni ürünler bu tipi kullanabilir mi?
     /// </summary>
+    /// <example>true</example>
     public bool IsActive { get; set; } = true;
 
     /// <summary>
-    /// Attributes to assign to this product type (full replacement on update)
+    /// Bu ürün tipine atanacak özellikler (tam değiştirme uygulanır).
+    /// Güncelleme sırasında mevcut özellikler silinir ve yeni atamalar yapılır.
     /// </summary>
-    [MaxLength(100)]
+    /// <remarks>
+    /// Her özellik için AttributeId (harici ID) veya AttributeCode (iş mantığı kodu) sağlanmalıdır.
+    /// İkisi de sağlanırsa AttributeId önceliklidir.
+    /// </remarks>
+    [MaxLength(100, ErrorMessage = "Bir ürün tipine en fazla 100 özellik atanabilir")]
     public List<ProductTypeAttributeSyncRequest>? Attributes { get; set; }
 }
 
 /// <summary>
-/// Request DTO for syncing a product type attribute assignment.
-/// AttributeId = Attribute's ExternalId (string).
+/// Ürün tipine özellik ataması senkronizasyonu için istek nesnesi.
+/// AttributeId = Özelliğin ExternalId'si (string).
 /// </summary>
+/// <remarks>
+/// Özellik eşleştirmesi için önce AttributeId, sonra AttributeCode kontrol edilir.
+/// En az biri sağlanmalıdır.
+/// </remarks>
 public class ProductTypeAttributeSyncRequest
 {
     /// <summary>
-    /// Attribute's external ID (primary lookup).
-    /// This is the ID from the source system (LOGO ERP).
+    /// Özelliğin harici ID'si (birincil arama).
+    /// Kaynak sistemdeki (LOGO ERP) özellik ID'si.
     /// </summary>
-    [StringLength(100)]
+    /// <example>ATTR-RAM</example>
+    [StringLength(100, ErrorMessage = "Özellik harici ID'si en fazla 100 karakter olabilir")]
     public string? AttributeId { get; set; }
 
     /// <summary>
-    /// Attribute business code (fallback lookup if AttributeId not provided)
+    /// Özelliğin iş mantığı kodu (AttributeId sağlanmadığında yedek arama)
     /// </summary>
-    [StringLength(100)]
+    /// <example>ram_kapasitesi</example>
+    [StringLength(100, ErrorMessage = "Özellik kodu en fazla 100 karakter olabilir")]
     public string? AttributeCode { get; set; }
 
     /// <summary>
-    /// Whether this attribute is required for products of this type
+    /// Bu ürün tipi için bu özellik zorunlu mu?
     /// </summary>
+    /// <example>true</example>
     public bool IsRequired { get; set; } = false;
 
     /// <summary>
-    /// Display order within this product type
+    /// Bu ürün tipi içindeki sıralama önceliği (küçük değer önce gelir)
     /// </summary>
-    [Range(0, int.MaxValue)]
+    /// <example>1</example>
+    [Range(0, int.MaxValue, ErrorMessage = "Sıralama değeri 0 veya daha büyük olmalıdır")]
     public int DisplayOrder { get; set; } = 0;
 }
 
 /// <summary>
-/// Request DTO for bulk syncing product types
+/// Toplu ürün tipi senkronizasyonu için istek nesnesi
 /// </summary>
+/// <remarks>
+/// Birden fazla ürün tipini tek istekte senkronize etmek için kullanılır.
+/// Her ürün tipi için aynı upsert mantığı uygulanır.
+/// </remarks>
 public class BulkProductTypeSyncRequest
 {
     /// <summary>
-    /// List of product types to sync
+    /// Senkronize edilecek ürün tipi listesi
     /// </summary>
-    [Required]
-    [MinLength(1)]
-    [MaxLength(100)]
+    [Required(ErrorMessage = "En az bir ürün tipi gereklidir")]
+    [MinLength(1, ErrorMessage = "En az bir ürün tipi gereklidir")]
+    [MaxLength(100, ErrorMessage = "Tek istekte en fazla 100 ürün tipi senkronize edilebilir")]
     public List<ProductTypeSyncRequest> ProductTypes { get; set; } = new();
 }

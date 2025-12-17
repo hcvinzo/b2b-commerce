@@ -8,9 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Brands API endpoints for external integrations (LOGO ERP).
-/// All IDs are ExternalIds (string). Internal Guids are never exposed.
+/// Marka API uç noktaları - harici entegrasyonlar için (LOGO ERP).
+/// Tüm ID'ler ExternalId (string) formatındadır. Dahili Guid'ler asla dışarıya açılmaz.
 /// </summary>
+/// <remarks>
+/// Bu API, ERP sistemlerinden marka senkronizasyonu için kullanılır.
+/// Markalar ürünlerle ilişkilendirilebilir.
+/// </remarks>
 public class BrandsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -28,8 +32,12 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Get all brands with filtering and pagination
+    /// Tüm markaları filtreleme ve sayfalama ile getirir
     /// </summary>
+    /// <param name="filter">Filtreleme parametreleri (arama, aktiflik durumu, sayfalama)</param>
+    /// <returns>Sayfalanmış marka listesi</returns>
+    /// <response code="200">Markalar başarıyla getirildi</response>
+    /// <response code="400">Geçersiz filtre parametresi</response>
     [HttpGet]
     [Authorize(Policy = "brands:read")]
     [ProducesResponseType(typeof(Models.PagedApiResponse<BrandListDto>), StatusCodes.Status200OK)]
@@ -52,8 +60,12 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Get a brand by ID (ExternalId)
+    /// Belirtilen ID'ye (ExternalId) sahip markayı getirir
     /// </summary>
+    /// <param name="id">Markanın harici ID'si (ERP sisteminden gelen ID)</param>
+    /// <returns>Marka detayları</returns>
+    /// <response code="200">Marka başarıyla getirildi</response>
+    /// <response code="404">Marka bulunamadı</response>
     [HttpGet("{id}")]
     [Authorize(Policy = "brands:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<BrandDto>), StatusCodes.Status200OK)]
@@ -71,9 +83,16 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Upsert brand. If brand with given Id (ExternalId) or Name exists, it is updated; otherwise, a new brand is created.
-    /// Id is required for creating new brands.
+    /// Marka oluşturur veya günceller (Upsert). Verilen Id (ExternalId) veya Ad ile marka varsa güncellenir, yoksa yeni oluşturulur.
     /// </summary>
+    /// <param name="request">Marka bilgileri</param>
+    /// <returns>Oluşturulan veya güncellenen marka</returns>
+    /// <remarks>
+    /// Yeni marka oluşturmak için Id (ExternalId) zorunludur.
+    /// Marka adı benzersiz olmalıdır.
+    /// </remarks>
+    /// <response code="200">Marka başarıyla oluşturuldu/güncellendi</response>
+    /// <response code="400">Geçersiz istek (Id eksik)</response>
     [HttpPost]
     [Authorize(Policy = "brands:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<BrandDto>), StatusCodes.Status200OK)]
@@ -112,8 +131,15 @@ public class BrandsController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a brand by ID (ExternalId) - soft delete
+    /// Belirtilen ID'ye (ExternalId) sahip markayı siler (soft delete)
     /// </summary>
+    /// <param name="id">Silinecek markanın harici ID'si</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Soft delete işlemi yapılır, kayıt tamamen silinmez.
+    /// </remarks>
+    /// <response code="200">Marka başarıyla silindi</response>
+    /// <response code="404">Marka bulunamadı</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = "brands:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]

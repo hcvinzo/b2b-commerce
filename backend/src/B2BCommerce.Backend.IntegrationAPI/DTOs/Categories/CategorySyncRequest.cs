@@ -3,73 +3,82 @@ using System.ComponentModel.DataAnnotations;
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Categories;
 
 /// <summary>
-/// Request DTO for syncing a category from external system.
-/// Id = ExternalId (string) - the primary upsert key.
-/// Code = ExternalCode (string) - optional secondary reference.
+/// Harici sistemden kategori senkronizasyonu için istek nesnesi.
+/// Id = ExternalId (string) - birincil upsert anahtarı.
+/// Code = ExternalCode (string) - isteğe bağlı ikincil referans.
 /// </summary>
 public class CategorySyncRequest
 {
     /// <summary>
-    /// External ID (PRIMARY upsert key).
-    /// This is the ID from the source system (LOGO ERP).
-    /// Required for creating new categories.
+    /// Harici ID (BİRİNCİL upsert anahtarı).
+    /// Kaynak sistemden gelen ID (LOGO ERP).
+    /// Yeni kategori oluşturmak için zorunludur.
     /// </summary>
+    /// <example>CAT001</example>
     [StringLength(100)]
     public string? Id { get; set; }
 
     /// <summary>
-    /// External code (OPTIONAL secondary reference)
+    /// Harici kod (İSTEĞE BAĞLI ikincil referans)
     /// </summary>
+    /// <example>ELEKTRONIK</example>
     [StringLength(100)]
     public string? Code { get; set; }
 
     /// <summary>
-    /// Category name
+    /// Kategori adı (zorunlu)
     /// </summary>
-    [Required]
-    [StringLength(200, MinimumLength = 1)]
+    /// <example>Elektronik</example>
+    [Required(ErrorMessage = "Kategori adı zorunludur")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Kategori adı 1-200 karakter arasında olmalıdır")]
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Category description
+    /// Kategori açıklaması
     /// </summary>
-    [StringLength(1000)]
+    /// <example>Elektronik ürünler ve aksesuarlar</example>
+    [StringLength(1000, ErrorMessage = "Açıklama 1000 karakteri geçemez")]
     public string? Description { get; set; }
 
     /// <summary>
-    /// Parent category's external ID (for hierarchy)
+    /// Üst kategorinin harici ID'si (hiyerarşi için).
+    /// Kök kategori için boş bırakılır.
     /// </summary>
+    /// <example>ROOT001</example>
     [StringLength(100)]
     public string? ParentId { get; set; }
 
     /// <summary>
-    /// Image URL
+    /// Kategori görseli URL'i
     /// </summary>
-    [StringLength(500)]
+    /// <example>https://cdn.example.com/images/categories/elektronik.jpg</example>
+    [StringLength(500, ErrorMessage = "Görsel URL'i 500 karakteri geçemez")]
     public string? ImageUrl { get; set; }
 
     /// <summary>
-    /// Display order
+    /// Görüntüleme sırası (küçük değer önce gösterilir)
     /// </summary>
-    [Range(0, int.MaxValue)]
+    /// <example>1</example>
+    [Range(0, int.MaxValue, ErrorMessage = "Görüntüleme sırası 0 veya daha büyük olmalıdır")]
     public int DisplayOrder { get; set; } = 0;
 
     /// <summary>
-    /// Active status
+    /// Kategori aktif mi? (varsayılan: true)
     /// </summary>
+    /// <example>true</example>
     public bool IsActive { get; set; } = true;
 }
 
 /// <summary>
-/// Request DTO for bulk syncing categories from external system.
+/// Harici sistemden toplu kategori senkronizasyonu için istek nesnesi.
 /// </summary>
 public class BulkCategorySyncRequest
 {
     /// <summary>
-    /// List of categories to sync
+    /// Senkronize edilecek kategoriler listesi (1-1000 adet)
     /// </summary>
-    [Required]
-    [MinLength(1)]
-    [MaxLength(1000)]
+    [Required(ErrorMessage = "Kategori listesi zorunludur")]
+    [MinLength(1, ErrorMessage = "En az 1 kategori gereklidir")]
+    [MaxLength(1000, ErrorMessage = "Tek seferde en fazla 1000 kategori gönderilebilir")]
     public List<CategorySyncRequest> Categories { get; set; } = new();
 }

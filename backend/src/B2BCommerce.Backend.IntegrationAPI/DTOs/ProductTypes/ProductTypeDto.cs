@@ -1,198 +1,232 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.ProductTypes;
 
 /// <summary>
-/// Product type DTO for Integration API.
+/// Ürün tipi veri transfer nesnesi - API yanıtları için.
 /// Id = ExternalId (string).
-/// Code is the business code (not ExternalCode).
-/// Internal Guid is never exposed.
+/// Code iş mantığı kodudur (ExternalCode değil).
+/// Dahili Guid asla dışarıya açılmaz.
 /// </summary>
+/// <remarks>
+/// Ürün tipi, benzer özelliklere sahip ürünleri gruplamak için kullanılır.
+/// Her ürün tipine atanan özellikler (Attributes), o tipe ait ürünlerde doldurulması gereken/beklenen alanları belirler.
+/// </remarks>
 public class ProductTypeDto
 {
     /// <summary>
-    /// External ID (from source system like LOGO ERP)
+    /// Harici ID (kaynak sistemden gelen ID, örn: LOGO ERP)
     /// </summary>
+    /// <example>TYPE-LAPTOP</example>
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// Unique business code for the product type
+    /// Benzersiz iş mantığı kodu
     /// </summary>
+    /// <example>laptop</example>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display name
+    /// Görünen ad (Türkçe)
     /// </summary>
+    /// <example>Dizüstü Bilgisayar</example>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Description for admin reference
+    /// Yönetici referansı için açıklama
     /// </summary>
+    /// <example>Taşınabilir bilgisayarlar kategorisi</example>
     public string? Description { get; set; }
 
     /// <summary>
-    /// Whether this product type is active
+    /// Bu ürün tipi aktif mi?
     /// </summary>
+    /// <example>true</example>
     public bool IsActive { get; set; }
 
     /// <summary>
-    /// Number of attributes assigned to this product type
+    /// Bu ürün tipine atanmış özellik sayısı
     /// </summary>
+    /// <example>5</example>
     public int AttributeCount { get; set; }
 
     /// <summary>
-    /// Attributes assigned to this product type
+    /// Bu ürün tipine atanmış özellikler listesi
     /// </summary>
     public List<ProductTypeAttributeDto> Attributes { get; set; } = new();
 
     /// <summary>
-    /// When the entity was last synchronized with the external system
+    /// Son senkronizasyon tarihi
     /// </summary>
     public DateTime? LastSyncedAt { get; set; }
 
     /// <summary>
-    /// When the product type was created
+    /// Oluşturulma tarihi
     /// </summary>
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// When the product type was last updated
+    /// Son güncellenme tarihi
     /// </summary>
     public DateTime? UpdatedAt { get; set; }
 }
 
 /// <summary>
-/// Product type list item DTO for Integration API.
+/// Ürün tipi liste öğesi - sayfalanmış yanıtlar için.
 /// Id = ExternalId (string).
-/// Internal Guid is never exposed.
+/// Dahili Guid asla dışarıya açılmaz.
 /// </summary>
 public class ProductTypeListDto
 {
     /// <summary>
-    /// External ID (from source system like LOGO ERP)
+    /// Harici ID (kaynak sistemden gelen ID, örn: LOGO ERP)
     /// </summary>
+    /// <example>TYPE-LAPTOP</example>
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
-    /// Unique business code for the product type
+    /// Benzersiz iş mantığı kodu
     /// </summary>
+    /// <example>laptop</example>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display name
+    /// Görünen ad (Türkçe)
     /// </summary>
+    /// <example>Dizüstü Bilgisayar</example>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether this product type is active
+    /// Bu ürün tipi aktif mi?
     /// </summary>
+    /// <example>true</example>
     public bool IsActive { get; set; }
 
     /// <summary>
-    /// Number of attributes assigned to this product type
+    /// Bu ürün tipine atanmış özellik sayısı
     /// </summary>
+    /// <example>5</example>
     public int AttributeCount { get; set; }
 
     /// <summary>
-    /// When the entity was last synchronized with the external system
+    /// Son senkronizasyon tarihi
     /// </summary>
     public DateTime? LastSyncedAt { get; set; }
 }
 
 /// <summary>
-/// Product type attribute DTO for Integration API.
-/// AttributeId = Attribute's ExternalId (string).
+/// Ürün tipi özellik ataması veri transfer nesnesi.
+/// AttributeId = Özelliğin ExternalId'si (string).
 /// </summary>
+/// <remarks>
+/// Bu DTO, bir ürün tipine atanmış özelliğin detaylarını ve
+/// o tipe özel ayarlarını (zorunluluk, sıralama) içerir.
+/// </remarks>
 public class ProductTypeAttributeDto
 {
     /// <summary>
-    /// Attribute's external ID
+    /// Özelliğin harici ID'si
     /// </summary>
+    /// <example>ATTR-RAM</example>
     public string AttributeId { get; set; } = string.Empty;
 
     /// <summary>
-    /// Attribute business code
+    /// Özelliğin iş mantığı kodu
     /// </summary>
+    /// <example>ram_kapasitesi</example>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Attribute display name
+    /// Özelliğin görünen adı (Türkçe)
     /// </summary>
+    /// <example>RAM Kapasitesi</example>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Attribute display name in English
+    /// Özelliğin İngilizce görünen adı
     /// </summary>
+    /// <example>RAM Capacity</example>
     public string? NameEn { get; set; }
 
     /// <summary>
-    /// Attribute data type
+    /// Özelliğin veri tipi (Text, Number, Select, MultiSelect, Boolean, Date)
     /// </summary>
+    /// <example>Select</example>
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
-    /// Unit of measurement
+    /// Ölçü birimi
     /// </summary>
+    /// <example>GB</example>
     public string? Unit { get; set; }
 
     /// <summary>
-    /// Whether this attribute is required for products of this type
+    /// Bu ürün tipi için bu özellik zorunlu mu?
     /// </summary>
+    /// <example>true</example>
     public bool IsRequired { get; set; }
 
     /// <summary>
-    /// Display order within this product type
+    /// Bu ürün tipi içindeki sıralama önceliği
     /// </summary>
+    /// <example>1</example>
     public int DisplayOrder { get; set; }
 
     /// <summary>
-    /// Predefined values for Select/MultiSelect types
+    /// Önceden tanımlı değerler (Select/MultiSelect tipleri için)
     /// </summary>
     public List<AttributeValueOptionDto> PredefinedValues { get; set; } = new();
 }
 
 /// <summary>
-/// Attribute value option DTO for Select/MultiSelect types.
-/// Uses Value as the identifier (unique within attribute).
+/// Özellik değer seçeneği veri transfer nesnesi (Select/MultiSelect tipleri için).
+/// Value alanı tanımlayıcı olarak kullanılır (özellik içinde benzersiz).
 /// </summary>
 public class AttributeValueOptionDto
 {
     /// <summary>
-    /// Internal value (used as identifier, unique within attribute)
+    /// Dahili değer (tanımlayıcı olarak kullanılır, özellik içinde benzersiz)
     /// </summary>
+    /// <example>16</example>
     public string Value { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display text for the user
+    /// Kullanıcıya gösterilecek metin
     /// </summary>
+    /// <example>16 GB</example>
     public string? DisplayText { get; set; }
 
     /// <summary>
-    /// Display order in dropdown
+    /// Dropdown içinde sıralama önceliği
     /// </summary>
+    /// <example>2</example>
     public int DisplayOrder { get; set; }
 }
 
 /// <summary>
-/// Filter DTO for product types
+/// Ürün tipi listesi için filtreleme parametreleri
 /// </summary>
 public class ProductTypeFilterDto
 {
     /// <summary>
-    /// Search term for name or code
+    /// Ad veya kod'da arama yapılacak metin
     /// </summary>
+    /// <example>laptop</example>
     public string? Search { get; set; }
 
     /// <summary>
-    /// Filter by active status
+    /// Aktiflik durumuna göre filtrele (null = tümü)
     /// </summary>
+    /// <example>true</example>
     public bool? IsActive { get; set; }
 
     /// <summary>
-    /// Page number (1-based)
+    /// Sayfa numarası (1'den başlar)
     /// </summary>
+    /// <example>1</example>
     public int PageNumber { get; set; } = 1;
 
     /// <summary>
-    /// Page size
+    /// Sayfa başına kayıt sayısı
     /// </summary>
+    /// <example>20</example>
     public int PageSize { get; set; } = 20;
 }

@@ -13,9 +13,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Categories API endpoints for external integrations.
-/// All operations use ExternalId as the primary identifier.
+/// Kategori API uç noktaları - harici entegrasyonlar için.
+/// Tüm işlemler birincil tanımlayıcı olarak ExternalId kullanır.
 /// </summary>
+/// <remarks>
+/// Bu API, ERP sistemleri (LOGO vb.) ile kategori senkronizasyonu için kullanılır.
+/// Kategoriler hiyerarşik yapıdadır ve üst-alt ilişkisi desteklenir.
+/// </remarks>
 public class CategoriesController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -33,8 +37,12 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Get all categories with filtering and pagination
+    /// Tüm kategorileri filtreleme ve sayfalama ile getirir
     /// </summary>
+    /// <param name="filter">Filtreleme parametreleri (arama, üst kategori, aktiflik durumu, sayfalama)</param>
+    /// <returns>Sayfalanmış kategori listesi</returns>
+    /// <response code="200">Kategoriler başarıyla getirildi</response>
+    /// <response code="404">Belirtilen üst kategori bulunamadı</response>
     [HttpGet]
     [Authorize(Policy = "categories:read")]
     [ProducesResponseType(typeof(Models.PagedApiResponse<CategoryListDto>), StatusCodes.Status200OK)]
@@ -76,8 +84,12 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Get a category by ID (ExternalId)
+    /// Belirtilen ID'ye (ExternalId) sahip kategoriyi getirir
     /// </summary>
+    /// <param name="id">Kategorinin harici ID'si (ERP sisteminden gelen ID)</param>
+    /// <returns>Kategori detayları</returns>
+    /// <response code="200">Kategori başarıyla getirildi</response>
+    /// <response code="404">Kategori bulunamadı</response>
     [HttpGet("{id}")]
     [Authorize(Policy = "categories:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
@@ -95,8 +107,11 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Get category tree (hierarchical structure)
+    /// Kategori ağacını (hiyerarşik yapı) getirir
     /// </summary>
+    /// <param name="activeOnly">Sadece aktif kategorileri getir (varsayılan: true)</param>
+    /// <returns>Hiyerarşik kategori ağacı</returns>
+    /// <response code="200">Kategori ağacı başarıyla getirildi</response>
     [HttpGet("tree")]
     [Authorize(Policy = "categories:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<List<CategoryTreeDto>>), StatusCodes.Status200OK)]
@@ -115,8 +130,11 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Get root categories (categories without parent)
+    /// Kök kategorileri (üst kategorisi olmayan) getirir
     /// </summary>
+    /// <param name="activeOnly">Sadece aktif kategorileri getir (varsayılan: true)</param>
+    /// <returns>Kök kategori listesi</returns>
+    /// <response code="200">Kök kategoriler başarıyla getirildi</response>
     [HttpGet("root")]
     [Authorize(Policy = "categories:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<List<CategoryListDto>>), StatusCodes.Status200OK)]
@@ -135,8 +153,13 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Get subcategories of a parent category by ID (ExternalId)
+    /// Belirtilen kategorinin alt kategorilerini getirir
     /// </summary>
+    /// <param name="id">Üst kategorinin harici ID'si (ExternalId)</param>
+    /// <param name="activeOnly">Sadece aktif alt kategorileri getir (varsayılan: true)</param>
+    /// <returns>Alt kategori listesi</returns>
+    /// <response code="200">Alt kategoriler başarıyla getirildi</response>
+    /// <response code="404">Üst kategori bulunamadı</response>
     [HttpGet("{id}/subcategories")]
     [Authorize(Policy = "categories:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<List<CategoryListDto>>), StatusCodes.Status200OK)]
@@ -163,9 +186,16 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Upserts category. If category with given ID (ExternalId) exists, it is updated; otherwise, a new category is created.
-    /// Id is required for creating new categories.
+    /// Kategori oluşturur veya günceller (Upsert). Verilen ID (ExternalId) ile kategori varsa güncellenir, yoksa yeni oluşturulur.
     /// </summary>
+    /// <param name="request">Kategori bilgileri</param>
+    /// <returns>Oluşturulan veya güncellenen kategori</returns>
+    /// <remarks>
+    /// Yeni kategori oluşturmak için Id (ExternalId) zorunludur.
+    /// ParentId belirtilerek hiyerarşik yapı oluşturulabilir.
+    /// </remarks>
+    /// <response code="200">Kategori başarıyla oluşturuldu/güncellendi</response>
+    /// <response code="400">Geçersiz istek (Id eksik veya üst kategori bulunamadı)</response>
     [HttpPost]
     [Authorize(Policy = "categories:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
@@ -214,8 +244,17 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a category by ID (ExternalId) - soft delete
+    /// Belirtilen ID'ye (ExternalId) sahip kategoriyi siler (soft delete)
     /// </summary>
+    /// <param name="id">Silinecek kategorinin harici ID'si</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Soft delete işlemi yapılır, kayıt tamamen silinmez.
+    /// Alt kategorisi veya ürünü olan kategoriler silinemez.
+    /// </remarks>
+    /// <response code="200">Kategori başarıyla silindi</response>
+    /// <response code="404">Kategori bulunamadı</response>
+    /// <response code="400">Kategori silinemez (alt kategorisi veya ürünü var)</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = "categories:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]

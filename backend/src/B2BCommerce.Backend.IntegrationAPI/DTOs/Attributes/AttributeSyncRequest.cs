@@ -3,111 +3,148 @@ using System.ComponentModel.DataAnnotations;
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Attributes;
 
 /// <summary>
-/// Request DTO for syncing an attribute definition from external system.
-/// Id = ExternalId (string) - the primary upsert key.
-/// Code is the business code (like "screen_size"), NOT ExternalCode.
+/// Harici sistemden özellik tanımı senkronizasyonu için istek nesnesi.
+/// Id = ExternalId (string) - birincil upsert anahtarı.
+/// Code iş mantığı kodudur ("ekran_boyutu" gibi), ExternalCode değil.
 /// </summary>
+/// <remarks>
+/// Bu istek nesnesi, ERP sistemlerinden özellik tanımlarını senkronize etmek için kullanılır.
+/// Aynı Id ile mevcut kayıt varsa güncellenir, yoksa yeni kayıt oluşturulur (upsert).
+///
+/// **Tip Açıklamaları:**
+/// - **Text**: Serbest metin girişi (açıklama, not vb.)
+/// - **Number**: Sayısal değer (ağırlık, boyut vb.)
+/// - **Select**: Tek seçimli liste (renk, marka vb.)
+/// - **MultiSelect**: Çoklu seçimli liste (özellikler, bağlantı portları vb.)
+/// - **Boolean**: Evet/Hayır değeri (garantili mi?, aktif mi?)
+/// - **Date**: Tarih değeri (üretim tarihi, garanti bitiş tarihi vb.)
+/// </remarks>
 public class AttributeSyncRequest
 {
     /// <summary>
-    /// External ID (PRIMARY upsert key).
-    /// This is the ID from the source system (LOGO ERP).
-    /// Required for creating new attributes.
+    /// Harici ID (BİRİNCİL upsert anahtarı).
+    /// Kaynak sistemdeki (LOGO ERP) benzersiz ID.
+    /// Yeni özellik oluşturmak için zorunludur.
     /// </summary>
-    [StringLength(100)]
+    /// <example>ATTR-RAM</example>
+    [StringLength(100, ErrorMessage = "Harici ID en fazla 100 karakter olabilir")]
     public string? Id { get; set; }
 
     /// <summary>
-    /// Unique business code for the attribute (required, e.g., "screen_size", "memory_capacity").
-    /// Used as fallback for matching if Id is not provided.
+    /// Benzersiz iş mantığı kodu (zorunlu, örn: "ekran_boyutu", "ram_kapasitesi").
+    /// Id sağlanmadığında eşleştirme için yedek anahtar olarak kullanılır.
     /// </summary>
-    [Required]
-    [StringLength(100, MinimumLength = 1)]
+    /// <example>ram_kapasitesi</example>
+    [Required(ErrorMessage = "Özellik kodu zorunludur")]
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "Özellik kodu 1-100 karakter arasında olmalıdır")]
     public string Code { get; set; } = null!;
 
     /// <summary>
-    /// Display name in Turkish (required)
+    /// Türkçe görünen ad (zorunlu)
     /// </summary>
-    [Required]
-    [StringLength(200, MinimumLength = 1)]
+    /// <example>RAM Kapasitesi</example>
+    [Required(ErrorMessage = "Özellik adı zorunludur")]
+    [StringLength(200, MinimumLength = 1, ErrorMessage = "Özellik adı 1-200 karakter arasında olmalıdır")]
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Data type for this attribute (required).
-    /// Valid values: Text, Number, Select, MultiSelect, Boolean, Date
+    /// Bu özellik için veri tipi (zorunlu).
+    /// Geçerli değerler: Text, Number, Select, MultiSelect, Boolean, Date
     /// </summary>
-    [Required]
+    /// <example>Select</example>
+    [Required(ErrorMessage = "Özellik tipi zorunludur")]
     public string Type { get; set; } = null!;
 
     /// <summary>
-    /// Unit of measurement (optional, e.g., "GB", "MB/s", "mm")
+    /// Ölçü birimi (isteğe bağlı, örn: "GB", "MB/s", "mm", "inç")
     /// </summary>
-    [StringLength(50)]
+    /// <example>GB</example>
+    [StringLength(50, ErrorMessage = "Ölçü birimi en fazla 50 karakter olabilir")]
     public string? Unit { get; set; }
 
     /// <summary>
-    /// Whether this attribute should appear in product filters
+    /// Bu özellik ürün filtrelerinde görünsün mü?
     /// </summary>
+    /// <example>true</example>
     public bool IsFilterable { get; set; } = true;
 
     /// <summary>
-    /// Default required status (can be overridden per ProductType)
+    /// Varsayılan zorunluluk durumu (ProductType bazında geçersiz kılınabilir)
     /// </summary>
+    /// <example>false</example>
     public bool IsRequired { get; set; } = false;
 
     /// <summary>
-    /// Whether to display on product detail page
+    /// Ürün detay sayfasında gösterilsin mi?
     /// </summary>
+    /// <example>true</example>
     public bool IsVisibleOnProductPage { get; set; } = true;
 
     /// <summary>
-    /// Display order in UI
+    /// Arayüzde sıralama önceliği (küçük değer önce gelir)
     /// </summary>
-    [Range(0, int.MaxValue)]
+    /// <example>10</example>
+    [Range(0, int.MaxValue, ErrorMessage = "Sıralama değeri 0 veya daha büyük olmalıdır")]
     public int DisplayOrder { get; set; } = 0;
 
     /// <summary>
-    /// Predefined values for Select/MultiSelect types (full replacement on update)
+    /// Önceden tanımlı değerler (Select/MultiSelect tipleri için).
+    /// Güncelleme sırasında tam değiştirme (full replacement) uygulanır.
     /// </summary>
-    [MaxLength(500)]
+    /// <remarks>
+    /// Values gönderildiğinde, mevcut tüm değerler silinir ve yeni değerler eklenir.
+    /// Mevcut değerleri korumak için tüm değerleri tekrar göndermeniz gerekir.
+    /// </remarks>
+    [MaxLength(500, ErrorMessage = "En fazla 500 önceden tanımlı değer eklenebilir")]
     public List<AttributeValueSyncRequest>? Values { get; set; }
 }
 
 /// <summary>
-/// Request DTO for syncing a predefined value
+/// Önceden tanımlı değer senkronizasyonu için istek nesnesi
 /// </summary>
+/// <remarks>
+/// Select ve MultiSelect tipindeki özellikler için kullanıcının seçebileceği değerleri tanımlar.
+/// Value alanı özellik içinde benzersiz olmalıdır ve eşleştirme anahtarı olarak kullanılır.
+/// </remarks>
 public class AttributeValueSyncRequest
 {
     /// <summary>
-    /// The value (required, used as key for matching existing values)
+    /// Değer (zorunlu, mevcut değerlerle eşleştirme için anahtar olarak kullanılır)
     /// </summary>
-    [Required]
-    [StringLength(500, MinimumLength = 1)]
+    /// <example>16</example>
+    [Required(ErrorMessage = "Değer zorunludur")]
+    [StringLength(500, MinimumLength = 1, ErrorMessage = "Değer 1-500 karakter arasında olmalıdır")]
     public string Value { get; set; } = null!;
 
     /// <summary>
-    /// User-facing display text (optional, falls back to Value if not provided)
+    /// Kullanıcıya gösterilecek metin (isteğe bağlı, boşsa Value kullanılır)
     /// </summary>
-    [StringLength(500)]
+    /// <example>16 GB</example>
+    [StringLength(500, ErrorMessage = "Görüntüleme metni en fazla 500 karakter olabilir")]
     public string? DisplayText { get; set; }
 
     /// <summary>
-    /// Display order in dropdowns/lists
+    /// Dropdown/liste içinde sıralama önceliği
     /// </summary>
-    [Range(0, int.MaxValue)]
+    /// <example>2</example>
+    [Range(0, int.MaxValue, ErrorMessage = "Sıralama değeri 0 veya daha büyük olmalıdır")]
     public int DisplayOrder { get; set; } = 0;
 }
 
 /// <summary>
-/// Request DTO for bulk syncing attribute definitions
+/// Toplu özellik tanımı senkronizasyonu için istek nesnesi
 /// </summary>
+/// <remarks>
+/// Birden fazla özellik tanımını tek istekte senkronize etmek için kullanılır.
+/// Her özellik için aynı upsert mantığı uygulanır.
+/// </remarks>
 public class BulkAttributeSyncRequest
 {
     /// <summary>
-    /// List of attributes to sync
+    /// Senkronize edilecek özellik listesi
     /// </summary>
-    [Required]
-    [MinLength(1)]
-    [MaxLength(500)]
+    [Required(ErrorMessage = "En az bir özellik gereklidir")]
+    [MinLength(1, ErrorMessage = "En az bir özellik gereklidir")]
+    [MaxLength(500, ErrorMessage = "Tek istekte en fazla 500 özellik senkronize edilebilir")]
     public List<AttributeSyncRequest> Attributes { get; set; } = new();
 }

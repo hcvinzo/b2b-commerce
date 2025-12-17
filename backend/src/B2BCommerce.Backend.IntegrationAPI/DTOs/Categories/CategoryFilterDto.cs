@@ -1,43 +1,50 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Categories;
 
 /// <summary>
-/// Filter parameters for category listing.
-/// Uses external IDs for filtering.
+/// Kategori listesi için filtreleme parametreleri.
+/// Filtrelemede harici ID'ler kullanılır.
 /// </summary>
 public class CategoryFilterDto
 {
     /// <summary>
-    /// Search term for name filtering
+    /// Kategori adında arama yapılacak metin
     /// </summary>
+    /// <example>Elektronik</example>
     public string? Search { get; set; }
 
     /// <summary>
-    /// Filter by parent category's external ID (null for root categories)
+    /// Üst kategorinin harici ID'sine göre filtrele (kök kategoriler için null)
     /// </summary>
+    /// <example>ROOT001</example>
     public string? ParentId { get; set; }
 
     /// <summary>
-    /// Filter by active status
+    /// Aktiflik durumuna göre filtrele (null = tümü)
     /// </summary>
+    /// <example>true</example>
     public bool? IsActive { get; set; }
 
     /// <summary>
-    /// Page number (1-based)
+    /// Sayfa numarası (1'den başlar)
     /// </summary>
+    /// <example>1</example>
     public int PageNumber { get; set; } = 1;
 
     /// <summary>
-    /// Page size (max 100)
+    /// Sayfa başına kayıt sayısı (maksimum 100)
     /// </summary>
+    /// <example>20</example>
     public int PageSize { get; set; } = 20;
 
     /// <summary>
-    /// Sort by field (name, displayOrder, createdAt)
+    /// Sıralama alanı (name, displayOrder, createdAt)
     /// </summary>
+    /// <example>displayOrder</example>
     public string SortBy { get; set; } = "displayOrder";
 
     /// <summary>
-    /// Sort direction (asc, desc)
+    /// Sıralama yönü (asc = artan, desc = azalan)
     /// </summary>
+    /// <example>asc</example>
     public string SortDirection { get; set; } = "asc";
 }

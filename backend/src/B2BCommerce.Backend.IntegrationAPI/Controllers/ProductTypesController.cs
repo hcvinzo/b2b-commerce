@@ -10,10 +10,20 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Product Types API endpoints for external integrations.
-/// All operations use ExternalId as the primary identifier.
-/// Provides CRUD operations for product types and their attribute definitions.
+/// Ürün Tipi API uç noktaları - harici entegrasyonlar için.
+/// Tüm işlemler birincil tanımlayıcı olarak ExternalId kullanır.
 /// </summary>
+/// <remarks>
+/// Bu API, ürün tiplerinin ve bunlara atanmış özelliklerin yönetimi için kullanılır.
+/// Ürün tipleri, benzer özelliklere sahip ürünleri gruplamak için kullanılır.
+///
+/// **Örnek kullanım senaryoları:**
+/// - "Dizüstü Bilgisayar" tipi: RAM, işlemci, ekran boyutu özellikleri
+/// - "Yazıcı" tipi: Baskı hızı, kağıt kapasitesi, bağlantı tipleri özellikleri
+/// - "Monitör" tipi: Ekran boyutu, çözünürlük, panel tipi özellikleri
+///
+/// Her ürün tipine atanan özellikler, o tipe ait ürünlerde doldurulması gereken/beklenen alanları belirler.
+/// </remarks>
 [Route("api/v1/producttypes")]
 public class ProductTypesController : BaseApiController
 {
@@ -34,11 +44,15 @@ public class ProductTypesController : BaseApiController
     #region Read Operations
 
     /// <summary>
-    /// Get all product types with optional filtering.
-    /// Used by ERP systems to synchronize product type definitions.
+    /// Tüm ürün tiplerini isteğe bağlı filtreleme ile getirir
     /// </summary>
-    /// <param name="filter">Filter parameters</param>
-    /// <returns>List of product types</returns>
+    /// <param name="filter">Filtreleme parametreleri</param>
+    /// <returns>Ürün tipleri listesi</returns>
+    /// <remarks>
+    /// ERP sistemlerinin ürün tipi tanımlarını senkronize etmesi için kullanılır.
+    /// Varsayılan olarak tüm ürün tipleri döner; IsActive filtresi ile aktif/pasif filtrelenebilir.
+    /// </remarks>
+    /// <response code="200">Ürün tipleri başarıyla getirildi</response>
     [HttpGet]
     [Authorize(Policy = "product-types:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<List<ProductTypeListDto>>), StatusCodes.Status200OK)]
@@ -59,11 +73,16 @@ public class ProductTypesController : BaseApiController
     }
 
     /// <summary>
-    /// Get a product type by ID (ExternalId) with full attribute details.
-    /// Returns the complete attribute schema for a product type.
+    /// Belirtilen ID'ye (ExternalId) sahip ürün tipini özellik detaylarıyla getirir
     /// </summary>
-    /// <param name="id">Product type ID (ExternalId)</param>
-    /// <returns>Product type with attributes</returns>
+    /// <param name="id">Ürün tipinin harici ID'si</param>
+    /// <returns>Özellik şeması dahil ürün tipi detayları</returns>
+    /// <remarks>
+    /// Ürün tipine atanmış tüm özellikleri ve bu özelliklerin önceden tanımlı değerlerini döner.
+    /// Bu endpoint, ürün oluşturma/düzenleme formları için gerekli özellik şemasını almak için kullanılır.
+    /// </remarks>
+    /// <response code="200">Ürün tipi başarıyla getirildi</response>
+    /// <response code="404">Ürün tipi bulunamadı</response>
     [HttpGet("{id}")]
     [Authorize(Policy = "product-types:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductTypeDto>), StatusCodes.Status200OK)]
@@ -85,13 +104,41 @@ public class ProductTypesController : BaseApiController
     #region Write Operations
 
     /// <summary>
-    /// Upserts a product type. If product type with given ID (ExternalId) exists, it is updated; otherwise, a new product type is created.
-    /// Id is required for creating new product types.
+    /// Ürün tipini oluşturur veya günceller (Upsert)
     /// </summary>
+    /// <param name="request">Ürün tipi verileri</param>
+    /// <returns>Oluşturulan veya güncellenen ürün tipi</returns>
+    /// <remarks>
+    /// Belirtilen ID (ExternalId) ile ürün tipi varsa güncellenir, yoksa yeni ürün tipi oluşturulur.
+    ///
+    /// **Önemli Notlar:**
+    /// - Id (ExternalId) yeni ürün tipi oluşturmak için zorunludur
+    /// - Code alanı sistem genelinde benzersiz olmalıdır
+    /// - Attributes dizisi ile özellikleri atayabilirsiniz (ExternalId veya Code ile)
+    /// - Attributes gönderildiğinde, mevcut özellikler tamamen değiştirilir (full replacement)
+    ///
+    /// **Örnek İstek:**
+    /// ```json
+    /// {
+    ///   "id": "TYPE-LAPTOP",
+    ///   "code": "laptop",
+    ///   "name": "Dizüstü Bilgisayar",
+    ///   "isActive": true,
+    ///   "attributes": [
+    ///     { "attributeId": "ATTR-RAM", "isRequired": true, "displayOrder": 1 },
+    ///     { "attributeCode": "ekran_boyutu", "isRequired": false, "displayOrder": 2 }
+    ///   ]
+    /// }
+    /// ```
+    /// </remarks>
+    /// <response code="200">Ürün tipi başarıyla oluşturuldu/güncellendi</response>
+    /// <response code="400">Geçersiz istek verisi veya özellik bulunamadı</response>
+    /// <response code="409">Ürün tipi kodu zaten kullanımda</response>
     [HttpPost]
     [Authorize(Policy = "product-types:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductTypeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpsertProductType([FromBody] ProductTypeSyncRequest request)
     {
         // Validate: Id (ExternalId) is required
@@ -144,8 +191,18 @@ public class ProductTypesController : BaseApiController
     #region Delete Operations
 
     /// <summary>
-    /// Delete a product type by ID (ExternalId) - soft delete
+    /// Ürün tipini siler (soft delete)
     /// </summary>
+    /// <param name="id">Ürün tipinin harici ID'si</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Ürün tipini ve ilişkili tüm özellik atamalarını siler.
+    /// Soft delete uygulanır - kayıt veritabanından fiziksel olarak silinmez.
+    ///
+    /// **Uyarı:** Bu ürün tipini kullanan ürünler varsa, önce bu ürünleri başka bir tipe taşımanız gerekebilir.
+    /// </remarks>
+    /// <response code="200">Ürün tipi başarıyla silindi</response>
+    /// <response code="404">Ürün tipi bulunamadı</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = "product-types:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]

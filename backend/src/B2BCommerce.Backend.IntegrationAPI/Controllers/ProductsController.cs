@@ -8,9 +8,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Products API endpoints for external integrations (LOGO ERP).
-/// All operations use ExternalId as the primary identifier.
+/// Ürün API uç noktaları - harici entegrasyonlar için (LOGO ERP).
+/// Tüm işlemler birincil tanımlayıcı olarak ExternalId kullanır.
 /// </summary>
+/// <remarks>
+/// Bu API, ERP sistemlerinden ürün senkronizasyonu için kullanılır.
+/// Ürünler kategori, marka ve ürün tipi ile ilişkilendirilebilir.
+/// Varyant desteği mevcuttur (ana ürün - alt ürün ilişkisi).
+/// </remarks>
 public class ProductsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -28,8 +33,12 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get all products with filtering and pagination
+    /// Tüm ürünleri filtreleme ve sayfalama ile getirir
     /// </summary>
+    /// <param name="filter">Filtreleme parametreleri (arama, kategori, marka, stok, sayfalama)</param>
+    /// <returns>Sayfalanmış ürün listesi</returns>
+    /// <response code="200">Ürünler başarıyla getirildi</response>
+    /// <response code="400">Geçersiz filtre parametresi</response>
     [HttpGet]
     [Authorize(Policy = "products:read")]
     [ProducesResponseType(typeof(Models.PagedApiResponse<ProductListDto>), StatusCodes.Status200OK)]
@@ -94,8 +103,12 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get a product by ID (ExternalId)
+    /// Belirtilen ID'ye (ExternalId) sahip ürünü getirir
     /// </summary>
+    /// <param name="id">Ürünün harici ID'si (ERP sisteminden gelen ID)</param>
+    /// <returns>Ürün detayları</returns>
+    /// <response code="200">Ürün başarıyla getirildi</response>
+    /// <response code="404">Ürün bulunamadı</response>
     [HttpGet("{id}")]
     [Authorize(Policy = "products:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductDto>), StatusCodes.Status200OK)]
@@ -113,8 +126,12 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get product by SKU
+    /// SKU'ya göre ürün getirir
     /// </summary>
+    /// <param name="sku">Ürünün stok takip birimi (SKU)</param>
+    /// <returns>Ürün detayları</returns>
+    /// <response code="200">Ürün başarıyla getirildi</response>
+    /// <response code="404">Ürün bulunamadı</response>
     [HttpGet("sku/{sku}")]
     [Authorize(Policy = "products:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductDto>), StatusCodes.Status200OK)]
@@ -132,9 +149,17 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Upsert product. If product with given ID (ExternalId) or SKU exists, it is updated; otherwise, a new product is created.
-    /// Id is required for creating new products.
+    /// Ürün oluşturur veya günceller (Upsert). Verilen ID (ExternalId) veya SKU ile ürün varsa güncellenir, yoksa yeni oluşturulur.
     /// </summary>
+    /// <param name="request">Ürün bilgileri</param>
+    /// <returns>Oluşturulan veya güncellenen ürün</returns>
+    /// <remarks>
+    /// Yeni ürün oluşturmak için Id (ExternalId) zorunludur.
+    /// SKU benzersiz olmalıdır ve eşleşme için kullanılabilir.
+    /// Varyant oluşturmak için MainProductId belirtilmelidir.
+    /// </remarks>
+    /// <response code="200">Ürün başarıyla oluşturuldu/güncellendi</response>
+    /// <response code="400">Geçersiz istek (eksik alanlar veya ilişkili kayıt bulunamadı)</response>
     [HttpPost]
     [Authorize(Policy = "products:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<ProductDto>), StatusCodes.Status200OK)]
@@ -203,8 +228,16 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a product by ID (ExternalId) - soft delete
+    /// Belirtilen ID'ye (ExternalId) sahip ürünü siler (soft delete)
     /// </summary>
+    /// <param name="id">Silinecek ürünün harici ID'si</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Soft delete işlemi yapılır, kayıt tamamen silinmez.
+    /// Silinen ürünler listelemede görünmez ancak veritabanında korunur.
+    /// </remarks>
+    /// <response code="200">Ürün başarıyla silindi</response>
+    /// <response code="404">Ürün bulunamadı</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = "products:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
@@ -230,8 +263,15 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a product by SKU (soft delete)
+    /// SKU'ya göre ürünü siler (soft delete)
     /// </summary>
+    /// <param name="sku">Silinecek ürünün SKU'su</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Soft delete işlemi yapılır, kayıt tamamen silinmez.
+    /// </remarks>
+    /// <response code="200">Ürün başarıyla silindi</response>
+    /// <response code="404">Ürün bulunamadı</response>
     [HttpDelete("sku/{sku}")]
     [Authorize(Policy = "products:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]

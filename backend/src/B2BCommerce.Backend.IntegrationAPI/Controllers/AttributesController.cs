@@ -13,9 +13,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace B2BCommerce.Backend.IntegrationAPI.Controllers;
 
 /// <summary>
-/// Integration API controller for attribute definition management.
-/// All operations use ExternalId as the primary identifier.
+/// Özellik (Attribute) tanımları API uç noktaları - harici entegrasyonlar için.
+/// Tüm işlemler birincil tanımlayıcı olarak ExternalId kullanır.
 /// </summary>
+/// <remarks>
+/// Bu API, ürün özelliklerinin (RAM, ekran boyutu, renk vb.) yönetimi için kullanılır.
+/// Özellikler ürün tiplerine atanır ve ürünlerde değerler girilir.
+/// Select/MultiSelect tipleri için önceden tanımlı değerler desteklenir.
+/// </remarks>
 [Route("api/v1/attributes")]
 public class AttributesController : BaseApiController
 {
@@ -36,8 +41,11 @@ public class AttributesController : BaseApiController
     #region Read Operations
 
     /// <summary>
-    /// Get all attribute definitions with filtering and pagination
+    /// Tüm özellik tanımlarını filtreleme ve sayfalama ile getirir
     /// </summary>
+    /// <param name="filter">Filtreleme parametreleri (arama, tip, filtrelenebilirlik, sayfalama)</param>
+    /// <returns>Sayfalanmış özellik tanımları listesi</returns>
+    /// <response code="200">Özellik tanımları başarıyla getirildi</response>
     [HttpGet]
     [Authorize(Policy = "attributes:read")]
     [ProducesResponseType(typeof(Models.PagedApiResponse<AttributeDefinitionListDto>), StatusCodes.Status200OK)]
@@ -108,8 +116,12 @@ public class AttributesController : BaseApiController
     }
 
     /// <summary>
-    /// Get attribute definition by ID (ExternalId)
+    /// Belirtilen ID'ye (ExternalId) sahip özellik tanımını getirir
     /// </summary>
+    /// <param name="id">Özellik tanımının harici ID'si</param>
+    /// <returns>Özellik tanımı detayları (önceden tanımlı değerler dahil)</returns>
+    /// <response code="200">Özellik tanımı başarıyla getirildi</response>
+    /// <response code="404">Özellik tanımı bulunamadı</response>
     [HttpGet("{id}")]
     [Authorize(Policy = "attributes:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeDefinitionDto>), StatusCodes.Status200OK)]
@@ -127,8 +139,13 @@ public class AttributesController : BaseApiController
     }
 
     /// <summary>
-    /// Get specific predefined value by attribute ID (ExternalId) and value string
+    /// Belirtilen özelliğin belirli bir önceden tanımlı değerini getirir
     /// </summary>
+    /// <param name="id">Özellik tanımının harici ID'si</param>
+    /// <param name="value">Değer anahtarı</param>
+    /// <returns>Önceden tanımlı değer detayları</returns>
+    /// <response code="200">Değer başarıyla getirildi</response>
+    /// <response code="404">Özellik veya değer bulunamadı</response>
     [HttpGet("{id}/values/{value}")]
     [Authorize(Policy = "attributes:read")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeValueDto>), StatusCodes.Status200OK)]
@@ -157,13 +174,44 @@ public class AttributesController : BaseApiController
     #region Write Operations
 
     /// <summary>
-    /// Upserts attribute definition. If attribute with given ID (ExternalId) exists, it is updated; otherwise, a new attribute is created.
-    /// Id is required for creating new attributes.
+    /// Özellik tanımını oluşturur veya günceller (Upsert)
     /// </summary>
+    /// <param name="request">Özellik tanımı verileri</param>
+    /// <returns>Oluşturulan veya güncellenen özellik tanımı</returns>
+    /// <remarks>
+    /// Belirtilen ID (ExternalId) ile özellik varsa güncellenir, yoksa yeni özellik oluşturulur.
+    ///
+    /// **Önemli Notlar:**
+    /// - Id (ExternalId) yeni özellik oluşturmak için zorunludur
+    /// - Code alanı sistem genelinde benzersiz olmalıdır
+    /// - Type alanı: Text, Number, Select, MultiSelect, Boolean, Date değerlerinden biri olmalıdır
+    /// - Select/MultiSelect tipleri için Values dizisi ile önceden tanımlı değerler eklenebilir
+    /// - Values gönderildiğinde, mevcut değerler tamamen değiştirilir (full replacement)
+    ///
+    /// **Örnek İstek:**
+    /// ```json
+    /// {
+    ///   "id": "ATTR-RAM",
+    ///   "code": "ram",
+    ///   "name": "RAM Kapasitesi",
+    ///   "type": "Select",
+    ///   "unit": "GB",
+    ///   "isFilterable": true,
+    ///   "values": [
+    ///     { "value": "8", "displayText": "8 GB", "displayOrder": 1 },
+    ///     { "value": "16", "displayText": "16 GB", "displayOrder": 2 }
+    ///   ]
+    /// }
+    /// ```
+    /// </remarks>
+    /// <response code="200">Özellik başarıyla oluşturuldu/güncellendi</response>
+    /// <response code="400">Geçersiz istek verisi veya tip değeri</response>
+    /// <response code="409">Özellik kodu zaten kullanımda</response>
     [HttpPost]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeDefinitionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpsertAttribute([FromBody] AttributeSyncRequest request)
     {
         // Validate: Id (ExternalId) is required
@@ -220,8 +268,27 @@ public class AttributesController : BaseApiController
     }
 
     /// <summary>
-    /// Upserts a predefined value for an attribute (by attribute ID - ExternalId)
+    /// Özelliğe önceden tanımlı değer ekler veya günceller (Upsert)
     /// </summary>
+    /// <param name="id">Özellik tanımının harici ID'si</param>
+    /// <param name="request">Değer verileri</param>
+    /// <returns>Oluşturulan veya güncellenen değer</returns>
+    /// <remarks>
+    /// Select ve MultiSelect tipindeki özellikler için önceden tanımlı değerler ekler.
+    /// Aynı value değeri varsa güncellenir, yoksa yeni değer oluşturulur.
+    ///
+    /// **Örnek İstek:**
+    /// ```json
+    /// {
+    ///   "value": "32",
+    ///   "displayText": "32 GB",
+    ///   "displayOrder": 3
+    /// }
+    /// ```
+    /// </remarks>
+    /// <response code="200">Değer başarıyla oluşturuldu/güncellendi</response>
+    /// <response code="400">Geçersiz istek verisi</response>
+    /// <response code="404">Özellik bulunamadı</response>
     [HttpPost("{id}/values")]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse<AttributeValueDto>), StatusCodes.Status200OK)]
@@ -260,8 +327,18 @@ public class AttributesController : BaseApiController
     #region Delete Operations
 
     /// <summary>
-    /// Delete an attribute definition by ID (ExternalId) - soft delete
+    /// Özellik tanımını siler (soft delete)
     /// </summary>
+    /// <param name="id">Özellik tanımının harici ID'si</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Özellik tanımını ve ilişkili tüm önceden tanımlı değerlerini siler.
+    /// Soft delete uygulanır - kayıt veritabanından fiziksel olarak silinmez.
+    ///
+    /// **Uyarı:** Bu özelliği kullanan ürünler varsa, özellik değerleri de etkilenebilir.
+    /// </remarks>
+    /// <response code="200">Özellik başarıyla silindi</response>
+    /// <response code="404">Özellik bulunamadı</response>
     [HttpDelete("{id}")]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]
@@ -291,8 +368,19 @@ public class AttributesController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a predefined value from an attribute (by attribute ID - ExternalId and value string)
+    /// Özellikten önceden tanımlı değer siler
     /// </summary>
+    /// <param name="id">Özellik tanımının harici ID'si</param>
+    /// <param name="value">Silinecek değer anahtarı</param>
+    /// <returns>Silme işlemi sonucu</returns>
+    /// <remarks>
+    /// Belirtilen özellikten belirtilen önceden tanımlı değeri siler.
+    /// Değer karşılaştırması büyük/küçük harf duyarsızdır.
+    ///
+    /// **Uyarı:** Bu değeri kullanan ürünler varsa, ürünlerdeki özellik değerleri de etkilenebilir.
+    /// </remarks>
+    /// <response code="200">Değer başarıyla silindi</response>
+    /// <response code="404">Özellik veya değer bulunamadı</response>
     [HttpDelete("{id}/values/{value}")]
     [Authorize(Policy = "attributes:write")]
     [ProducesResponseType(typeof(Models.ApiResponse), StatusCodes.Status200OK)]

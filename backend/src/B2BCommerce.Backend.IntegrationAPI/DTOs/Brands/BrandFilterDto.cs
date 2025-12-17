@@ -1,37 +1,43 @@
 namespace B2BCommerce.Backend.IntegrationAPI.DTOs.Brands;
 
 /// <summary>
-/// Filter parameters for brand listing
+/// Marka listesi için filtreleme parametreleri
 /// </summary>
 public class BrandFilterDto
 {
     /// <summary>
-    /// Search term for name filtering
+    /// Marka adı veya açıklamasında arama yapılacak metin
     /// </summary>
+    /// <example>Dell</example>
     public string? Search { get; set; }
 
     /// <summary>
-    /// Filter by active status
+    /// Aktiflik durumuna göre filtrele (null = tümü)
     /// </summary>
+    /// <example>true</example>
     public bool? IsActive { get; set; }
 
     /// <summary>
-    /// Page number (1-based)
+    /// Sayfa numarası (1'den başlar)
     /// </summary>
+    /// <example>1</example>
     public int PageNumber { get; set; } = 1;
 
     /// <summary>
-    /// Page size (max 100)
+    /// Sayfa başına kayıt sayısı (maksimum 100)
     /// </summary>
+    /// <example>20</example>
     public int PageSize { get; set; } = 20;
 
     /// <summary>
-    /// Sort by field (name, createdAt, updatedAt)
+    /// Sıralama alanı (name, createdAt, updatedAt)
     /// </summary>
+    /// <example>name</example>
     public string SortBy { get; set; } = "name";
 
     /// <summary>
-    /// Sort direction (asc, desc)
+    /// Sıralama yönü (asc = artan, desc = azalan)
     /// </summary>
+    /// <example>asc</example>
     public string SortDirection { get; set; } = "asc";
 }
