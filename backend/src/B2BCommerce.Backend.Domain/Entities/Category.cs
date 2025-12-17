@@ -86,7 +86,6 @@ public class Category : ExternalEntity, IAggregateRoot
     /// <param name="externalCode">External system code (optional)</param>
     /// <param name="imageUrl">Image URL</param>
     /// <param name="displayOrder">Display order</param>
-    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static Category CreateFromExternal(
         string externalId,
         string name,
@@ -94,8 +93,7 @@ public class Category : ExternalEntity, IAggregateRoot
         Guid? parentCategoryId = null,
         string? externalCode = null,
         string? imageUrl = null,
-        int displayOrder = 0,
-        Guid? specificId = null)
+        int displayOrder = 0)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -121,7 +119,7 @@ public class Category : ExternalEntity, IAggregateRoot
         };
 
         // Use base class helper for consistent initialization
-        InitializeFromExternal(category, externalId, externalCode, specificId);
+        InitializeFromExternal(category, externalId, externalCode);
 
         return category;
     }

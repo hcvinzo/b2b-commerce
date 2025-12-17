@@ -13,12 +13,8 @@ public record ExternalEntityLookupResult<T> where T : class
     public T? Entity { get; init; }
 
     /// <summary>
-    /// True if the entity should be created with a specific ID (ID was provided but entity wasn't found).
-    /// </summary>
-    public bool CreateWithSpecificId { get; init; }
-
-    /// <summary>
-    /// The resolved ExternalId to use (either from request.ExternalId or request.Id.ToString()).
+    /// The resolved ExternalId to use (from request.ExternalId).
+    /// Null if not provided - entity will be created with auto-generated ExternalId.
     /// </summary>
     public string? EffectiveExternalId { get; init; }
 

@@ -33,6 +33,10 @@ interface TreeSelectProps {
   excludeId?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** Whether to show "No Parent (Root Category)" option. Default: true */
+  allowEmpty?: boolean;
+  /** Custom label for empty option. Default: "No Parent (Root Category)" */
+  emptyLabel?: string;
 }
 
 // Flatten tree with level info for display
@@ -116,6 +120,8 @@ export function TreeSelect({
   excludeId,
   placeholder = "Select category...",
   disabled = false,
+  allowEmpty = true,
+  emptyLabel = "No Parent (Root Category)",
 }: TreeSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -179,24 +185,26 @@ export function TreeSelect({
               </div>
             </CommandEmpty>
             <CommandGroup>
-              {/* No parent option */}
-              <CommandItem
-                value="__none__"
-                onSelect={() => {
-                  onChange("");
-                  setOpen(false);
-                  setSearch("");
-                }}
-                className="flex items-center gap-2"
-              >
-                <Check
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    !value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                <span className="font-medium">No Parent (Root Category)</span>
-              </CommandItem>
+              {/* No parent / empty option */}
+              {allowEmpty && (
+                <CommandItem
+                  value="__none__"
+                  onSelect={() => {
+                    onChange("");
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Check
+                    className={cn(
+                      "h-4 w-4 shrink-0",
+                      !value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span className="font-medium">{emptyLabel}</span>
+                </CommandItem>
+              )}
 
               {/* Category tree items */}
               {filteredCategories.map((cat) => (

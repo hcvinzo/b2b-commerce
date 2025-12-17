@@ -32,12 +32,10 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
 
     public async Task<Result<AttributeDefinitionDto>> Handle(UpsertAttributeDefinitionCommand request, CancellationToken cancellationToken)
     {
-        // 1. Use shared lookup helper: Id → ExternalId → Code
+        // 1. Use shared lookup helper: ExternalId → Code
         var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
-            request.Id,
             request.ExternalId,
             request.Code,  // fallback key
-            (id, ct) => _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesAsync(id, ct),
             (extId, ct) => _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(extId, ct),
             (code, ct) => _unitOfWork.AttributeDefinitions.GetByCodeAsync(code, ct),
             cancellationToken);
@@ -47,14 +45,6 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
         // 2. Create or Update
         if (lookup.IsNew)
         {
-            // Validate ExternalId is available
-            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
-            {
-                return Result<AttributeDefinitionDto>.Failure(
-                    "ExternalId or Id is required for creating new attribute definition",
-                    "EXTERNAL_ID_REQUIRED");
-            }
-
             // Check if code already exists (case-insensitive)
             var existingByCode = await _unitOfWork.AttributeDefinitions.GetByCodeAsync(request.Code, cancellationToken);
             if (existingByCode is not null)
@@ -64,18 +54,33 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
                     "CODE_EXISTS");
             }
 
-            attribute = AttributeDefinition.CreateFromExternal(
-                externalId: lookup.EffectiveExternalId,
-                code: request.Code,
-                name: request.Name,
-                type: request.Type,
-                unit: request.Unit,
-                isFilterable: request.IsFilterable,
-                isRequired: request.IsRequired,
-                isVisibleOnProductPage: request.IsVisibleOnProductPage,
-                displayOrder: request.DisplayOrder,
-                externalCode: request.ExternalCode,
-                specificId: lookup.CreateWithSpecificId ? request.Id : null);
+            // If ExternalId provided, use CreateFromExternal; otherwise use Create (auto-generates ExternalId)
+            if (!string.IsNullOrEmpty(lookup.EffectiveExternalId))
+            {
+                attribute = AttributeDefinition.CreateFromExternal(
+                    externalId: lookup.EffectiveExternalId,
+                    code: request.Code,
+                    name: request.Name,
+                    type: request.Type,
+                    unit: request.Unit,
+                    isFilterable: request.IsFilterable,
+                    isRequired: request.IsRequired,
+                    isVisibleOnProductPage: request.IsVisibleOnProductPage,
+                    displayOrder: request.DisplayOrder,
+                    externalCode: request.ExternalCode);
+            }
+            else
+            {
+                attribute = AttributeDefinition.Create(
+                    code: request.Code,
+                    name: request.Name,
+                    type: request.Type,
+                    unit: request.Unit,
+                    isFilterable: request.IsFilterable,
+                    isRequired: request.IsRequired,
+                    isVisibleOnProductPage: request.IsVisibleOnProductPage,
+                    displayOrder: request.DisplayOrder);
+            }
 
             // Add predefined values for Select/MultiSelect types
             if (request.PredefinedValues is not null && attribute.RequiresPredefinedValues())

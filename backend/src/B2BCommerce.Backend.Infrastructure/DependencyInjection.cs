@@ -89,6 +89,9 @@ public static class DependencyInjection
         services.AddScoped<IApiClientService, ApiClientService>();
         services.AddScoped<IApiKeyService, ApiKeyService>();
 
+        // Storage Service (AWS S3 with CloudFront)
+        services.AddSingleton<IStorageService, S3StorageService>();
+
         return services;
     }
 }

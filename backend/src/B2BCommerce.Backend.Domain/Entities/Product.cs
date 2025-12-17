@@ -697,7 +697,6 @@ public class Product : ExternalEntity, IAggregateRoot
     /// Product starts as Draft if required fields are missing, otherwise follows requestedStatus.
     /// </summary>
     /// <param name="mainProductId">Optional: Internal ID of the main product if this is a variant</param>
-    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static Product CreateFromExternal(
         string externalId,
         string sku,
@@ -712,8 +711,7 @@ public class Product : ExternalEntity, IAggregateRoot
         Guid? productTypeId = null,
         ProductStatus? requestedStatus = null,
         string? externalCode = null,
-        Guid? mainProductId = null,
-        Guid? specificId = null)
+        Guid? mainProductId = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -739,7 +737,7 @@ public class Product : ExternalEntity, IAggregateRoot
         }
 
         // Use base class helper for consistent initialization
-        InitializeFromExternal(product, externalId, externalCode, specificId);
+        InitializeFromExternal(product, externalId, externalCode);
 
         return product;
     }

@@ -96,7 +96,6 @@ public class Brand : ExternalEntity, IAggregateRoot
     /// <param name="websiteUrl">Website URL</param>
     /// <param name="isActive">Whether the brand is active</param>
     /// <param name="externalCode">External system code (optional)</param>
-    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static Brand CreateFromExternal(
         string externalId,
         string name,
@@ -104,8 +103,7 @@ public class Brand : ExternalEntity, IAggregateRoot
         string? logoUrl = null,
         string? websiteUrl = null,
         bool isActive = true,
-        string? externalCode = null,
-        Guid? specificId = null)
+        string? externalCode = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -123,7 +121,7 @@ public class Brand : ExternalEntity, IAggregateRoot
         }
 
         // Use base class helper for consistent initialization
-        InitializeFromExternal(brand, externalId, externalCode, specificId);
+        InitializeFromExternal(brand, externalId, externalCode);
 
         return brand;
     }

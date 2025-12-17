@@ -6,15 +6,11 @@ namespace B2BCommerce.Backend.Application.Features.ProductTypes.Commands.UpsertP
 
 /// <summary>
 /// Command to create or update a product type from external system.
-/// Uses ExternalId as the primary upsert key.
+/// Uses ExternalId as the primary upsert key, Code as fallback.
+/// If neither matches, creates a new product type with auto-generated ExternalId.
 /// </summary>
 public record UpsertProductTypeCommand : ICommand<Result<ProductTypeDto>>
 {
-    /// <summary>
-    /// Internal ID (optional for upsert - if provided without ExternalId, creates with this ID)
-    /// </summary>
-    public Guid? Id { get; init; }
-
     /// <summary>
     /// External system ID (PRIMARY upsert key)
     /// </summary>

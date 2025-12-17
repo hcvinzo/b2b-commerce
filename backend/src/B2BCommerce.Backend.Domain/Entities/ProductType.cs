@@ -174,15 +174,13 @@ public class ProductType : ExternalEntity, IAggregateRoot
     /// <param name="description">Product type description</param>
     /// <param name="isActive">Whether the product type is active</param>
     /// <param name="externalCode">External system code (optional)</param>
-    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static ProductType CreateFromExternal(
         string externalId,
         string code,
         string name,
         string? description = null,
         bool isActive = true,
-        string? externalCode = null,
-        Guid? specificId = null)
+        string? externalCode = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -197,7 +195,7 @@ public class ProductType : ExternalEntity, IAggregateRoot
         }
 
         // Use base class helper for consistent initialization
-        InitializeFromExternal(productType, externalId, externalCode, specificId);
+        InitializeFromExternal(productType, externalId, externalCode);
 
         return productType;
     }

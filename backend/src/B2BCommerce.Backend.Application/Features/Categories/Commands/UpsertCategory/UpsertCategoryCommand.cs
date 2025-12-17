@@ -6,18 +6,14 @@ namespace B2BCommerce.Backend.Application.Features.Categories.Commands.UpsertCat
 
 /// <summary>
 /// Command to upsert a category (create or update).
-/// Used for external system synchronization
-/// Matches by ExternalId (primary) or ExternalCode (fallback), or by Id for internal updates.
+/// Used for external system synchronization.
+/// Matches by ExternalId (primary) or ExternalCode (fallback).
+/// If neither is provided, creates a new category with auto-generated ExternalId.
 /// </summary>
 public record UpsertCategoryCommand : ICommand<Result<CategoryDto>>
 {
     /// <summary>
-    /// Internal ID (for internal updates)
-    /// </summary>
-    public Guid? Id { get; init; }
-
-    /// <summary>
-    /// External system ID
+    /// External system ID (PRIMARY upsert key)
     /// </summary>
     public string? ExternalId { get; init; }
 

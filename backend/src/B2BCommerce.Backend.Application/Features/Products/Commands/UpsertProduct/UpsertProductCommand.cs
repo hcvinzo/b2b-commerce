@@ -8,16 +8,12 @@ namespace B2BCommerce.Backend.Application.Features.Products.Commands.UpsertProdu
 /// <summary>
 /// Command to upsert a product (create or update).
 /// Used for external system synchronization (LOGO ERP).
-/// Matches by ExternalId (primary), Id (fallback), or SKU (fallback).
+/// Matches by ExternalId (primary) or SKU (fallback).
+/// If neither matches, creates a new product with auto-generated ExternalId.
 /// </summary>
 public record UpsertProductCommand : ICommand<Result<ProductDto>>
 {
-    // Identification (one required for upsert)
-
-    /// <summary>
-    /// Internal ID (for internal updates)
-    /// </summary>
-    public Guid? Id { get; init; }
+    // Identification
 
     /// <summary>
     /// External system ID (PRIMARY upsert key for LOGO ERP)

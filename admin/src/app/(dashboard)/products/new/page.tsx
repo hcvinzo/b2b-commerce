@@ -11,7 +11,12 @@ export default function NewProductPage() {
   const createProduct = useCreateProduct();
 
   const handleSubmit = async (data: ProductFormData) => {
-    await createProduct.mutateAsync(data);
+    // Map form data to API DTO (listPriceCurrency -> currency)
+    const apiData = {
+      ...data,
+      currency: data.listPriceCurrency || "TRY",
+    };
+    await createProduct.mutateAsync(apiData);
     router.push("/products");
   };
 

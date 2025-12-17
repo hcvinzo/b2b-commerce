@@ -11,7 +11,7 @@ namespace B2BCommerce.Backend.Application.Features.Products.Commands.UpsertProdu
 
 /// <summary>
 /// Handler for UpsertProductCommand.
-/// Creates or updates a product based on ExternalId (primary), Id (fallback), or SKU (fallback).
+/// Creates or updates a product based on ExternalId (primary) or SKU (fallback).
 /// </summary>
 public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand, Result<ProductDto>>
 {
@@ -143,12 +143,10 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             }
         }
 
-        // 4. Use shared lookup helper: Id → ExternalId → SKU
+        // 4. Use shared lookup helper: ExternalId → SKU
         var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
-            request.Id,
             request.ExternalId,
             request.SKU,  // fallback key
-            (id, ct) => _unitOfWork.Products.GetByIdAsync(id, ct),
             (extId, ct) => _unitOfWork.Products.GetByExternalIdAsync(extId, ct),
             (sku, ct) => _unitOfWork.Products.GetBySKUAsync(sku, ct),
             cancellationToken);
@@ -158,32 +156,53 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
         // 5. Create or update
         if (lookup.IsNew)
         {
-            // Validate ExternalId is available
-            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
-            {
-                return Result<ProductDto>.Failure(
-                    "ExternalId or Id is required for creating new products via sync",
-                    "EXTERNAL_ID_REQUIRED");
-            }
-
             var listPrice = new Money(request.ListPrice, request.Currency);
 
-            product = Product.CreateFromExternal(
-                externalId: lookup.EffectiveExternalId,
-                sku: request.SKU,
-                name: request.Name,
-                description: request.Description ?? string.Empty,
-                categoryId: categoryId.Value,
-                listPrice: listPrice,
-                stockQuantity: request.StockQuantity,
-                minimumOrderQuantity: request.MinimumOrderQuantity,
-                taxRate: request.TaxRate,
-                brandId: brandId,
-                productTypeId: productTypeId,
-                requestedStatus: request.Status,
-                externalCode: request.ExternalCode,
-                mainProductId: mainProductId,
-                specificId: lookup.CreateWithSpecificId ? request.Id : null);
+            // If ExternalId provided, use CreateFromExternal; otherwise use Create (auto-generates ExternalId)
+            if (!string.IsNullOrEmpty(lookup.EffectiveExternalId))
+            {
+                product = Product.CreateFromExternal(
+                    externalId: lookup.EffectiveExternalId,
+                    sku: request.SKU,
+                    name: request.Name,
+                    description: request.Description ?? string.Empty,
+                    categoryId: categoryId.Value,
+                    listPrice: listPrice,
+                    stockQuantity: request.StockQuantity,
+                    minimumOrderQuantity: request.MinimumOrderQuantity,
+                    taxRate: request.TaxRate,
+                    brandId: brandId,
+                    productTypeId: productTypeId,
+                    requestedStatus: request.Status,
+                    externalCode: request.ExternalCode,
+                    mainProductId: mainProductId);
+            }
+            else
+            {
+                // No ExternalId provided - create with auto-generated Id and ExternalId
+                product = Product.Create(
+                    sku: request.SKU,
+                    name: request.Name,
+                    description: request.Description ?? string.Empty,
+                    categoryId: categoryId.Value,
+                    listPrice: listPrice,
+                    stockQuantity: request.StockQuantity,
+                    minimumOrderQuantity: request.MinimumOrderQuantity,
+                    taxRate: request.TaxRate,
+                    productTypeId: productTypeId,
+                    mainProductId: mainProductId);
+
+                // Set brand via UpdateBasicInfo (BrandId has private setter)
+                if (brandId.HasValue)
+                {
+                    product.UpdateBasicInfo(request.Name, request.Description ?? string.Empty, categoryId.Value, brandId);
+                }
+
+                if (request.Status.HasValue)
+                {
+                    product.SetStatus(request.Status.Value);
+                }
+            }
 
             // Set images
             if (!string.IsNullOrEmpty(request.MainImageUrl))

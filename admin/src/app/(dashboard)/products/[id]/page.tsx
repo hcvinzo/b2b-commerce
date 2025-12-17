@@ -31,7 +31,12 @@ export default function ProductDetailPage() {
   const updateProduct = useUpdateProduct();
 
   const handleSubmit = async (data: ProductFormData) => {
-    await updateProduct.mutateAsync({ id, data });
+    // Map form data to API DTO (listPriceCurrency -> currency)
+    const apiData = {
+      ...data,
+      currency: data.listPriceCurrency || "TRY",
+    };
+    await updateProduct.mutateAsync({ id, data: apiData });
     router.push(`/products/${id}`);
   };
 

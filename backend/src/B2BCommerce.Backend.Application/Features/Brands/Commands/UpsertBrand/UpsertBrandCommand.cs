@@ -7,15 +7,11 @@ namespace B2BCommerce.Backend.Application.Features.Brands.Commands.UpsertBrand;
 /// <summary>
 /// Command to upsert a brand (create or update).
 /// Used for external system synchronization (LOGO ERP).
-/// Matches by ExternalId (primary), Id (fallback), or Name (fallback).
+/// Matches by ExternalId (primary) or Name (fallback).
+/// If neither is provided, creates a new brand with auto-generated ExternalId.
 /// </summary>
 public record UpsertBrandCommand : ICommand<Result<BrandDto>>
 {
-    /// <summary>
-    /// Internal ID (for internal updates)
-    /// </summary>
-    public Guid? Id { get; init; }
-
     /// <summary>
     /// External system ID (PRIMARY upsert key for LOGO ERP)
     /// </summary>

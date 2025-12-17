@@ -31,12 +31,10 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
 
     public async Task<Result<ProductTypeDto>> Handle(UpsertProductTypeCommand request, CancellationToken cancellationToken)
     {
-        // 1. Use shared lookup helper: Id → ExternalId → Code
+        // 1. Use shared lookup helper: ExternalId → Code
         var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
-            request.Id,
             request.ExternalId,
             request.Code,  // fallback key
-            (id, ct) => _unitOfWork.ProductTypes.GetWithAttributesAsync(id, ct),
             (extId, ct) => _unitOfWork.ProductTypes.GetWithAttributesByExternalIdAsync(extId, ct),
             (code, ct) => _unitOfWork.ProductTypes.GetByCodeWithAttributesAsync(code, ct),
             cancellationToken);
@@ -46,14 +44,6 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
         // 2. Create or Update
         if (lookup.IsNew)
         {
-            // Validate ExternalId is available
-            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
-            {
-                return Result<ProductTypeDto>.Failure(
-                    "ExternalId or Id is required for creating new product type",
-                    "EXTERNAL_ID_REQUIRED");
-            }
-
             // Check if code already exists (case-insensitive)
             var existingByCode = await _unitOfWork.ProductTypes.GetByCodeAsync(request.Code, cancellationToken);
             if (existingByCode is not null)
@@ -63,14 +53,29 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
                     "CODE_EXISTS");
             }
 
-            productType = ProductType.CreateFromExternal(
-                externalId: lookup.EffectiveExternalId,
-                code: request.Code,
-                name: request.Name,
-                description: request.Description,
-                isActive: request.IsActive,
-                externalCode: request.ExternalCode,
-                specificId: lookup.CreateWithSpecificId ? request.Id : null);
+            // If ExternalId provided, use CreateFromExternal; otherwise use Create (auto-generates ExternalId)
+            if (!string.IsNullOrEmpty(lookup.EffectiveExternalId))
+            {
+                productType = ProductType.CreateFromExternal(
+                    externalId: lookup.EffectiveExternalId,
+                    code: request.Code,
+                    name: request.Name,
+                    description: request.Description,
+                    isActive: request.IsActive,
+                    externalCode: request.ExternalCode);
+            }
+            else
+            {
+                productType = ProductType.Create(
+                    code: request.Code,
+                    name: request.Name,
+                    description: request.Description);
+
+                if (!request.IsActive)
+                {
+                    productType.Deactivate();
+                }
+            }
 
             // Add attributes if provided
             if (request.Attributes is not null && request.Attributes.Count > 0)

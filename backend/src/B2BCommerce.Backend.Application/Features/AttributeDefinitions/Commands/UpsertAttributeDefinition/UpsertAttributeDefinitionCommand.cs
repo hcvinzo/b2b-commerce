@@ -7,15 +7,11 @@ namespace B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands
 
 /// <summary>
 /// Command to create or update an attribute definition from external system.
-/// Uses ExternalId as the primary upsert key.
+/// Uses ExternalId as the primary upsert key, Code as fallback.
+/// If neither matches, creates a new attribute definition with auto-generated ExternalId.
 /// </summary>
 public record UpsertAttributeDefinitionCommand : ICommand<Result<AttributeDefinitionDto>>
 {
-    /// <summary>
-    /// Internal ID (optional for upsert - if provided without ExternalId, creates with this ID)
-    /// </summary>
-    public Guid? Id { get; init; }
-
     /// <summary>
     /// External system ID (PRIMARY upsert key)
     /// </summary>

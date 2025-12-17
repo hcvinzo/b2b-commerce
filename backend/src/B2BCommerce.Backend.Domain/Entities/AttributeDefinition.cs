@@ -119,7 +119,6 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// <param name="isVisibleOnProductPage">Whether to display on product detail page</param>
     /// <param name="displayOrder">Display order in UI</param>
     /// <param name="externalCode">External system code (optional)</param>
-    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static AttributeDefinition CreateFromExternal(
         string externalId,
         string code,
@@ -130,8 +129,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         bool isRequired = false,
         bool isVisibleOnProductPage = true,
         int displayOrder = 0,
-        string? externalCode = null,
-        Guid? specificId = null)
+        string? externalCode = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -141,7 +139,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         var attr = Create(code, name, type, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
 
         // Use base class helper for consistent initialization
-        InitializeFromExternal(attr, externalId, externalCode, specificId);
+        InitializeFromExternal(attr, externalId, externalCode);
 
         return attr;
     }

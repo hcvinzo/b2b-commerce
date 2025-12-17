@@ -10,7 +10,7 @@ namespace B2BCommerce.Backend.Application.Features.Brands.Commands.UpsertBrand;
 
 /// <summary>
 /// Handler for UpsertBrandCommand.
-/// Creates or updates a brand based on ExternalId (primary), Id (fallback), or Name (fallback).
+/// Creates or updates a brand based on ExternalId (primary) or Name (fallback).
 /// </summary>
 public class UpsertBrandCommandHandler : ICommandHandler<UpsertBrandCommand, Result<BrandDto>>
 {
@@ -27,12 +27,10 @@ public class UpsertBrandCommandHandler : ICommandHandler<UpsertBrandCommand, Res
 
     public async Task<Result<BrandDto>> Handle(UpsertBrandCommand request, CancellationToken cancellationToken)
     {
-        // Use shared lookup helper: Id → ExternalId → Name
+        // Use shared lookup helper: ExternalId → Name
         var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
-            request.Id,
             request.ExternalId,
             request.Name,  // fallback key
-            (id, ct) => _unitOfWork.Brands.GetByIdAsync(id, ct),
             (extId, ct) => _unitOfWork.Brands.GetByExternalIdAsync(extId, ct),
             (name, ct) => _unitOfWork.Brands.GetByNameAsync(name, ct),
             cancellationToken);
@@ -41,29 +39,43 @@ public class UpsertBrandCommandHandler : ICommandHandler<UpsertBrandCommand, Res
 
         if (lookup.IsNew)
         {
-            // Validate ExternalId is available
-            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
+            // If ExternalId provided, use CreateFromExternal; otherwise use Create (auto-generates ExternalId)
+            if (!string.IsNullOrEmpty(lookup.EffectiveExternalId))
             {
-                return Result<BrandDto>.Failure(
-                    "ExternalId or Id is required for creating new brands via sync",
-                    "EXTERNAL_ID_REQUIRED");
+                brand = Brand.CreateFromExternal(
+                    externalId: lookup.EffectiveExternalId,
+                    name: request.Name,
+                    description: request.Description ?? string.Empty,
+                    logoUrl: request.LogoUrl,
+                    websiteUrl: request.WebsiteUrl,
+                    isActive: request.IsActive,
+                    externalCode: request.ExternalCode);
             }
-
-            brand = Brand.CreateFromExternal(
-                externalId: lookup.EffectiveExternalId,
-                name: request.Name,
-                description: request.Description ?? string.Empty,
-                logoUrl: request.LogoUrl,
-                websiteUrl: request.WebsiteUrl,
-                isActive: request.IsActive,
-                externalCode: request.ExternalCode,
-                specificId: lookup.CreateWithSpecificId ? request.Id : null);
+            else
+            {
+                // No ExternalId provided - create with auto-generated Id and ExternalId
+                brand = Brand.Create(request.Name, request.Description ?? string.Empty);
+                if (!string.IsNullOrEmpty(request.LogoUrl))
+                {
+                    brand.SetLogo(request.LogoUrl);
+                }
+                if (!string.IsNullOrEmpty(request.WebsiteUrl))
+                {
+                    brand.Update(request.Name, request.Description ?? string.Empty, request.WebsiteUrl);
+                }
+                if (!request.IsActive)
+                {
+                    brand.Deactivate();
+                }
+                // Note: ExternalCode is ignored when creating without ExternalId
+                // ExternalId is auto-generated from the internal Id
+            }
 
             await _unitOfWork.Brands.AddAsync(brand, cancellationToken);
 
             _logger.LogInformation(
-                "Creating brand from external sync: {ExternalId} - {Name} (Id: {Id})",
-                lookup.EffectiveExternalId, request.Name, brand.Id);
+                "Creating brand: {ExternalId} - {Name} (Id: {Id})",
+                brand.ExternalId, request.Name, brand.Id);
         }
         else
         {

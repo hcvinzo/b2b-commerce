@@ -155,7 +155,7 @@ export interface CreateProductDto {
   brandId?: string;
   productTypeId?: string;
   listPrice: number;
-  listPriceCurrency?: string;
+  currency: string;
   dealerPrice?: number;
   tier1Price?: number;
   tier2Price?: number;

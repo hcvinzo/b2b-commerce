@@ -10,7 +10,7 @@ namespace B2BCommerce.Backend.Application.Features.Categories.Commands.UpsertCat
 
 /// <summary>
 /// Handler for UpsertCategoryCommand.
-/// Creates or updates a category based on ExternalId (primary), ExternalCode (fallback), or Id.
+/// Creates or updates a category based on ExternalId (primary) or ExternalCode (fallback).
 /// </summary>
 public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryCommand, Result<CategoryDto>>
 {
@@ -59,12 +59,10 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
             parentCategoryId = parentCategory.Id;
         }
 
-        // 2. Use shared lookup helper: Id → ExternalId → ExternalCode
+        // 2. Use shared lookup helper: ExternalId → ExternalCode
         var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
-            request.Id,
             request.ExternalId,
             request.ExternalCode,  // fallback key
-            (id, ct) => _unitOfWork.Categories.GetByIdAsync(id, ct),
             (extId, ct) => _unitOfWork.Categories.GetByExternalIdAsync(extId, ct),
             (extCode, ct) => _unitOfWork.Categories.GetByExternalCodeAsync(extCode, ct),
             cancellationToken);
@@ -74,23 +72,31 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
         // 3. Create or update
         if (lookup.IsNew)
         {
-            // Validate ExternalId is available
-            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
+            // If ExternalId provided, use CreateFromExternal; otherwise use Create (auto-generates ExternalId)
+            if (!string.IsNullOrEmpty(lookup.EffectiveExternalId))
             {
-                return Result<CategoryDto>.Failure(
-                    "ExternalId or Id is required for creating new categories via sync",
-                    "EXTERNAL_ID_REQUIRED");
+                category = Category.CreateFromExternal(
+                    externalId: lookup.EffectiveExternalId,
+                    name: request.Name,
+                    description: request.Description ?? string.Empty,
+                    parentCategoryId: parentCategoryId,
+                    externalCode: request.ExternalCode,
+                    imageUrl: request.ImageUrl,
+                    displayOrder: request.DisplayOrder);
             }
-
-            category = Category.CreateFromExternal(
-                externalId: lookup.EffectiveExternalId,
-                name: request.Name,
-                description: request.Description ?? string.Empty,
-                parentCategoryId: parentCategoryId,
-                externalCode: request.ExternalCode,
-                imageUrl: request.ImageUrl,
-                displayOrder: request.DisplayOrder,
-                specificId: lookup.CreateWithSpecificId ? request.Id : null);
+            else
+            {
+                // No ExternalId provided - create with auto-generated Id and ExternalId
+                category = Category.Create(
+                    name: request.Name,
+                    description: request.Description ?? string.Empty,
+                    parentCategoryId: parentCategoryId,
+                    displayOrder: request.DisplayOrder);
+                if (!string.IsNullOrEmpty(request.ImageUrl))
+                {
+                    category.SetImage(request.ImageUrl);
+                }
+            }
 
             if (!request.IsActive)
             {
@@ -100,8 +106,8 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
             await _unitOfWork.Categories.AddAsync(category, cancellationToken);
 
             _logger.LogInformation(
-                "Creating category from external sync: {ExternalId} - {Name} (Id: {Id})",
-                lookup.EffectiveExternalId, request.Name, category.Id);
+                "Creating category: {ExternalId} - {Name} (Id: {Id})",
+                category.ExternalId, request.Name, category.Id);
         }
         else
         {

@@ -6,8 +6,8 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { HtmlEditor } from "@/components/ui/html-editor";
 import {
   Form,
   FormControl,
@@ -24,11 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TreeSelect } from "@/components/ui/tree-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { productSchema, type ProductFormData } from "@/lib/validations/product";
-import { useCategoriesFlat } from "@/hooks/use-categories";
+import { useCategories } from "@/hooks/use-categories";
 import { useBrands } from "@/hooks/use-brands";
 import { useProductTypes } from "@/hooks/use-product-types";
 import { ProductImageManager } from "./product-image-manager";
@@ -48,11 +49,9 @@ export function ProductForm({
   onCancel,
   isLoading,
 }: ProductFormProps) {
-  const { data: categoriesData } = useCategoriesFlat();
+  const { data: categories } = useCategories();
   const { data: brandsData } = useBrands({ isActive: true });
   const { data: productTypesData } = useProductTypes(true);
-
-  const categories = categoriesData?.items || [];
   const brands = brandsData?.items || [];
   const productTypes = productTypesData || [];
 
@@ -138,20 +137,15 @@ export function ProductForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <TreeSelect
+                            categories={categories || []}
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select a category"
+                            allowEmpty={false}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -254,10 +248,10 @@ export function ProductForm({
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea
+                        <HtmlEditor
+                          value={field.value || ""}
+                          onChange={field.onChange}
                           placeholder="Enter product description"
-                          className="min-h-[100px]"
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />

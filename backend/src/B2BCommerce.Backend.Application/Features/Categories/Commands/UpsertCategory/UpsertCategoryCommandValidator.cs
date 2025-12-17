@@ -35,9 +35,5 @@ public class UpsertCategoryCommandValidator : AbstractValidator<UpsertCategoryCo
         RuleFor(x => x.DisplayOrder)
             .GreaterThanOrEqualTo(0).WithMessage("Display order must be non-negative");
 
-        // Ensure at least one identifier is provided for updates
-        RuleFor(x => x)
-            .Must(x => x.Id.HasValue || !string.IsNullOrEmpty(x.ExternalCode))
-            .WithMessage("Either Id or ExternalCode must be provided for upsert operation");
     }
 }
