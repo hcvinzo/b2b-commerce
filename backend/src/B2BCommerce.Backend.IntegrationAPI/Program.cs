@@ -190,13 +190,14 @@ All responses follow a standard format:
     // Global exception handling - must be first in pipeline
     app.UseExceptionHandling();
 
-    if (app.Environment.IsDevelopment())
+    // Enable Swagger in Development and Test environments
+    if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Test")
     {
         app.UseSwagger();
         app.UseSwaggerUI(options =>
         {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "B2B E-Commerce Integration API v1");
-            options.RoutePrefix = string.Empty; // Swagger at root
+            options.SwaggerEndpoint("v1/swagger.json", "B2B E-Commerce Integration API v1");
+            options.RoutePrefix = "swagger"; // Swagger at root
         });
     }
 

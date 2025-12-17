@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:test": "cp .env.test .env.local && next build",
     "start": "next start",
     "lint": "eslint"
   },

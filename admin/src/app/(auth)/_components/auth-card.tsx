@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, getImagePath } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface AuthCardProps {
@@ -17,7 +17,7 @@ export function AuthCard({ children, className }: AuthCardProps) {
           <div className="p-6 md:p-8">{children}</div>
           <div className="relative hidden md:block">
             <Image
-              src="/images/login-hero.jpg"
+              src={getImagePath("/images/login-hero.jpg")}
               alt="Vesmarket"
               fill
               className="object-cover dark:brightness-[0.2] dark:grayscale"

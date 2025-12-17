@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { forgotPassword } from "@/lib/api/auth";
 import { AuthCard } from "../_components/auth-card";
+import { getImagePath } from "@/lib/utils";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -91,7 +92,7 @@ export default function ForgotPasswordPage() {
               <div className="flex flex-col items-center gap-2 text-center">
                 <div className="flex items-center gap-2 mb-2">
                   <Image
-                    src="/images/logo-wb.jpg"
+                    src={getImagePath("/images/logo-wb.jpg")}
                     alt="Vesmarket"
                     width={200}
                     height={200}

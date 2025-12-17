@@ -30,7 +30,7 @@ import { TreeMultiSelect } from "@/components/ui/tree-multi-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { productSchema, type ProductFormData } from "@/lib/validations/product";
+import { productSchema, type ProductFormData, type ProductFormInput } from "@/lib/validations/product";
 import { useCategories } from "@/hooks/use-categories";
 import { useBrands } from "@/hooks/use-brands";
 import { useProductTypes } from "@/hooks/use-product-types";
@@ -39,7 +39,7 @@ import { ProductAttributesForm } from "./product-attributes-form";
 import { ProductAttributeValueInput } from "@/types/entities";
 
 interface ProductFormProps {
-  defaultValues?: Partial<ProductFormData>;
+  defaultValues?: Partial<ProductFormInput>;
   onSubmit: (data: ProductFormData) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
@@ -57,7 +57,7 @@ export function ProductForm({
   const brands = brandsData?.items || [];
   const productTypes = productTypesData || [];
 
-  const form = useForm<ProductFormData>({
+  const form = useForm<ProductFormInput>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       sku: "",
@@ -110,7 +110,7 @@ export function ProductForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit((data) => onSubmit(data as ProductFormData))} className="space-y-6">
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
