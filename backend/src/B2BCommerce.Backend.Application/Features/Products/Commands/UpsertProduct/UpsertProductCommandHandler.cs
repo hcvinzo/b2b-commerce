@@ -174,18 +174,26 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
         // 5. Create or update
         if (product == null)
         {
+            // If Id is provided but ExternalId is not, use Id as ExternalId
+            // This allows external systems to use our internal IDs as their reference
+            var effectiveExternalId = request.ExternalId;
+            if (string.IsNullOrEmpty(effectiveExternalId) && request.Id.HasValue)
+            {
+                effectiveExternalId = request.Id.Value.ToString();
+            }
+
             // Create new product - ExternalId is required for new external entities
-            if (string.IsNullOrEmpty(request.ExternalId))
+            if (string.IsNullOrEmpty(effectiveExternalId))
             {
                 return Result<ProductDto>.Failure(
-                    "ExternalId is required for creating new products via sync",
+                    "ExternalId or Id is required for creating new products via sync",
                     "EXTERNAL_ID_REQUIRED");
             }
 
             var listPrice = new Money(request.ListPrice, request.Currency);
 
             product = Product.CreateFromExternal(
-                externalId: request.ExternalId,
+                externalId: effectiveExternalId,
                 sku: request.SKU,
                 name: request.Name,
                 description: request.Description ?? string.Empty,
@@ -198,7 +206,8 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 productTypeId: productTypeId,
                 requestedStatus: request.Status,
                 externalCode: request.ExternalCode,
-                mainProductId: mainProductId);
+                mainProductId: mainProductId,
+                specificId: createWithSpecificId ? request.Id : null);
 
             // Set images
             if (!string.IsNullOrEmpty(request.MainImageUrl))

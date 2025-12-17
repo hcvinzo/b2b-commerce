@@ -58,22 +58,31 @@ public class UpsertBrandCommandHandler : ICommandHandler<UpsertBrandCommand, Res
         // Create or update
         if (brand == null)
         {
+            // If Id is provided but ExternalId is not, use Id as ExternalId
+            // This allows external systems to use our internal IDs as their reference
+            var effectiveExternalId = request.ExternalId;
+            if (string.IsNullOrEmpty(effectiveExternalId) && request.Id.HasValue)
+            {
+                effectiveExternalId = request.Id.Value.ToString();
+            }
+
             // Create new brand - ExternalId is required for new external entities
-            if (string.IsNullOrEmpty(request.ExternalId))
+            if (string.IsNullOrEmpty(effectiveExternalId))
             {
                 return Result<BrandDto>.Failure(
-                    "ExternalId is required for creating new brands via sync",
+                    "ExternalId or Id is required for creating new brands via sync",
                     "EXTERNAL_ID_REQUIRED");
             }
 
             brand = Brand.CreateFromExternal(
-                externalId: request.ExternalId,
+                externalId: effectiveExternalId,
                 name: request.Name,
                 description: request.Description ?? string.Empty,
                 logoUrl: request.LogoUrl,
                 websiteUrl: request.WebsiteUrl,
                 isActive: request.IsActive,
-                externalCode: request.ExternalCode);
+                externalCode: request.ExternalCode,
+                specificId: createWithSpecificId ? request.Id : null);
 
             brand.CreatedBy = request.ModifiedBy;
 

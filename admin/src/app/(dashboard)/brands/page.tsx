@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Power,
   PowerOff,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -80,7 +81,7 @@ export default function BrandsPage() {
   const [editingBrand, setEditingBrand] = useState<BrandListItem | null>(null);
   const [deletingBrand, setDeletingBrand] = useState<BrandListItem | null>(null);
 
-  const { data, isLoading } = useBrands({
+  const { data, isLoading, isFetching, refetch } = useBrands({
     ...filters,
     search: debouncedSearch || undefined,
   });
@@ -210,6 +211,14 @@ export default function BrandsPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            </Button>
           </div>
 
           {/* Table */}

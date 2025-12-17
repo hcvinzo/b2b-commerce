@@ -89,7 +89,8 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
                 name: request.Name,
                 description: request.Description,
                 isActive: request.IsActive,
-                externalCode: request.ExternalCode);
+                externalCode: request.ExternalCode,
+                specificId: createWithSpecificId ? request.Id : null);
 
             productType.CreatedBy = request.ModifiedBy;
 

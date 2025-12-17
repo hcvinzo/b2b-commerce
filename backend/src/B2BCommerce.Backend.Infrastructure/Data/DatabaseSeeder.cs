@@ -44,16 +44,16 @@ public class DatabaseSeeder
             await SeedAdminUserAsync();
 
             // Seed categories
-            var categories = await SeedCategoriesAsync();
+            //var categories = await SeedCategoriesAsync();
 
             // Seed brands
-            var brands = await SeedBrandsAsync();
+            //var brands = await SeedBrandsAsync();
 
             // Seed products
-            await SeedProductsAsync(categories, brands);
+            //await SeedProductsAsync(categories, brands);
 
             // Seed sample customer
-            await SeedSampleCustomerAsync();
+            //await SeedSampleCustomerAsync();
 
             _logger.LogInformation("Database seeding completed successfully");
         }

@@ -89,6 +89,14 @@ public class Brand : ExternalEntity, IAggregateRoot
     /// Creates a brand from an external system (LOGO ERP).
     /// Uses ExternalId as the primary upsert key.
     /// </summary>
+    /// <param name="externalId">External system ID (primary upsert key)</param>
+    /// <param name="name">Brand name</param>
+    /// <param name="description">Brand description</param>
+    /// <param name="logoUrl">Logo URL</param>
+    /// <param name="websiteUrl">Website URL</param>
+    /// <param name="isActive">Whether the brand is active</param>
+    /// <param name="externalCode">External system code (optional)</param>
+    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static Brand CreateFromExternal(
         string externalId,
         string name,
@@ -96,7 +104,8 @@ public class Brand : ExternalEntity, IAggregateRoot
         string? logoUrl = null,
         string? websiteUrl = null,
         bool isActive = true,
-        string? externalCode = null)
+        string? externalCode = null,
+        Guid? specificId = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -104,6 +113,13 @@ public class Brand : ExternalEntity, IAggregateRoot
         }
 
         var brand = Create(name, description);
+
+        // Use specific ID if provided
+        if (specificId.HasValue)
+        {
+            brand.Id = specificId.Value;
+        }
+
         brand.LogoUrl = logoUrl;
         brand.WebsiteUrl = websiteUrl;
 

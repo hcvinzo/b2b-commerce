@@ -168,13 +168,21 @@ public class ProductType : ExternalEntity, IAggregateRoot
     /// Creates a product type from an external system (LOGO ERP).
     /// Uses ExternalId as the primary upsert key.
     /// </summary>
+    /// <param name="externalId">External system ID (primary upsert key)</param>
+    /// <param name="code">Product type code</param>
+    /// <param name="name">Product type name</param>
+    /// <param name="description">Product type description</param>
+    /// <param name="isActive">Whether the product type is active</param>
+    /// <param name="externalCode">External system code (optional)</param>
+    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
     public static ProductType CreateFromExternal(
         string externalId,
         string code,
         string name,
         string? description = null,
         bool isActive = true,
-        string? externalCode = null)
+        string? externalCode = null,
+        Guid? specificId = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -182,6 +190,12 @@ public class ProductType : ExternalEntity, IAggregateRoot
         }
 
         var productType = Create(code, name, description);
+
+        // Use specific ID if provided
+        if (specificId.HasValue)
+        {
+            productType.Id = specificId.Value;
+        }
 
         if (!isActive)
         {
