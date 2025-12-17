@@ -22,14 +22,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Tier3Price, opt => opt.MapFrom(src => src.Tier3Price != null ? src.Tier3Price.Amount : (decimal?)null))
             .ForMember(dest => dest.Tier4Price, opt => opt.MapFrom(src => src.Tier4Price != null ? src.Tier4Price.Amount : (decimal?)null))
             .ForMember(dest => dest.Tier5Price, opt => opt.MapFrom(src => src.Tier5Price != null ? src.Tier5Price.Amount : (decimal?)null))
-            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
+            .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.ProductCategories.FirstOrDefault(pc => pc.IsPrimary) != null ? src.ProductCategories.First(pc => pc.IsPrimary).CategoryId : (Guid?)null))
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.ProductCategories.FirstOrDefault(pc => pc.IsPrimary) != null && src.ProductCategories.First(pc => pc.IsPrimary).Category != null ? src.ProductCategories.First(pc => pc.IsPrimary).Category!.Name : null))
             .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt ?? src.CreatedAt));
 
         CreateMap<Product, ProductListDto>()
             .ForMember(dest => dest.ListPrice, opt => opt.MapFrom(src => src.ListPrice.Amount))
             .ForMember(dest => dest.Currency, opt => opt.MapFrom(src => src.ListPrice.Currency))
-            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : null))
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.ProductCategories.FirstOrDefault(pc => pc.IsPrimary) != null && src.ProductCategories.First(pc => pc.IsPrimary).Category != null ? src.ProductCategories.First(pc => pc.IsPrimary).Category!.Name : null))
             .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null));
 
         // Customer mappings

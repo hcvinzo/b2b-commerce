@@ -18,7 +18,7 @@ export const productSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(200, "Name cannot exceed 200 characters"),
   nameEn: z.string().max(200, "English name cannot exceed 200 characters").optional(),
   description: z.string().optional(),
-  categoryId: z.string().min(1, "Category is required"),
+  categoryIds: z.array(z.string()).min(1, "At least one category is required"),
   brandId: z.string().optional(),
   productTypeId: z.string().optional(),
   listPrice: z.number().min(0, "Price must be positive"),

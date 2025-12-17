@@ -11,7 +11,7 @@ public record CreateProductCommand(
     string Name,
     string Description,
     string SKU,
-    Guid CategoryId,
+    List<Guid> CategoryIds,
     Guid? BrandId,
     decimal ListPrice,
     string Currency,

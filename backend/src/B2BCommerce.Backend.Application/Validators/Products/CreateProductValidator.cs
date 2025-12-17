@@ -15,8 +15,9 @@ public class CreateProductValidator : AbstractValidator<CreateProductDto>
             .NotEmpty().WithMessage("SKU is required")
             .MaximumLength(50).WithMessage("SKU cannot exceed 50 characters");
 
-        RuleFor(x => x.CategoryId)
-            .NotEmpty().WithMessage("Category is required");
+        RuleFor(x => x.CategoryIds)
+            .NotEmpty().WithMessage("At least one category is required")
+            .Must(c => c.Count > 0).WithMessage("At least one category is required");
 
         RuleFor(x => x.ListPrice)
             .GreaterThan(0).WithMessage("List price must be greater than zero");

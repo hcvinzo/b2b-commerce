@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TreeSelect } from "@/components/ui/tree-select";
+import { TreeMultiSelect } from "@/components/ui/tree-multi-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -62,7 +62,7 @@ export function ProductForm({
       name: "",
       nameEn: "",
       description: "",
-      categoryId: "",
+      categoryIds: [],
       brandId: "",
       productTypeId: "",
       listPrice: 0,
@@ -133,19 +133,21 @@ export function ProductForm({
 
                   <FormField
                     control={form.control}
-                    name="categoryId"
+                    name="categoryIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category *</FormLabel>
+                        <FormLabel>Categories *</FormLabel>
                         <FormControl>
-                          <TreeSelect
+                          <TreeMultiSelect
                             categories={categories || []}
-                            value={field.value}
+                            value={field.value || []}
                             onChange={field.onChange}
-                            placeholder="Select a category"
-                            allowEmpty={false}
+                            placeholder="Select categories (first is primary)"
                           />
                         </FormControl>
+                        <FormDescription>
+                          First selected category is the primary category
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

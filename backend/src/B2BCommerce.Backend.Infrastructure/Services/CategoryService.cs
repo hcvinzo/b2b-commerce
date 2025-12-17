@@ -79,7 +79,7 @@ public class CategoryService : ICategoryService
         var categories = await query
             .Include(c => c.ParentCategory)
             .Include(c => c.SubCategories)
-            .Include(c => c.Products)
+            .Include(c => c.ProductCategories)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -93,7 +93,7 @@ public class CategoryService : ICategoryService
             DisplayOrder = c.DisplayOrder,
             IsActive = c.IsActive,
             SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-            ProductCount = c.Products.Count(p => !p.IsDeleted),
+            ProductCount = c.ProductCategories.Count,
             ExternalCode = c.ExternalCode,
             ExternalId = c.ExternalId,
             LastSyncedAt = c.LastSyncedAt
@@ -159,7 +159,7 @@ public class CategoryService : ICategoryService
                 DisplayOrder = c.DisplayOrder,
                 IsActive = c.IsActive,
                 SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-                ProductCount = c.Products.Count(p => !p.IsDeleted),
+                ProductCount = c.ProductCategories.Count,
                 ExternalCode = c.ExternalCode,
                 ExternalId = c.ExternalId,
                 LastSyncedAt = c.LastSyncedAt
@@ -194,7 +194,7 @@ public class CategoryService : ICategoryService
                 DisplayOrder = c.DisplayOrder,
                 IsActive = c.IsActive,
                 SubCategoryCount = c.SubCategories.Count(sc => !sc.IsDeleted),
-                ProductCount = c.Products.Count(p => !p.IsDeleted),
+                ProductCount = c.ProductCategories.Count,
                 ExternalCode = c.ExternalCode,
                 ExternalId = c.ExternalId,
                 LastSyncedAt = c.LastSyncedAt
@@ -307,7 +307,7 @@ public class CategoryService : ICategoryService
     {
         var category = await _categoryRepository.Query()
             .Include(c => c.SubCategories)
-            .Include(c => c.Products)
+            .Include(c => c.ProductCategories)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
         if (category is null)
@@ -324,7 +324,7 @@ public class CategoryService : ICategoryService
         }
 
         // Check for products
-        if (category.Products.Any(p => !p.IsDeleted))
+        if (category.ProductCategories.Any())
         {
             return Result.Failure(
                 "Cannot delete category with products. Remove or reassign products first.",

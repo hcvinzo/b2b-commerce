@@ -23,7 +23,7 @@ public class UpdateProductCommandHandler : ICommandHandler<UpdateProductCommand,
         {
             Name = request.Name,
             Description = request.Description,
-            CategoryId = request.CategoryId,
+            CategoryIds = request.CategoryIds,
             BrandId = request.BrandId,
             ListPrice = request.ListPrice,
             Currency = request.Currency,

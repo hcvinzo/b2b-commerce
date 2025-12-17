@@ -28,9 +28,6 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(p => p.CategoryId)
-            .IsRequired();
-
         builder.Property(p => p.BrandId)
             .IsRequired(false);
 
@@ -195,11 +192,6 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.ProductTypeId);
 
         // Relationships
-        builder.HasOne(p => p.Category)
-            .WithMany(c => c.Products)
-            .HasForeignKey(p => p.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(p => p.Brand)
             .WithMany(b => b.Products)
             .HasForeignKey(p => p.BrandId)
@@ -215,8 +207,6 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => p.SKU)
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");
-
-        builder.HasIndex(p => p.CategoryId);
 
         builder.HasIndex(p => p.BrandId);
 

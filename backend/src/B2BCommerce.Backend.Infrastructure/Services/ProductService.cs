@@ -91,13 +91,21 @@ public class ProductService : IProductService
             return Result<ProductDto>.Failure("Product with this SKU already exists", "SKU_EXISTS");
         }
 
+        // Validate at least one category
+        if (dto.CategoryIds is null || dto.CategoryIds.Count == 0)
+        {
+            return Result<ProductDto>.Failure("At least one category is required", "CATEGORY_REQUIRED");
+        }
+
+        // Get primary category (first one in the list)
+        var primaryCategoryId = dto.CategoryIds[0];
+
         try
         {
-            var product = new Product(
+            var product = Product.Create(
                 name: dto.Name,
                 description: dto.Description,
                 sku: dto.SKU,
-                categoryId: dto.CategoryId,
                 listPrice: new Money(dto.ListPrice, dto.Currency),
                 stockQuantity: dto.StockQuantity,
                 minimumOrderQuantity: dto.MinimumOrderQuantity,
@@ -107,7 +115,19 @@ public class ProductService : IProductService
             // Set brand
             if (dto.BrandId.HasValue)
             {
-                product.UpdateBasicInfo(dto.Name, dto.Description, dto.CategoryId, dto.BrandId);
+                product.UpdateBasicInfo(dto.Name, dto.Description, dto.BrandId);
+            }
+
+            // Add product to categories (first one is primary)
+            for (int i = 0; i < dto.CategoryIds.Count; i++)
+            {
+                var categoryId = dto.CategoryIds[i];
+                var category = await _unitOfWork.Categories.GetByIdAsync(categoryId, cancellationToken);
+                if (category is null)
+                {
+                    return Result<ProductDto>.Failure($"Category not found: {categoryId}", "CATEGORY_NOT_FOUND");
+                }
+                product.AddToCategory(categoryId, isPrimary: i == 0, displayOrder: i);
             }
 
             // Set tier prices
@@ -207,13 +227,56 @@ public class ProductService : IProductService
 
         try
         {
+            // Handle categories - update ProductCategories
+            if (dto.CategoryIds is not null && dto.CategoryIds.Count > 0)
+            {
+                // Validate all categories exist
+                foreach (var categoryId in dto.CategoryIds)
+                {
+                    var category = await _unitOfWork.Categories.GetByIdAsync(categoryId, cancellationToken);
+                    if (category is null)
+                    {
+                        return Result<ProductDto>.Failure($"Category not found: {categoryId}", "CATEGORY_NOT_FOUND");
+                    }
+                }
+
+                // Get current category IDs
+                var currentCategoryIds = product.ProductCategories.Select(pc => pc.CategoryId).ToList();
+
+                // Remove categories that are no longer in the list
+                foreach (var categoryId in currentCategoryIds)
+                {
+                    if (!dto.CategoryIds.Contains(categoryId))
+                    {
+                        product.RemoveFromCategory(categoryId);
+                    }
+                }
+
+                // Add new categories and update primary
+                for (int i = 0; i < dto.CategoryIds.Count; i++)
+                {
+                    var categoryId = dto.CategoryIds[i];
+                    var isPrimary = i == 0;
+
+                    if (!currentCategoryIds.Contains(categoryId))
+                    {
+                        // New category
+                        product.AddToCategory(categoryId, isPrimary: isPrimary, displayOrder: i);
+                    }
+                    else if (isPrimary)
+                    {
+                        // Set as primary if it's the first one
+                        product.SetPrimaryCategory(categoryId);
+                    }
+                }
+            }
+
             // Update basic info
             if (!string.IsNullOrEmpty(dto.Name))
             {
                 product.UpdateBasicInfo(
                     name: dto.Name,
                     description: dto.Description ?? product.Description,
-                    categoryId: dto.CategoryId != Guid.Empty ? dto.CategoryId : product.CategoryId,
                     brandId: dto.BrandId ?? product.BrandId
                 );
             }
@@ -384,14 +447,35 @@ public class ProductService : IProductService
 
     private ProductDto MapToProductDto(Product product, Product? mainProduct = null, int variantCount = 0)
     {
+        // Map product categories
+        var categories = product.ProductCategories
+            .OrderBy(pc => pc.IsPrimary ? 0 : 1)
+            .ThenBy(pc => pc.DisplayOrder)
+            .Select(pc => new ProductCategoryDto
+            {
+                Id = pc.Id,
+                CategoryId = pc.CategoryId,
+                CategoryName = pc.Category?.Name ?? "",
+                CategorySlug = pc.Category?.Slug ?? "",
+                IsPrimary = pc.IsPrimary,
+                DisplayOrder = pc.DisplayOrder
+            })
+            .ToList();
+
+        // Get primary category info
+        var primaryCategory = product.ProductCategories.FirstOrDefault(pc => pc.IsPrimary);
+        var categoryId = primaryCategory?.CategoryId;
+        var categoryName = primaryCategory?.Category?.Name;
+
         return new ProductDto
         {
             Id = product.Id,
             Name = product.Name,
             Description = product.Description,
             SKU = product.SKU,
-            CategoryId = product.CategoryId,
-            CategoryName = product.Category?.Name,
+            CategoryId = categoryId,
+            CategoryName = categoryName,
+            Categories = categories,
             BrandId = product.BrandId,
             BrandName = product.Brand?.Name,
             ListPrice = product.ListPrice.Amount,
@@ -448,12 +532,14 @@ public class ProductService : IProductService
 
     private static ProductListDto MapToProductListDto(Product product)
     {
+        var primaryCategory = product.ProductCategories.FirstOrDefault(pc => pc.IsPrimary);
+
         return new ProductListDto
         {
             Id = product.Id,
             Name = product.Name,
             SKU = product.SKU,
-            CategoryName = product.Category?.Name,
+            CategoryName = primaryCategory?.Category?.Name,
             BrandName = product.Brand?.Name,
             ListPrice = product.ListPrice.Amount,
             Currency = product.ListPrice.Currency,

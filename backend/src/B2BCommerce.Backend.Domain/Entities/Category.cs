@@ -30,10 +30,9 @@ public class Category : ExternalEntity, IAggregateRoot
     // Navigation properties
     public Category? ParentCategory { get; set; }
     public ICollection<Category> SubCategories { get; set; }
-    public ICollection<Product> Products { get; set; }
     public ProductType? DefaultProductType { get; private set; }
 
-    // Multi-category support
+    // Products in this category (via ProductCategories junction table)
     private readonly List<ProductCategory> _productCategories = new();
     public IReadOnlyCollection<ProductCategory> ProductCategories => _productCategories.AsReadOnly();
 
@@ -43,7 +42,6 @@ public class Category : ExternalEntity, IAggregateRoot
         Description = string.Empty;
         Slug = string.Empty;
         SubCategories = new List<Category>();
-        Products = new List<Product>();
     }
 
     /// <summary>
@@ -64,8 +62,7 @@ public class Category : ExternalEntity, IAggregateRoot
             ParentCategoryId = parentCategoryId,
             DisplayOrder = displayOrder,
             IsActive = true,
-            SubCategories = new List<Category>(),
-            Products = new List<Product>()
+            SubCategories = new List<Category>()
         };
 
         // Auto-populate ExternalId for Integration API compatibility
@@ -114,8 +111,7 @@ public class Category : ExternalEntity, IAggregateRoot
             ImageUrl = imageUrl,
             DisplayOrder = displayOrder,
             IsActive = true,
-            SubCategories = new List<Category>(),
-            Products = new List<Product>()
+            SubCategories = new List<Category>()
         };
 
         // Use base class helper for consistent initialization
@@ -139,7 +135,6 @@ public class Category : ExternalEntity, IAggregateRoot
         DisplayOrder = displayOrder;
         IsActive = true;
         SubCategories = new List<Category>();
-        Products = new List<Product>();
     }
 
     public void Update(string name, string description, int displayOrder)

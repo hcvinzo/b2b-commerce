@@ -335,6 +335,8 @@ public class ProductsController : BaseApiController
 
     private static ProductDto MapToProductDto(Domain.Entities.Product product)
     {
+        var primaryCategory = product.ProductCategories.FirstOrDefault(pc => pc.IsPrimary);
+
         return new ProductDto
         {
             Id = product.ExternalId ?? string.Empty,
@@ -342,8 +344,8 @@ public class ProductsController : BaseApiController
             SKU = product.SKU,
             Name = product.Name,
             Description = product.Description,
-            CategoryId = product.Category?.ExternalId,
-            CategoryName = product.Category?.Name,
+            CategoryId = primaryCategory?.Category?.ExternalId,
+            CategoryName = primaryCategory?.Category?.Name,
             BrandId = product.Brand?.ExternalId,
             BrandName = product.Brand?.Name,
             ProductTypeId = product.ProductType?.ExternalId,
@@ -379,14 +381,16 @@ public class ProductsController : BaseApiController
 
     private static ProductListDto MapToProductListDto(Domain.Entities.Product product)
     {
+        var primaryCategory = product.ProductCategories.FirstOrDefault(pc => pc.IsPrimary);
+
         return new ProductListDto
         {
             Id = product.ExternalId ?? string.Empty,
             Code = product.ExternalCode,
             SKU = product.SKU,
             Name = product.Name,
-            CategoryId = product.Category?.ExternalId,
-            CategoryName = product.Category?.Name,
+            CategoryId = primaryCategory?.Category?.ExternalId,
+            CategoryName = primaryCategory?.Category?.Name,
             BrandId = product.Brand?.ExternalId,
             BrandName = product.Brand?.Name,
             ListPrice = product.ListPrice.Amount,

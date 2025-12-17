@@ -14,6 +14,22 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     }
 
     /// <summary>
+    /// Gets a product by ID with all necessary includes for ProductService
+    /// </summary>
+    public override async Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.Brand)
+            .Include(p => p.ProductType)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .Include(p => p.AttributeValues)
+                .ThenInclude(av => av.AttributeDefinition)
+                    .ThenInclude(ad => ad!.PredefinedValues)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+    }
+
+    /// <summary>
     /// Gets a product by its SKU
     /// </summary>
     /// <param name="sku">Product SKU</param>
@@ -22,8 +38,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<Product?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
             .FirstOrDefaultAsync(p => p.SKU == sku && !p.IsDeleted, cancellationToken);
     }
 
@@ -40,9 +57,10 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         CancellationToken cancellationToken = default)
     {
         var query = _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
-            .Where(p => p.CategoryId == categoryId && !p.IsDeleted);
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .Where(p => p.ProductCategories.Any(pc => pc.CategoryId == categoryId) && !p.IsDeleted);
 
         if (!includeInactive)
         {
@@ -69,8 +87,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         CancellationToken cancellationToken = default)
     {
         var query = _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
             .Where(p => !p.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -84,7 +103,7 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
         if (categoryId.HasValue)
         {
-            query = query.Where(p => p.CategoryId == categoryId.Value);
+            query = query.Where(p => p.ProductCategories.Any(pc => pc.CategoryId == categoryId.Value));
         }
 
         if (brandId.HasValue)
@@ -115,9 +134,10 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<Product?> GetWithDetailsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.ProductType)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
             .FirstOrDefaultAsync(p => p.ExternalId == externalId && !p.IsDeleted, cancellationToken);
     }
 
@@ -127,9 +147,10 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<Product?> GetWithDetailsBySKUAsync(string sku, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.ProductType)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
             .FirstOrDefaultAsync(p => p.SKU == sku && !p.IsDeleted, cancellationToken);
     }
 
@@ -139,9 +160,12 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<Product?> GetWithDetailsByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.ProductType)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
+            .Include(p => p.MainProduct)
+            .Include(p => p.Variants)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
     }
 
@@ -167,8 +191,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<IEnumerable<Product>> GetVariantsAsync(Guid mainProductId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Include(p => p.Category)
             .Include(p => p.Brand)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Category)
             .Where(p => p.MainProductId == mainProductId && !p.IsDeleted)
             .ToListAsync(cancellationToken);
     }

@@ -166,7 +166,6 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                     sku: request.SKU,
                     name: request.Name,
                     description: request.Description ?? string.Empty,
-                    categoryId: categoryId.Value,
                     listPrice: listPrice,
                     stockQuantity: request.StockQuantity,
                     minimumOrderQuantity: request.MinimumOrderQuantity,
@@ -184,7 +183,6 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                     sku: request.SKU,
                     name: request.Name,
                     description: request.Description ?? string.Empty,
-                    categoryId: categoryId.Value,
                     listPrice: listPrice,
                     stockQuantity: request.StockQuantity,
                     minimumOrderQuantity: request.MinimumOrderQuantity,
@@ -195,7 +193,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 // Set brand via UpdateBasicInfo (BrandId has private setter)
                 if (brandId.HasValue)
                 {
-                    product.UpdateBasicInfo(request.Name, request.Description ?? string.Empty, categoryId.Value, brandId);
+                    product.UpdateBasicInfo(request.Name, request.Description ?? string.Empty, brandId);
                 }
 
                 if (request.Status.HasValue)
@@ -203,6 +201,9 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                     product.SetStatus(request.Status.Value);
                 }
             }
+
+            // Add to category (primary)
+            product.AddToCategory(categoryId.Value, isPrimary: true, displayOrder: 0);
 
             // Set images
             if (!string.IsNullOrEmpty(request.MainImageUrl))
@@ -238,12 +239,31 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             product.UpdateFromExternal(
                 name: request.Name,
                 description: request.Description ?? string.Empty,
-                categoryId: categoryId.Value,
                 brandId: brandId,
                 productTypeId: productTypeId,
                 requestedStatus: request.Status,
                 externalCode: request.ExternalCode,
                 mainProductId: mainProductId);
+
+            // Update category - remove old primary and add new
+            var currentPrimaryCategoryId = product.GetPrimaryCategoryId();
+            if (currentPrimaryCategoryId != categoryId.Value)
+            {
+                // Remove from old primary category if different
+                if (currentPrimaryCategoryId.HasValue)
+                {
+                    product.RemoveFromCategory(currentPrimaryCategoryId.Value);
+                }
+                // Add to new category as primary
+                if (!product.ProductCategories.Any(pc => pc.CategoryId == categoryId.Value))
+                {
+                    product.AddToCategory(categoryId.Value, isPrimary: true, displayOrder: 0);
+                }
+                else
+                {
+                    product.SetPrimaryCategory(categoryId.Value);
+                }
+            }
 
             // Update pricing
             var listPrice = new Money(request.ListPrice, request.Currency);
@@ -293,14 +313,16 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
 
     private static ProductDto MapToDto(Product product)
     {
+        var primaryCategory = product.ProductCategories.FirstOrDefault(pc => pc.IsPrimary);
+
         return new ProductDto
         {
             Id = product.Id,
             Name = product.Name,
             Description = product.Description,
             SKU = product.SKU,
-            CategoryId = product.CategoryId,
-            CategoryName = product.Category?.Name,
+            CategoryId = primaryCategory?.CategoryId,
+            CategoryName = primaryCategory?.Category?.Name,
             BrandId = product.BrandId,
             BrandName = product.Brand?.Name,
             ListPrice = product.ListPrice.Amount,
@@ -331,7 +353,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             ProductTypeId = product.ProductTypeId,
             ProductTypeName = product.ProductType?.Name,
             ProductTypeExtId = product.ProductType?.ExternalId,
-            CategoryExtId = product.Category?.ExternalId,
+            CategoryExtId = primaryCategory?.Category?.ExternalId,
             MainProductId = product.MainProductId,
             MainProductSku = product.MainProduct?.SKU,
             MainProductExtId = product.MainProduct?.ExternalId,

@@ -28,14 +28,19 @@ public class ProductDto
     public string SKU { get; set; } = string.Empty;
 
     /// <summary>
-    /// Category identifier
+    /// Primary category identifier (for backward compatibility)
     /// </summary>
-    public Guid CategoryId { get; set; }
+    public Guid? CategoryId { get; set; }
 
     /// <summary>
-    /// Category name
+    /// Primary category name (for backward compatibility)
     /// </summary>
     public string? CategoryName { get; set; }
+
+    /// <summary>
+    /// All categories this product belongs to
+    /// </summary>
+    public List<ProductCategoryDto> Categories { get; set; } = new();
 
     /// <summary>
     /// Brand identifier

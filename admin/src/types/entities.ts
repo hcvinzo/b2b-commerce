@@ -52,6 +52,16 @@ export const ProductStatusValues = {
   Inactive: 2,
 } as const;
 
+// Product Category (junction table)
+export interface ProductCategory {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+  categorySlug: string;
+  isPrimary: boolean;
+  displayOrder: number;
+}
+
 // Product
 export interface Product extends ExternalEntity {
   sku: string;
@@ -60,8 +70,12 @@ export interface Product extends ExternalEntity {
   slug: string;
   description?: string;
   descriptionEn?: string;
+  /** Primary category ID (for backward compatibility) */
   categoryId: string;
+  /** Primary category name (for backward compatibility) */
   categoryName?: string;
+  /** All categories this product belongs to */
+  categories: ProductCategory[];
   brandId?: string;
   brandName?: string;
   productTypeId?: string;
@@ -151,7 +165,8 @@ export interface CreateProductDto {
   name: string;
   nameEn?: string;
   description?: string;
-  categoryId: string;
+  /** Category IDs (first one becomes primary) */
+  categoryIds: string[];
   brandId?: string;
   productTypeId?: string;
   listPrice: number;

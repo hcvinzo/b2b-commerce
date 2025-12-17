@@ -90,7 +90,11 @@ export default function ProductDetailPage() {
                 name: product.name,
                 nameEn: product.nameEn,
                 description: product.description,
-                categoryId: product.categoryId,
+                categoryIds: product.categories?.length > 0
+                  ? product.categories
+                      .sort((a, b) => (a.isPrimary ? -1 : 1) - (b.isPrimary ? -1 : 1))
+                      .map(c => c.categoryId)
+                  : [product.categoryId], // Fallback to legacy categoryId
                 brandId: product.brandId,
                 productTypeId: product.productTypeId,
                 listPrice: product.listPrice,
@@ -153,8 +157,24 @@ export default function ProductDetailPage() {
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground">Category</p>
-                <p className="font-medium">{product.categoryName}</p>
+                <p className="text-sm text-muted-foreground">Categories</p>
+                <div className="flex flex-wrap gap-1">
+                  {product.categories?.length > 0 ? (
+                    product.categories
+                      .sort((a, b) => (a.isPrimary ? -1 : 1) - (b.isPrimary ? -1 : 1))
+                      .map((cat) => (
+                        <Badge
+                          key={cat.categoryId}
+                          variant={cat.isPrimary ? "default" : "secondary"}
+                        >
+                          {cat.categoryName}
+                          {cat.isPrimary && " (Primary)"}
+                        </Badge>
+                      ))
+                  ) : (
+                    <p className="font-medium">{product.categoryName}</p>
+                  )}
+                </div>
               </div>
               {product.brandName && (
                 <div>

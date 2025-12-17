@@ -19,12 +19,6 @@ public class Product : ExternalEntity, IAggregateRoot
     /// </summary>
     public Guid? ProductTypeId { get; private set; }
 
-    /// <summary>
-    /// Legacy: Primary category ID (kept for backward compatibility)
-    /// New code should use ProductCategories with IsPrimary=true
-    /// </summary>
-    public Guid CategoryId { get; private set; }
-
     public Guid? BrandId { get; private set; }
 
     /// <summary>
@@ -74,7 +68,6 @@ public class Product : ExternalEntity, IAggregateRoot
 
     // Navigation properties
     public ProductType? ProductType { get; private set; }
-    public Category? Category { get; set; }
     public Brand? Brand { get; set; }
 
     /// <summary>
@@ -110,13 +103,13 @@ public class Product : ExternalEntity, IAggregateRoot
     /// Creates a new Product instance.
     /// Product will be created as Active if all required fields are provided,
     /// otherwise as Draft.
+    /// Note: Categories must be added separately using AddToCategory()
     /// </summary>
     /// <param name="mainProductId">Optional: If provided, this product will be a variant of the main product</param>
     public static Product Create(
         string name,
         string description,
         string sku,
-        Guid categoryId,
         Money listPrice,
         int stockQuantity,
         int minimumOrderQuantity = 1,
@@ -149,7 +142,6 @@ public class Product : ExternalEntity, IAggregateRoot
             Name = name,
             Description = description ?? string.Empty,
             SKU = sku,
-            CategoryId = categoryId,
             ListPrice = listPrice ?? Money.Zero("TRY"),
             StockQuantity = stockQuantity,
             MinimumOrderQuantity = minimumOrderQuantity,
@@ -161,8 +153,8 @@ public class Product : ExternalEntity, IAggregateRoot
             Specifications = new Dictionary<string, string>()
         };
 
-        // Determine initial status based on required fields
-        product.Status = product.CanActivate() ? ProductStatus.Active : ProductStatus.Draft;
+        // Status starts as Draft, will be updated when categories are added
+        product.Status = ProductStatus.Draft;
 
         // Auto-populate ExternalId for Integration API compatibility
         // This ensures entities created by B2B Commerce can be referenced by external systems
@@ -176,7 +168,6 @@ public class Product : ExternalEntity, IAggregateRoot
         string name,
         string description,
         string sku,
-        Guid categoryId,
         Money listPrice,
         int stockQuantity,
         int minimumOrderQuantity = 1,
@@ -205,7 +196,6 @@ public class Product : ExternalEntity, IAggregateRoot
         Name = name;
         Description = description ?? string.Empty;
         SKU = sku;
-        CategoryId = categoryId;
         ListPrice = listPrice ?? throw new ArgumentNullException(nameof(listPrice));
         StockQuantity = stockQuantity;
         MinimumOrderQuantity = minimumOrderQuantity;
@@ -216,14 +206,13 @@ public class Product : ExternalEntity, IAggregateRoot
         Specifications = new Dictionary<string, string>();
     }
 
-    public void UpdateBasicInfo(string name, string description, Guid categoryId, Guid? brandId)
+    public void UpdateBasicInfo(string name, string description, Guid? brandId)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Product name cannot be null or empty", nameof(name));
 
         Name = name;
         Description = description ?? string.Empty;
-        CategoryId = categoryId;
         BrandId = brandId;
     }
 
@@ -283,11 +272,11 @@ public class Product : ExternalEntity, IAggregateRoot
 
     /// <summary>
     /// Checks if the product has all required fields to be activated.
-    /// Required fields: CategoryId, ProductTypeId, ListPrice > 0, TaxRate set
+    /// Required fields: At least one category, ProductTypeId, ListPrice > 0, TaxRate set
     /// </summary>
     public bool CanActivate()
     {
-        return CategoryId != Guid.Empty
+        return _productCategories.Count > 0
             && ProductTypeId.HasValue
             && ProductTypeId.Value != Guid.Empty
             && ListPrice is not null
@@ -302,7 +291,7 @@ public class Product : ExternalEntity, IAggregateRoot
     {
         var missingFields = new List<string>();
 
-        if (CategoryId == Guid.Empty)
+        if (_productCategories.Count == 0)
         {
             missingFields.Add("Category");
         }
@@ -506,12 +495,6 @@ public class Product : ExternalEntity, IAggregateRoot
         var productCategory = ProductCategory.Create(Id, categoryId, isPrimary, displayOrder);
         _productCategories.Add(productCategory);
 
-        // Update legacy CategoryId if this is primary
-        if (isPrimary)
-        {
-            CategoryId = categoryId;
-        }
-
         return productCategory;
     }
 
@@ -545,9 +528,6 @@ public class Product : ExternalEntity, IAggregateRoot
         }
 
         productCategory.SetAsPrimary();
-
-        // Update legacy CategoryId
-        CategoryId = categoryId;
     }
 
     /// <summary>
@@ -556,7 +536,7 @@ public class Product : ExternalEntity, IAggregateRoot
     public Guid? GetPrimaryCategoryId()
     {
         var primaryCategory = _productCategories.FirstOrDefault(pc => pc.IsPrimary);
-        return primaryCategory?.CategoryId ?? (CategoryId != Guid.Empty ? CategoryId : null);
+        return primaryCategory?.CategoryId;
     }
 
     #endregion
@@ -695,6 +675,7 @@ public class Product : ExternalEntity, IAggregateRoot
     /// Creates a product from an external system (LOGO ERP).
     /// Uses ExternalId as the primary upsert key.
     /// Product starts as Draft if required fields are missing, otherwise follows requestedStatus.
+    /// Note: Categories should be added after creation using AddToCategory()
     /// </summary>
     /// <param name="mainProductId">Optional: Internal ID of the main product if this is a variant</param>
     public static Product CreateFromExternal(
@@ -702,7 +683,6 @@ public class Product : ExternalEntity, IAggregateRoot
         string sku,
         string name,
         string description,
-        Guid categoryId,
         Money listPrice,
         int stockQuantity,
         int minimumOrderQuantity = 1,
@@ -718,7 +698,7 @@ public class Product : ExternalEntity, IAggregateRoot
             throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate, productTypeId, mainProductId);
+        var product = Create(name, description, sku, listPrice, stockQuantity, minimumOrderQuantity, taxRate, productTypeId, mainProductId);
 
         product.BrandId = brandId;
 
@@ -772,7 +752,6 @@ public class Product : ExternalEntity, IAggregateRoot
             Name = name,
             Description = string.Empty,
             SKU = sku,
-            CategoryId = Guid.Empty,
             ListPrice = Money.Zero("TRY"),
             StockQuantity = 0,
             MinimumOrderQuantity = 1,
@@ -792,19 +771,19 @@ public class Product : ExternalEntity, IAggregateRoot
     /// <summary>
     /// Updates product from external system sync.
     /// Status handling: Active only if CanActivate(), otherwise stays Draft or becomes Inactive.
+    /// Note: Categories should be managed separately using AddToCategory/RemoveFromCategory
     /// </summary>
     /// <param name="mainProductId">Optional: Internal ID of the main product if this is a variant. Pass null to clear.</param>
     public void UpdateFromExternal(
         string name,
         string description,
-        Guid categoryId,
         Guid? brandId,
         Guid? productTypeId,
         ProductStatus? requestedStatus = null,
         string? externalCode = null,
         Guid? mainProductId = null)
     {
-        UpdateBasicInfo(name, description, categoryId, brandId);
+        UpdateBasicInfo(name, description, brandId);
 
         if (productTypeId.HasValue)
         {

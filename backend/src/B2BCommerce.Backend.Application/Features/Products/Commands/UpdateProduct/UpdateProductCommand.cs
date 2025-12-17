@@ -12,7 +12,7 @@ public record UpdateProductCommand(
     Guid Id,
     string Name,
     string Description,
-    Guid CategoryId,
+    List<Guid> CategoryIds,
     Guid? BrandId,
     decimal ListPrice,
     string Currency,

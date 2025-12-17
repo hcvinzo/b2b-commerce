@@ -18,9 +18,9 @@ public class UpdateProductDto
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
-    /// Category identifier
+    /// Category identifiers (first one becomes primary)
     /// </summary>
-    public Guid CategoryId { get; set; }
+    public List<Guid> CategoryIds { get; set; } = new();
 
     /// <summary>
     /// Brand identifier (optional)

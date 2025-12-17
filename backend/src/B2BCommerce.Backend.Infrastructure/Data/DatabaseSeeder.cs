@@ -213,16 +213,16 @@ public class DatabaseSeeder
         if (categories.TryGetValue("Computers", out var computersCategory) &&
             brands.TryGetValue("TechPro", out var techProBrand))
         {
-            var laptop = new Product(
+            var laptop = Product.Create(
                 "TechPro Business Laptop 15\"",
                 "15.6\" Full HD display, Intel Core i7, 16GB RAM, 512GB SSD",
                 "TP-LAP-001",
-                computersCategory.Id,
                 new Money(1299.99m, currency),
                 50,
                 1,
                 0.18m);
-            laptop.UpdateBasicInfo(laptop.Name, laptop.Description, computersCategory.Id, techProBrand.Id);
+            laptop.UpdateBasicInfo(laptop.Name, laptop.Description, techProBrand.Id);
+            laptop.AddToCategory(computersCategory.Id, isPrimary: true, displayOrder: 0);
             laptop.UpdatePricing(
                 new Money(1299.99m, currency),
                 new Money(1249.99m, currency),  // Tier 1
@@ -232,16 +232,16 @@ public class DatabaseSeeder
                 new Money(1049.99m, currency)); // Tier 5
             products.Add(laptop);
 
-            var desktop = new Product(
+            var desktop = Product.Create(
                 "TechPro Workstation Tower",
                 "Intel Xeon processor, 32GB ECC RAM, 1TB NVMe SSD, NVIDIA Quadro graphics",
                 "TP-WRK-001",
-                computersCategory.Id,
                 new Money(2499.99m, currency),
                 25,
                 1,
                 0.18m);
-            desktop.UpdateBasicInfo(desktop.Name, desktop.Description, computersCategory.Id, techProBrand.Id);
+            desktop.UpdateBasicInfo(desktop.Name, desktop.Description, techProBrand.Id);
+            desktop.AddToCategory(computersCategory.Id, isPrimary: true, displayOrder: 0);
             desktop.UpdatePricing(
                 new Money(2499.99m, currency),
                 new Money(2399.99m, currency),
@@ -256,16 +256,16 @@ public class DatabaseSeeder
         if (categories.TryGetValue("Networking", out var networkingCategory) &&
             brands.TryGetValue("NetGear Pro", out var netGearBrand))
         {
-            var router = new Product(
+            var router = Product.Create(
                 "Enterprise Router NG-5000",
                 "Dual-band WiFi 6, 10Gbps throughput, VPN support, 8 LAN ports",
                 "NG-RTR-5000",
-                networkingCategory.Id,
                 new Money(899.99m, currency),
                 100,
                 1,
                 0.18m);
-            router.UpdateBasicInfo(router.Name, router.Description, networkingCategory.Id, netGearBrand.Id);
+            router.UpdateBasicInfo(router.Name, router.Description, netGearBrand.Id);
+            router.AddToCategory(networkingCategory.Id, isPrimary: true, displayOrder: 0);
             router.UpdatePricing(
                 new Money(899.99m, currency),
                 new Money(849.99m, currency),
@@ -275,16 +275,16 @@ public class DatabaseSeeder
                 new Money(649.99m, currency));
             products.Add(router);
 
-            var networkSwitch = new Product(
+            var networkSwitch = Product.Create(
                 "Managed Switch 48-Port",
                 "48 Gigabit ports, 4 SFP+ uplinks, Layer 3, PoE+",
                 "NG-SW-048",
-                networkingCategory.Id,
                 new Money(1599.99m, currency),
                 30,
                 1,
                 0.18m);
-            networkSwitch.UpdateBasicInfo(networkSwitch.Name, networkSwitch.Description, networkingCategory.Id, netGearBrand.Id);
+            networkSwitch.UpdateBasicInfo(networkSwitch.Name, networkSwitch.Description, netGearBrand.Id);
+            networkSwitch.AddToCategory(networkingCategory.Id, isPrimary: true, displayOrder: 0);
             products.Add(networkSwitch);
         }
 
@@ -292,16 +292,16 @@ public class DatabaseSeeder
         if (categories.TryGetValue("Peripherals", out var peripheralsCategory) &&
             brands.TryGetValue("TechPro", out var techPro))
         {
-            var monitor = new Product(
+            var monitor = Product.Create(
                 "TechPro 27\" 4K Monitor",
                 "27\" 4K UHD IPS display, USB-C, 60Hz, HDR400",
                 "TP-MON-027",
-                peripheralsCategory.Id,
                 new Money(499.99m, currency),
                 75,
                 1,
                 0.18m);
-            monitor.UpdateBasicInfo(monitor.Name, monitor.Description, peripheralsCategory.Id, techPro.Id);
+            monitor.UpdateBasicInfo(monitor.Name, monitor.Description, techPro.Id);
+            monitor.AddToCategory(peripheralsCategory.Id, isPrimary: true, displayOrder: 0);
             monitor.UpdatePricing(
                 new Money(499.99m, currency),
                 new Money(479.99m, currency),
@@ -311,16 +311,16 @@ public class DatabaseSeeder
                 new Money(399.99m, currency));
             products.Add(monitor);
 
-            var keyboard = new Product(
+            var keyboard = Product.Create(
                 "Mechanical Keyboard Pro",
                 "Cherry MX switches, RGB backlight, programmable keys",
                 "TP-KB-PRO",
-                peripheralsCategory.Id,
                 new Money(149.99m, currency),
                 200,
                 5,
                 0.18m);
-            keyboard.UpdateBasicInfo(keyboard.Name, keyboard.Description, peripheralsCategory.Id, techPro.Id);
+            keyboard.UpdateBasicInfo(keyboard.Name, keyboard.Description, techPro.Id);
+            keyboard.AddToCategory(peripheralsCategory.Id, isPrimary: true, displayOrder: 0);
             products.Add(keyboard);
         }
 
@@ -328,16 +328,16 @@ public class DatabaseSeeder
         if (categories.TryGetValue("Furniture", out var furnitureCategory) &&
             brands.TryGetValue("ErgoDesk", out var ergoDeskBrand))
         {
-            var desk = new Product(
+            var desk = Product.Create(
                 "ErgoDesk Standing Desk",
                 "Electric height adjustable, 60\" x 30\" surface, memory presets",
                 "ED-DSK-060",
-                furnitureCategory.Id,
                 new Money(799.99m, currency),
                 40,
                 1,
                 0.18m);
-            desk.UpdateBasicInfo(desk.Name, desk.Description, furnitureCategory.Id, ergoDeskBrand.Id);
+            desk.UpdateBasicInfo(desk.Name, desk.Description, ergoDeskBrand.Id);
+            desk.AddToCategory(furnitureCategory.Id, isPrimary: true, displayOrder: 0);
             desk.UpdatePricing(
                 new Money(799.99m, currency),
                 new Money(769.99m, currency),
@@ -347,16 +347,16 @@ public class DatabaseSeeder
                 new Money(649.99m, currency));
             products.Add(desk);
 
-            var chair = new Product(
+            var chair = Product.Create(
                 "ErgoChair Executive",
                 "Full mesh back, lumbar support, adjustable armrests, headrest",
                 "ED-CHR-EXE",
-                furnitureCategory.Id,
                 new Money(599.99m, currency),
                 60,
                 1,
                 0.18m);
-            chair.UpdateBasicInfo(chair.Name, chair.Description, furnitureCategory.Id, ergoDeskBrand.Id);
+            chair.UpdateBasicInfo(chair.Name, chair.Description, ergoDeskBrand.Id);
+            chair.AddToCategory(furnitureCategory.Id, isPrimary: true, displayOrder: 0);
             products.Add(chair);
         }
 
@@ -364,16 +364,16 @@ public class DatabaseSeeder
         if (categories.TryGetValue("Safety Equipment", out var safetyCategory) &&
             brands.TryGetValue("SafetyFirst", out var safetyBrand))
         {
-            var helmet = new Product(
+            var helmet = Product.Create(
                 "Industrial Safety Helmet",
                 "ANSI/ISEA certified, adjustable suspension, UV resistant",
                 "SF-HLM-001",
-                safetyCategory.Id,
                 new Money(45.99m, currency),
                 500,
                 10,
                 0.18m);
-            helmet.UpdateBasicInfo(helmet.Name, helmet.Description, safetyCategory.Id, safetyBrand.Id);
+            helmet.UpdateBasicInfo(helmet.Name, helmet.Description, safetyBrand.Id);
+            helmet.AddToCategory(safetyCategory.Id, isPrimary: true, displayOrder: 0);
             helmet.UpdatePricing(
                 new Money(45.99m, currency),
                 new Money(42.99m, currency),
@@ -383,28 +383,28 @@ public class DatabaseSeeder
                 new Money(29.99m, currency));
             products.Add(helmet);
 
-            var gloves = new Product(
+            var gloves = Product.Create(
                 "Cut-Resistant Gloves",
                 "Level A4 cut resistance, touchscreen compatible, sizes S-XXL",
                 "SF-GLV-CR4",
-                safetyCategory.Id,
                 new Money(24.99m, currency),
                 1000,
                 12,
                 0.18m);
-            gloves.UpdateBasicInfo(gloves.Name, gloves.Description, safetyCategory.Id, safetyBrand.Id);
+            gloves.UpdateBasicInfo(gloves.Name, gloves.Description, safetyBrand.Id);
+            gloves.AddToCategory(safetyCategory.Id, isPrimary: true, displayOrder: 0);
             products.Add(gloves);
 
-            var vest = new Product(
+            var vest = Product.Create(
                 "High-Visibility Safety Vest",
                 "Class 2 certified, reflective strips, breathable mesh",
                 "SF-VST-HV2",
-                safetyCategory.Id,
                 new Money(19.99m, currency),
                 800,
                 20,
                 0.18m);
-            vest.UpdateBasicInfo(vest.Name, vest.Description, safetyCategory.Id, safetyBrand.Id);
+            vest.UpdateBasicInfo(vest.Name, vest.Description, safetyBrand.Id);
+            vest.AddToCategory(safetyCategory.Id, isPrimary: true, displayOrder: 0);
             products.Add(vest);
         }
 
@@ -412,16 +412,16 @@ public class DatabaseSeeder
         if (categories.TryGetValue("Industrial Equipment", out var industrialCategory) &&
             brands.TryGetValue("IndustrialMax", out var industrialBrand))
         {
-            var pallet = new Product(
+            var pallet = Product.Create(
                 "Electric Pallet Jack",
                 "3300 lb capacity, lithium battery, 48\" forks",
                 "IM-PLJ-3300",
-                industrialCategory.Id,
                 new Money(4999.99m, currency),
                 10,
                 1,
                 0.18m);
-            pallet.UpdateBasicInfo(pallet.Name, pallet.Description, industrialCategory.Id, industrialBrand.Id);
+            pallet.UpdateBasicInfo(pallet.Name, pallet.Description, industrialBrand.Id);
+            pallet.AddToCategory(industrialCategory.Id, isPrimary: true, displayOrder: 0);
             pallet.UpdatePricing(
                 new Money(4999.99m, currency),
                 new Money(4799.99m, currency),
@@ -431,16 +431,16 @@ public class DatabaseSeeder
                 new Money(3999.99m, currency));
             products.Add(pallet);
 
-            var compressor = new Product(
+            var compressor = Product.Create(
                 "Industrial Air Compressor",
                 "80 gallon, 5HP motor, 175 PSI max, two-stage",
                 "IM-CMP-080",
-                industrialCategory.Id,
                 new Money(1899.99m, currency),
                 15,
                 1,
                 0.18m);
-            compressor.UpdateBasicInfo(compressor.Name, compressor.Description, industrialCategory.Id, industrialBrand.Id);
+            compressor.UpdateBasicInfo(compressor.Name, compressor.Description, industrialBrand.Id);
+            compressor.AddToCategory(industrialCategory.Id, isPrimary: true, displayOrder: 0);
             products.Add(compressor);
         }
 
