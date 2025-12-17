@@ -65,7 +65,6 @@ public class UpsertAttributeValueCommandHandler : ICommandHandler<UpsertAttribut
         {
             // Update existing
             attribute.UpdatePredefinedValue(existingValue.Id, request.Value, request.DisplayText, request.DisplayOrder);
-            attribute.UpdatedBy = request.ModifiedBy;
 
             _logger.LogInformation(
                 "Updated attribute value '{Value}' for attribute {AttributeCode}",
@@ -75,7 +74,6 @@ public class UpsertAttributeValueCommandHandler : ICommandHandler<UpsertAttribut
         {
             // Add new - use domain method to add to collection
             existingValue = attribute.AddPredefinedValue(request.Value, request.DisplayText, request.DisplayOrder);
-            attribute.UpdatedBy = request.ModifiedBy;
 
             // Explicitly add the new value to the DbContext for proper tracking
             await _unitOfWork.AttributeDefinitions.AddAttributeValueAsync(existingValue, cancellationToken);

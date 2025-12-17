@@ -191,19 +191,14 @@ public class ProductType : ExternalEntity, IAggregateRoot
 
         var productType = Create(code, name, description);
 
-        // Use specific ID if provided
-        if (specificId.HasValue)
-        {
-            productType.Id = specificId.Value;
-        }
-
         if (!isActive)
         {
             productType.Deactivate();
         }
 
-        productType.SetExternalIdentifiers(externalCode, externalId);
-        productType.MarkAsSynced();
+        // Use base class helper for consistent initialization
+        InitializeFromExternal(productType, externalId, externalCode, specificId);
+
         return productType;
     }
 

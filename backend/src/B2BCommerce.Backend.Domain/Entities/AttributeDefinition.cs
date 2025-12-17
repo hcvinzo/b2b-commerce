@@ -140,13 +140,9 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
 
         var attr = Create(code, name, type, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
 
-        if (specificId.HasValue)
-        {
-            attr.Id = specificId.Value;
-        }
+        // Use base class helper for consistent initialization
+        InitializeFromExternal(attr, externalId, externalCode, specificId);
 
-        attr.SetExternalIdentifiers(externalCode, externalId);
-        attr.MarkAsSynced();
         return attr;
     }
 

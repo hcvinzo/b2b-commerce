@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.Common.CQRS;
+using B2BCommerce.Backend.Application.Common.Helpers;
 using B2BCommerce.Backend.Application.DTOs.Categories;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
@@ -34,7 +35,7 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
             var parentCategory = await _unitOfWork.Categories
                 .GetByExternalIdAsync(request.ParentExternalId, cancellationToken);
 
-            if (parentCategory == null)
+            if (parentCategory is null)
             {
                 return Result<CategoryDto>.Failure(
                     $"Parent category not found by ExternalId: {request.ParentExternalId}",
@@ -48,7 +49,7 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
             var parentCategory = await _unitOfWork.Categories
                 .GetByExternalCodeAsync(request.ParentExternalCode, cancellationToken);
 
-            if (parentCategory == null)
+            if (parentCategory is null)
             {
                 return Result<CategoryDto>.Failure(
                     $"Parent category not found by ExternalCode: {request.ParentExternalCode}",
@@ -58,50 +59,23 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
             parentCategoryId = parentCategory.Id;
         }
 
-        // 2. Find existing category (by ID, ExternalId, or ExternalCode)
-        Category? category = null;
-        bool createWithSpecificId = false;
+        // 2. Use shared lookup helper: Id → ExternalId → ExternalCode
+        var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
+            request.Id,
+            request.ExternalId,
+            request.ExternalCode,  // fallback key
+            (id, ct) => _unitOfWork.Categories.GetByIdAsync(id, ct),
+            (extId, ct) => _unitOfWork.Categories.GetByExternalIdAsync(extId, ct),
+            (extCode, ct) => _unitOfWork.Categories.GetByExternalCodeAsync(extCode, ct),
+            cancellationToken);
 
-        if (request.Id.HasValue)
-        {
-            category = await _unitOfWork.Categories.GetByIdAsync(request.Id.Value, cancellationToken);
-
-            // If Id is provided but not found, we'll create with that specific Id
-            if (category == null)
-            {
-                createWithSpecificId = true;
-            }
-        }
-
-        // If not found by Id, try ExternalId
-        if (category == null && !createWithSpecificId && !string.IsNullOrEmpty(request.ExternalId))
-        {
-            // Primary lookup by ExternalId
-            category = await _unitOfWork.Categories
-                .GetByExternalIdAsync(request.ExternalId, cancellationToken);
-        }
-
-        // If still not found, try ExternalCode as fallback
-        if (category == null && !createWithSpecificId && !string.IsNullOrEmpty(request.ExternalCode))
-        {
-            // Fallback lookup by ExternalCode for backward compatibility
-            category = await _unitOfWork.Categories
-                .GetByExternalCodeAsync(request.ExternalCode, cancellationToken);
-        }
+        Category category;
 
         // 3. Create or update
-        if (category == null)
+        if (lookup.IsNew)
         {
-            // If Id is provided but ExternalId is not, use Id as ExternalId
-            // This allows external systems to use our internal IDs as their reference
-            var effectiveExternalId = request.ExternalId;
-            if (string.IsNullOrEmpty(effectiveExternalId) && request.Id.HasValue)
-            {
-                effectiveExternalId = request.Id.Value.ToString();
-            }
-
-            // Create new category - ExternalId is required for new external entities
-            if (string.IsNullOrEmpty(effectiveExternalId))
+            // Validate ExternalId is available
+            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
             {
                 return Result<CategoryDto>.Failure(
                     "ExternalId or Id is required for creating new categories via sync",
@@ -109,30 +83,30 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
             }
 
             category = Category.CreateFromExternal(
-                externalId: effectiveExternalId,
+                externalId: lookup.EffectiveExternalId,
                 name: request.Name,
                 description: request.Description ?? string.Empty,
                 parentCategoryId: parentCategoryId,
                 externalCode: request.ExternalCode,
                 imageUrl: request.ImageUrl,
                 displayOrder: request.DisplayOrder,
-                specificId: createWithSpecificId ? request.Id : null);
+                specificId: lookup.CreateWithSpecificId ? request.Id : null);
 
             if (!request.IsActive)
             {
                 category.Deactivate();
             }
 
-            category.CreatedBy = request.ModifiedBy;
-
             await _unitOfWork.Categories.AddAsync(category, cancellationToken);
 
             _logger.LogInformation(
                 "Creating category from external sync: {ExternalId} - {Name} (Id: {Id})",
-                request.ExternalId, request.Name, category.Id);
+                lookup.EffectiveExternalId, request.Name, category.Id);
         }
         else
         {
+            category = lookup.Entity!;
+
             // Update existing category
             category.UpdateFromExternal(
                 name: request.Name,
@@ -142,9 +116,6 @@ public class UpsertCategoryCommandHandler : ICommandHandler<UpsertCategoryComman
                 displayOrder: request.DisplayOrder,
                 isActive: request.IsActive,
                 externalCode: request.ExternalCode);
-
-            category.UpdatedBy = request.ModifiedBy;
-            category.UpdatedAt = DateTime.UtcNow;
 
             _logger.LogInformation(
                 "Updating category from external sync: {ExternalId} - {Name}",

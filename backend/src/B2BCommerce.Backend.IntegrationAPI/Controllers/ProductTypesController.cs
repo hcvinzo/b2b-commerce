@@ -113,8 +113,7 @@ public class ProductTypesController : BaseApiController
                 AttributeCode = a.AttributeCode,
                 IsRequired = a.IsRequired,
                 DisplayOrder = a.DisplayOrder
-            }).ToList(),
-            ModifiedBy = GetClientName()
+            }).ToList()
         };
 
         var result = await _mediator.Send(command);

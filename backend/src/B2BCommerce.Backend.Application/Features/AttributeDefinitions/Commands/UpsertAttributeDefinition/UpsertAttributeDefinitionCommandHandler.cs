@@ -1,6 +1,7 @@
 using AutoMapper;
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.Common.CQRS;
+using B2BCommerce.Backend.Application.Common.Helpers;
 using B2BCommerce.Backend.Application.DTOs.Attributes;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
@@ -31,44 +32,23 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
 
     public async Task<Result<AttributeDefinitionDto>> Handle(UpsertAttributeDefinitionCommand request, CancellationToken cancellationToken)
     {
-        // 1. Find existing attribute (by Id → ExternalId → Code)
-        AttributeDefinition? attribute = null;
-        bool createWithSpecificId = false;
+        // 1. Use shared lookup helper: Id → ExternalId → Code
+        var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
+            request.Id,
+            request.ExternalId,
+            request.Code,  // fallback key
+            (id, ct) => _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesAsync(id, ct),
+            (extId, ct) => _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(extId, ct),
+            (code, ct) => _unitOfWork.AttributeDefinitions.GetByCodeAsync(code, ct),
+            cancellationToken);
 
-        if (request.Id.HasValue)
-        {
-            attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesAsync(request.Id.Value, cancellationToken);
-
-            // If Id is provided but not found, we'll create with that specific Id
-            if (attribute == null)
-            {
-                createWithSpecificId = true;
-            }
-        }
-
-        // If not found by Id, try ExternalId
-        if (attribute == null && !createWithSpecificId && !string.IsNullOrEmpty(request.ExternalId))
-        {
-            attribute = await _unitOfWork.AttributeDefinitions.GetWithPredefinedValuesByExternalIdAsync(request.ExternalId, cancellationToken);
-        }
-
-        // If still not found, try Code as fallback
-        if (attribute == null && !createWithSpecificId)
-        {
-            attribute = await _unitOfWork.AttributeDefinitions.GetByCodeAsync(request.Code, cancellationToken);
-        }
+        AttributeDefinition attribute;
 
         // 2. Create or Update
-        if (attribute == null)
+        if (lookup.IsNew)
         {
-            // Validate ExternalId is provided for new creation (unless Id-based creation)
-            var externalId = request.ExternalId;
-            if (string.IsNullOrEmpty(externalId) && request.Id.HasValue)
-            {
-                externalId = request.Id.Value.ToString();
-            }
-
-            if (string.IsNullOrEmpty(externalId))
+            // Validate ExternalId is available
+            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
             {
                 return Result<AttributeDefinitionDto>.Failure(
                     "ExternalId or Id is required for creating new attribute definition",
@@ -77,7 +57,7 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
 
             // Check if code already exists (case-insensitive)
             var existingByCode = await _unitOfWork.AttributeDefinitions.GetByCodeAsync(request.Code, cancellationToken);
-            if (existingByCode != null)
+            if (existingByCode is not null)
             {
                 return Result<AttributeDefinitionDto>.Failure(
                     $"An attribute definition with code '{request.Code}' already exists",
@@ -85,7 +65,7 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
             }
 
             attribute = AttributeDefinition.CreateFromExternal(
-                externalId: externalId,
+                externalId: lookup.EffectiveExternalId,
                 code: request.Code,
                 name: request.Name,
                 type: request.Type,
@@ -95,12 +75,10 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
                 isVisibleOnProductPage: request.IsVisibleOnProductPage,
                 displayOrder: request.DisplayOrder,
                 externalCode: request.ExternalCode,
-                specificId: createWithSpecificId ? request.Id : null);
-
-            attribute.CreatedBy = request.ModifiedBy;
+                specificId: lookup.CreateWithSpecificId ? request.Id : null);
 
             // Add predefined values for Select/MultiSelect types
-            if (request.PredefinedValues != null && attribute.RequiresPredefinedValues())
+            if (request.PredefinedValues is not null && attribute.RequiresPredefinedValues())
             {
                 foreach (var valueDto in request.PredefinedValues)
                 {
@@ -112,10 +90,12 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
 
             _logger.LogInformation(
                 "Creating attribute definition from external sync: {ExternalId} - {Code} (Id: {Id})",
-                externalId, request.Code, attribute.Id);
+                lookup.EffectiveExternalId, request.Code, attribute.Id);
         }
         else
         {
+            attribute = lookup.Entity!;
+
             // Update existing attribute
             attribute.UpdateFromExternal(
                 name: request.Name,
@@ -125,8 +105,6 @@ public class UpsertAttributeDefinitionCommandHandler : ICommandHandler<UpsertAtt
                 isVisibleOnProductPage: request.IsVisibleOnProductPage,
                 displayOrder: request.DisplayOrder,
                 externalCode: request.ExternalCode);
-
-            attribute.UpdatedBy = request.ModifiedBy;
 
             // Sync predefined values for Select/MultiSelect types (full replacement)
             if (attribute.RequiresPredefinedValues())

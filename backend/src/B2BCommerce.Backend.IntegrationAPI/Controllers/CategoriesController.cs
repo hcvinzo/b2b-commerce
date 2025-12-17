@@ -187,8 +187,7 @@ public class CategoriesController : BaseApiController
             ParentExternalId = request.ParentId,
             ImageUrl = request.ImageUrl,
             DisplayOrder = request.DisplayOrder,
-            IsActive = request.IsActive,
-            ModifiedBy = GetClientName()
+            IsActive = request.IsActive
         };
 
         var result = await _mediator.Send(command);

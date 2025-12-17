@@ -65,9 +65,4 @@ public record UpsertCategoryCommand : ICommand<Result<CategoryDto>>
     /// Active status
     /// </summary>
     public bool IsActive { get; init; } = true;
-
-    /// <summary>
-    /// User who modified the category
-    /// </summary>
-    public string? ModifiedBy { get; init; }
 }

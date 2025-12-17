@@ -174,8 +174,7 @@ public class ProductsController : BaseApiController
             Length = request.Length,
             Width = request.Width,
             Height = request.Height,
-            MainProductExtId = request.MainProductId,
-            ModifiedBy = GetClientName()
+            MainProductExtId = request.MainProductId
         };
 
         var result = await _mediator.Send(command);

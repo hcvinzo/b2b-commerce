@@ -88,8 +88,7 @@ public class BrandsController : BaseApiController
             Description = request.Description,
             LogoUrl = request.LogoUrl,
             WebsiteUrl = request.WebsiteUrl,
-            IsActive = request.IsActive,
-            ModifiedBy = GetClientName()
+            IsActive = request.IsActive
         };
 
         var result = await _mediator.Send(command);

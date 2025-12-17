@@ -114,12 +114,6 @@ public class Brand : ExternalEntity, IAggregateRoot
 
         var brand = Create(name, description);
 
-        // Use specific ID if provided
-        if (specificId.HasValue)
-        {
-            brand.Id = specificId.Value;
-        }
-
         brand.LogoUrl = logoUrl;
         brand.WebsiteUrl = websiteUrl;
 
@@ -128,8 +122,9 @@ public class Brand : ExternalEntity, IAggregateRoot
             brand.Deactivate();
         }
 
-        brand.SetExternalIdentifiers(externalCode, externalId);
-        brand.MarkAsSynced();
+        // Use base class helper for consistent initialization
+        InitializeFromExternal(brand, externalId, externalCode, specificId);
+
         return brand;
     }
 

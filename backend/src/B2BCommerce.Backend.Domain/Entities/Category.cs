@@ -120,14 +120,8 @@ public class Category : ExternalEntity, IAggregateRoot
             Products = new List<Product>()
         };
 
-        // Use specific ID if provided
-        if (specificId.HasValue)
-        {
-            category.Id = specificId.Value;
-        }
-
-        category.SetExternalIdentifiers(externalCode, externalId);
-        category.MarkAsSynced();
+        // Use base class helper for consistent initialization
+        InitializeFromExternal(category, externalId, externalCode, specificId);
 
         return category;
     }

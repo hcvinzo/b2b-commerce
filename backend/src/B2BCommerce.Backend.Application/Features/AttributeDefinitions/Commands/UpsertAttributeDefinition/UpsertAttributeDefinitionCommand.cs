@@ -70,11 +70,6 @@ public record UpsertAttributeDefinitionCommand : ICommand<Result<AttributeDefini
     /// Predefined values for Select/MultiSelect types (full replacement)
     /// </summary>
     public List<UpsertAttributeValueDto>? PredefinedValues { get; init; }
-
-    /// <summary>
-    /// User/client performing the operation
-    /// </summary>
-    public string? ModifiedBy { get; init; }
 }
 
 /// <summary>

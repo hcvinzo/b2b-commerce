@@ -41,4 +41,29 @@ public abstract class ExternalEntity : BaseEntity, IExternalEntity
         ExternalCode = externalCode;
         ExternalId = externalId;
     }
+
+    /// <summary>
+    /// Initializes external entity properties during creation from external systems.
+    /// Sets the Id (if specificId is provided), external identifiers, and marks as synced.
+    /// Call this method in CreateFromExternal factory methods to ensure consistent initialization.
+    /// </summary>
+    /// <typeparam name="T">The entity type inheriting from ExternalEntity</typeparam>
+    /// <param name="entity">The entity to initialize</param>
+    /// <param name="externalId">The external system's identifier (required)</param>
+    /// <param name="externalCode">Optional additional reference code</param>
+    /// <param name="specificId">Optional specific internal ID to use instead of auto-generated</param>
+    protected static void InitializeFromExternal<T>(
+        T entity,
+        string externalId,
+        string? externalCode,
+        Guid? specificId) where T : ExternalEntity
+    {
+        if (specificId.HasValue)
+        {
+            entity.Id = specificId.Value;
+        }
+
+        entity.SetExternalIdentifiers(externalCode, externalId);
+        entity.MarkAsSynced();
+    }
 }

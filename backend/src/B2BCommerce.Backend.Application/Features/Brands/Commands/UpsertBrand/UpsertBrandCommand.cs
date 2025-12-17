@@ -50,9 +50,4 @@ public record UpsertBrandCommand : ICommand<Result<BrandDto>>
     /// Whether brand is active
     /// </summary>
     public bool IsActive { get; init; } = true;
-
-    /// <summary>
-    /// User who modified the brand
-    /// </summary>
-    public string? ModifiedBy { get; init; }
 }

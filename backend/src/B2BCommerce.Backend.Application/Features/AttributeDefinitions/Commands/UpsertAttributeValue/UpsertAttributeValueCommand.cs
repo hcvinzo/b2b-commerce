@@ -34,9 +34,4 @@ public record UpsertAttributeValueCommand : ICommand<Result<AttributeValueDto>>
     /// Display order
     /// </summary>
     public int DisplayOrder { get; init; } = 0;
-
-    /// <summary>
-    /// User/client performing the operation
-    /// </summary>
-    public string? ModifiedBy { get; init; }
 }

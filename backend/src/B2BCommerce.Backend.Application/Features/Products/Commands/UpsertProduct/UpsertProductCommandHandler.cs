@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.Common.CQRS;
+using B2BCommerce.Backend.Application.Common.Helpers;
 using B2BCommerce.Backend.Application.DTOs.Products;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
@@ -142,48 +143,23 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             }
         }
 
-        // 4. Find existing product (by Id, ExternalId, or SKU)
-        Product? product = null;
-        bool createWithSpecificId = false;
+        // 4. Use shared lookup helper: Id → ExternalId → SKU
+        var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
+            request.Id,
+            request.ExternalId,
+            request.SKU,  // fallback key
+            (id, ct) => _unitOfWork.Products.GetByIdAsync(id, ct),
+            (extId, ct) => _unitOfWork.Products.GetByExternalIdAsync(extId, ct),
+            (sku, ct) => _unitOfWork.Products.GetBySKUAsync(sku, ct),
+            cancellationToken);
 
-        if (request.Id.HasValue)
-        {
-            product = await _unitOfWork.Products.GetByIdAsync(request.Id.Value, cancellationToken);
-
-            // If Id is provided but not found, we'll create with that specific Id
-            if (product == null)
-            {
-                createWithSpecificId = true;
-            }
-        }
-
-        // If not found by Id, try ExternalId (PRIMARY lookup)
-        if (product == null && !createWithSpecificId && !string.IsNullOrEmpty(request.ExternalId))
-        {
-            product = await _unitOfWork.Products
-                .GetByExternalIdAsync(request.ExternalId, cancellationToken);
-        }
-
-        // If still not found, try SKU as fallback
-        if (product == null && !createWithSpecificId)
-        {
-            product = await _unitOfWork.Products
-                .GetBySKUAsync(request.SKU, cancellationToken);
-        }
+        Product product;
 
         // 5. Create or update
-        if (product == null)
+        if (lookup.IsNew)
         {
-            // If Id is provided but ExternalId is not, use Id as ExternalId
-            // This allows external systems to use our internal IDs as their reference
-            var effectiveExternalId = request.ExternalId;
-            if (string.IsNullOrEmpty(effectiveExternalId) && request.Id.HasValue)
-            {
-                effectiveExternalId = request.Id.Value.ToString();
-            }
-
-            // Create new product - ExternalId is required for new external entities
-            if (string.IsNullOrEmpty(effectiveExternalId))
+            // Validate ExternalId is available
+            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
             {
                 return Result<ProductDto>.Failure(
                     "ExternalId or Id is required for creating new products via sync",
@@ -193,7 +169,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             var listPrice = new Money(request.ListPrice, request.Currency);
 
             product = Product.CreateFromExternal(
-                externalId: effectiveExternalId,
+                externalId: lookup.EffectiveExternalId,
                 sku: request.SKU,
                 name: request.Name,
                 description: request.Description ?? string.Empty,
@@ -207,7 +183,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 requestedStatus: request.Status,
                 externalCode: request.ExternalCode,
                 mainProductId: mainProductId,
-                specificId: createWithSpecificId ? request.Id : null);
+                specificId: lookup.CreateWithSpecificId ? request.Id : null);
 
             // Set images
             if (!string.IsNullOrEmpty(request.MainImageUrl))
@@ -215,7 +191,7 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
                 product.SetMainImage(request.MainImageUrl);
             }
 
-            if (request.ImageUrls != null)
+            if (request.ImageUrls is not null)
             {
                 foreach (var imageUrl in request.ImageUrls)
                 {
@@ -229,16 +205,16 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
             // Set tier prices
             UpdateTierPrices(product, request);
 
-            product.CreatedBy = request.ModifiedBy;
-
             await _unitOfWork.Products.AddAsync(product, cancellationToken);
 
             _logger.LogInformation(
                 "Creating product from external sync: {ExternalId} - {SKU} - {Name} (Id: {Id})",
-                request.ExternalId, request.SKU, request.Name, product.Id);
+                lookup.EffectiveExternalId, request.SKU, request.Name, product.Id);
         }
         else
         {
+            product = lookup.Entity!;
+
             // Update existing product
             product.UpdateFromExternal(
                 name: request.Name,
@@ -265,9 +241,6 @@ public class UpsertProductCommandHandler : ICommandHandler<UpsertProductCommand,
 
             // Update dimensions
             product.UpdateDimensions(request.Weight, request.Length, request.Width, request.Height);
-
-            product.UpdatedBy = request.ModifiedBy;
-            product.UpdatedAt = DateTime.UtcNow;
 
             _logger.LogInformation(
                 "Updating product from external sync: {ExternalId} - {SKU} - {Name}",

@@ -1,6 +1,7 @@
 using AutoMapper;
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.Common.CQRS;
+using B2BCommerce.Backend.Application.Common.Helpers;
 using B2BCommerce.Backend.Application.DTOs.ProductTypes;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
@@ -30,44 +31,23 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
 
     public async Task<Result<ProductTypeDto>> Handle(UpsertProductTypeCommand request, CancellationToken cancellationToken)
     {
-        // 1. Find existing product type (by Id → ExternalId → Code)
-        ProductType? productType = null;
-        bool createWithSpecificId = false;
+        // 1. Use shared lookup helper: Id → ExternalId → Code
+        var lookup = await ExternalEntityLookupExtensions.LookupExternalEntityAsync(
+            request.Id,
+            request.ExternalId,
+            request.Code,  // fallback key
+            (id, ct) => _unitOfWork.ProductTypes.GetWithAttributesAsync(id, ct),
+            (extId, ct) => _unitOfWork.ProductTypes.GetWithAttributesByExternalIdAsync(extId, ct),
+            (code, ct) => _unitOfWork.ProductTypes.GetByCodeWithAttributesAsync(code, ct),
+            cancellationToken);
 
-        if (request.Id.HasValue)
-        {
-            productType = await _unitOfWork.ProductTypes.GetWithAttributesAsync(request.Id.Value, cancellationToken);
-
-            // If Id is provided but not found, we'll create with that specific Id
-            if (productType == null)
-            {
-                createWithSpecificId = true;
-            }
-        }
-
-        // If not found by Id, try ExternalId
-        if (productType == null && !createWithSpecificId && !string.IsNullOrEmpty(request.ExternalId))
-        {
-            productType = await _unitOfWork.ProductTypes.GetWithAttributesByExternalIdAsync(request.ExternalId, cancellationToken);
-        }
-
-        // If still not found, try Code as fallback
-        if (productType == null && !createWithSpecificId)
-        {
-            productType = await _unitOfWork.ProductTypes.GetByCodeWithAttributesAsync(request.Code, cancellationToken);
-        }
+        ProductType productType;
 
         // 2. Create or Update
-        if (productType == null)
+        if (lookup.IsNew)
         {
-            // Validate ExternalId is provided for new creation (unless Id-based creation)
-            var externalId = request.ExternalId;
-            if (string.IsNullOrEmpty(externalId) && request.Id.HasValue)
-            {
-                externalId = request.Id.Value.ToString();
-            }
-
-            if (string.IsNullOrEmpty(externalId))
+            // Validate ExternalId is available
+            if (string.IsNullOrEmpty(lookup.EffectiveExternalId))
             {
                 return Result<ProductTypeDto>.Failure(
                     "ExternalId or Id is required for creating new product type",
@@ -76,7 +56,7 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
 
             // Check if code already exists (case-insensitive)
             var existingByCode = await _unitOfWork.ProductTypes.GetByCodeAsync(request.Code, cancellationToken);
-            if (existingByCode != null)
+            if (existingByCode is not null)
             {
                 return Result<ProductTypeDto>.Failure(
                     $"A product type with code '{request.Code}' already exists",
@@ -84,18 +64,16 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
             }
 
             productType = ProductType.CreateFromExternal(
-                externalId: externalId,
+                externalId: lookup.EffectiveExternalId,
                 code: request.Code,
                 name: request.Name,
                 description: request.Description,
                 isActive: request.IsActive,
                 externalCode: request.ExternalCode,
-                specificId: createWithSpecificId ? request.Id : null);
-
-            productType.CreatedBy = request.ModifiedBy;
+                specificId: lookup.CreateWithSpecificId ? request.Id : null);
 
             // Add attributes if provided
-            if (request.Attributes != null && request.Attributes.Count > 0)
+            if (request.Attributes is not null && request.Attributes.Count > 0)
             {
                 var attributeResult = await AddAttributesToProductType(productType, request.Attributes, cancellationToken);
                 if (!attributeResult.IsSuccess)
@@ -108,10 +86,12 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
 
             _logger.LogInformation(
                 "Creating product type from external sync: {ExternalId} - {Code} (Id: {Id})",
-                externalId, request.Code, productType.Id);
+                lookup.EffectiveExternalId, request.Code, productType.Id);
         }
         else
         {
+            productType = lookup.Entity!;
+
             // Update existing product type
             productType.UpdateFromExternal(
                 name: request.Name,
@@ -119,10 +99,8 @@ public class UpsertProductTypeCommandHandler : ICommandHandler<UpsertProductType
                 isActive: request.IsActive,
                 externalCode: request.ExternalCode);
 
-            productType.UpdatedBy = request.ModifiedBy;
-
             // Sync attributes (full replacement)
-            if (request.Attributes != null)
+            if (request.Attributes is not null)
             {
                 var syncResult = await SyncAttributes(productType, request.Attributes, cancellationToken);
                 if (!syncResult.IsSuccess)

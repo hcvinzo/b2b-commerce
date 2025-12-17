@@ -197,8 +197,7 @@ public class AttributesController : BaseApiController
                 Value = v.Value,
                 DisplayText = v.DisplayText,
                 DisplayOrder = v.DisplayOrder
-            }).ToList(),
-            ModifiedBy = GetClientName()
+            }).ToList()
         };
 
         var result = await _mediator.Send(command);
@@ -235,8 +234,7 @@ public class AttributesController : BaseApiController
             AttributeExternalId = id,
             Value = request.Value,
             DisplayText = request.DisplayText,
-            DisplayOrder = request.DisplayOrder,
-            ModifiedBy = GetClientName()
+            DisplayOrder = request.DisplayOrder
         };
 
         var result = await _mediator.Send(command);

@@ -194,11 +194,4 @@ public record UpsertProductCommand : ICommand<Result<ProductDto>>
     /// When set, this product becomes a variant of the specified main product.
     /// </summary>
     public string? MainProductExtId { get; init; }
-
-    // Audit
-
-    /// <summary>
-    /// User who modified the product
-    /// </summary>
-    public string? ModifiedBy { get; init; }
 }

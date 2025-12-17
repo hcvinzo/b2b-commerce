@@ -722,12 +722,6 @@ public class Product : ExternalEntity, IAggregateRoot
 
         var product = Create(name, description, sku, categoryId, listPrice, stockQuantity, minimumOrderQuantity, taxRate, productTypeId, mainProductId);
 
-        // Use specific ID if provided
-        if (specificId.HasValue)
-        {
-            product.Id = specificId.Value;
-        }
-
         product.BrandId = brandId;
 
         // Override status if explicitly requested and allowed
@@ -744,8 +738,9 @@ public class Product : ExternalEntity, IAggregateRoot
             }
         }
 
-        product.SetExternalIdentifiers(externalCode, externalId);
-        product.MarkAsSynced();
+        // Use base class helper for consistent initialization
+        InitializeFromExternal(product, externalId, externalCode, specificId);
+
         return product;
     }
 

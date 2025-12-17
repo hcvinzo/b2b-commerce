@@ -49,11 +49,6 @@ public record UpsertProductTypeCommand : ICommand<Result<ProductTypeDto>>
     /// Attributes to assign to this product type (full replacement)
     /// </summary>
     public List<UpsertProductTypeAttributeDto>? Attributes { get; init; }
-
-    /// <summary>
-    /// User/client performing the operation
-    /// </summary>
-    public string? ModifiedBy { get; init; }
 }
 
 /// <summary>
