@@ -501,3 +501,134 @@ export interface TopProduct {
   totalSales: number;
   quantitySold: number;
 }
+
+// API Client (for list views)
+export interface ApiClientListItem {
+  id: string;
+  name: string;
+  contactEmail: string;
+  isActive: boolean;
+  activeKeyCount: number;
+  createdAt: string;
+}
+
+// API Client (detailed view with keys)
+export interface ApiClient {
+  id: string;
+  name: string;
+  description?: string;
+  contactEmail: string;
+  contactPhone?: string;
+  isActive: boolean;
+  createdAt: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  apiKeys: ApiKeyListItem[];
+}
+
+// API Key (for list views)
+export interface ApiKeyListItem {
+  id: string;
+  keyPrefix: string;
+  name: string;
+  isActive: boolean;
+  isExpired: boolean;
+  isRevoked: boolean;
+  expiresAt?: string;
+  lastUsedAt?: string;
+  rateLimitPerMinute: number;
+  permissionCount: number;
+  createdAt: string;
+}
+
+// API Key (detailed view)
+export interface ApiKeyDetail {
+  id: string;
+  apiClientId: string;
+  apiClientName: string;
+  keyPrefix: string;
+  name: string;
+  isActive: boolean;
+  isExpired: boolean;
+  isRevoked: boolean;
+  expiresAt?: string;
+  lastUsedAt?: string;
+  lastUsedIp?: string;
+  rateLimitPerMinute: number;
+  revokedAt?: string;
+  revokedBy?: string;
+  revocationReason?: string;
+  createdAt: string;
+  createdBy?: string;
+  permissions: string[];
+  ipWhitelist: IpWhitelistEntry[];
+}
+
+export interface IpWhitelistEntry {
+  id: string;
+  ipAddress: string;
+  description?: string;
+}
+
+// Create API Key Response (includes plaintext key - shown once)
+export interface CreateApiKeyResponse {
+  id: string;
+  keyPrefix: string;
+  plainTextKey: string;
+  name: string;
+  expiresAt?: string;
+  permissions: string[];
+  warning: string;
+}
+
+// DTOs for API Client operations
+export interface CreateApiClientDto {
+  name: string;
+  description?: string;
+  contactEmail: string;
+  contactPhone?: string;
+}
+
+export interface UpdateApiClientDto {
+  name: string;
+  description?: string;
+  contactEmail: string;
+  contactPhone?: string;
+}
+
+// DTOs for API Key operations
+export interface CreateApiKeyDto {
+  apiClientId: string;
+  name: string;
+  rateLimitPerMinute?: number;
+  expiresAt?: string;
+  permissions?: string[];
+}
+
+export interface RevokeApiKeyDto {
+  reason: string;
+}
+
+export interface AddIpWhitelistDto {
+  ipAddress: string;
+  description?: string;
+}
+
+// Filters
+export interface ApiClientFilters {
+  page?: number;
+  pageSize?: number;
+  isActive?: boolean;
+}
+
+// Available permission scopes
+export interface PermissionScope {
+  name: string;
+  scopes: string[];
+}
+
+export interface AvailableScopesResponse {
+  scopes: string[];
+  categories: PermissionScope[];
+}

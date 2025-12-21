@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TreeMultiSelect } from "@/components/ui/tree-multi-select";
+import { SelectExt } from "@/components/ui/select-ext";
+import { TreeMultiSelectExt } from "@/components/ui/tree-multi-select-ext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -37,7 +38,7 @@ import { useProductTypes } from "@/hooks/use-product-types";
 import { ProductImageManager } from "./product-image-manager";
 import { ProductAttributesForm } from "./product-attributes-form";
 import { ProductAttributeValueInput } from "@/types/entities";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "../ui/input-group";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupSelectTrigger } from "../ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface ProductFormProps {
@@ -154,16 +155,14 @@ export function ProductForm({
                       <FormItem>
                         <FormLabel>Categories *</FormLabel>
                         <FormControl>
-                          <TreeMultiSelect
+                          <TreeMultiSelectExt
                             categories={categories || []}
                             value={field.value || []}
                             onChange={field.onChange}
                             placeholder="Select categories (first is primary)"
+                            info="First selected category is the primary category"
                           />
                         </FormControl>
-                        <FormDescription>
-                          First selected category is the primary category
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -218,27 +217,21 @@ export function ProductForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Product Type</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
-                          value={field.value || "__none__"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a product type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
+                        <FormControl>
+                          <SelectExt
+                            placeholder="Select a product type"
+                            info="Select a product type to enable attribute configuration"
+                            onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
+                            value={field.value || "__none__"}
+                          >
                             <SelectItem value="__none__">No product type</SelectItem>
                             {productTypes.map((pt) => (
                               <SelectItem key={pt.id} value={pt.id}>
                                 {pt.name}
                               </SelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Select a product type to enable attribute configuration
-                        </FormDescription>
+                          </SelectExt>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -262,26 +255,6 @@ export function ProductForm({
                     </FormItem>
                   )}
                 />
-
-                <InputGroup>
-                  <InputGroupInput placeholder="Enter API key" />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <InputGroupAddon>
-                        <InputGroupButton
-                          variant="ghost"
-                          aria-label="Info"
-                          size="icon-xs"
-                        >
-                          <InfoIcon />
-                        </InputGroupButton>
-                      </InputGroupAddon>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">
-                      <p>Click for help with API keys</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </InputGroup>
 
                 <Separator />
 

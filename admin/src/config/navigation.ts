@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   Layers,
   Tag,
+  Key,
   type LucideIcon,
 } from "lucide-react";
 
@@ -152,6 +153,11 @@ export const navigation: NavGroup[] = [
         title: "Admin Users",
         url: "/admin-users",
         icon: UserCog,
+      },
+      {
+        title: "API Clients",
+        url: "/api-clients",
+        icon: Key,
       },
       {
         title: "Settings",

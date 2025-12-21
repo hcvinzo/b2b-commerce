@@ -241,6 +241,70 @@ export type CategoryFormData = z.infer<typeof categorySchema>;
 - Supports `excludeId` to prevent selecting self as parent
 - Search within dropdown supported
 
+### Extended Form Components (Standard)
+
+**IMPORTANT**: Use the extended `-ext` components for all form inputs in admin forms. These components support an optional `info` prop that displays a tooltip icon on the left side of the input.
+
+| Base Component | Extended Component | Location |
+|----------------|-------------------|----------|
+| `Input` | `InputExt` | `@/components/ui/input-ext` |
+| `Select` | `SelectExt` | `@/components/ui/select-ext` |
+| `TreeSelect` | `TreeSelectExt` | `@/components/ui/tree-select-ext` |
+| `TreeMultiSelect` | `TreeMultiSelectExt` | `@/components/ui/tree-multi-select-ext` |
+
+**Pattern**: When `info` prop is provided, the component wraps itself with `InputGroup` and shows an info icon with tooltip. When `info` is not provided, it renders the base component without any wrapper.
+
+**Usage Examples**:
+```tsx
+// Input with info tooltip
+<InputExt
+  info="SKU must be unique across all products"
+  placeholder="Enter SKU"
+  {...field}
+/>
+
+// Select with info tooltip
+<SelectExt
+  info="Determines which attributes are available"
+  placeholder="Select product type"
+  value={field.value}
+  onValueChange={field.onChange}
+>
+  <SelectItem value="1">Type A</SelectItem>
+  <SelectItem value="2">Type B</SelectItem>
+</SelectExt>
+
+// TreeSelect with info tooltip
+<TreeSelectExt
+  info="Select the parent category"
+  categories={categories}
+  value={field.value}
+  onChange={field.onChange}
+  placeholder="Select parent"
+/>
+
+// TreeMultiSelect with info tooltip
+<TreeMultiSelectExt
+  info="First selected category is the primary category"
+  categories={categories}
+  value={field.value}
+  onChange={field.onChange}
+  placeholder="Select categories"
+/>
+
+// Without info - renders base component
+<InputExt placeholder="Enter name" {...field} />
+```
+
+**When to use `info` prop**:
+- Field requires clarification or has special behavior
+- Field has validation rules users should know about
+- Replaces `FormDescription` when the hint is brief
+
+**When NOT to use `info` prop**:
+- Self-explanatory fields (e.g., "Product Name", "Description")
+- Long explanations that need multi-line text (use `FormDescription` instead)
+
 ---
 
 ## Architecture

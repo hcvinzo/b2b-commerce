@@ -160,6 +160,29 @@ function InputGroupTextarea({
   )
 }
 
+/**
+ * A wrapper div for SelectTrigger to be used within InputGroup.
+ * Removes the border and shadow from the trigger since InputGroup provides them.
+ */
+function InputGroupSelectTrigger({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="input-group-control"
+      className={cn(
+        "flex-1 [&>[data-slot=select-trigger]]:w-full [&>[data-slot=select-trigger]]:border-0 [&>[data-slot=select-trigger]]:shadow-none [&>[data-slot=select-trigger]]:focus-visible:ring-0 [&>[data-slot=select-trigger]]:rounded-none [&>[data-slot=select-trigger]]:bg-transparent [&>[data-slot=select-trigger]]:dark:bg-transparent",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
 export {
   InputGroup,
   InputGroupAddon,
@@ -167,4 +190,5 @@ export {
   InputGroupText,
   InputGroupInput,
   InputGroupTextarea,
+  InputGroupSelectTrigger,
 }

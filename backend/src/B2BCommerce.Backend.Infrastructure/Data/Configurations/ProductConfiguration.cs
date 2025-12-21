@@ -21,8 +21,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasMaxLength(200);
 
         builder.Property(p => p.Description)
-            .IsRequired()
-            .HasMaxLength(2000);
+            .IsRequired(false)
+            .HasColumnType("text");
 
         builder.Property(p => p.SKU)
             .IsRequired()
