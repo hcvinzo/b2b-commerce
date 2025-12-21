@@ -66,10 +66,8 @@ export interface ProductCategory {
 export interface Product extends ExternalEntity {
   sku: string;
   name: string;
-  nameEn?: string;
   slug: string;
   description?: string;
-  descriptionEn?: string;
   /** Primary category ID (for backward compatibility) */
   categoryId: string;
   /** Primary category name (for backward compatibility) */
@@ -163,7 +161,6 @@ export interface ProductAttributeValueInput {
 export interface CreateProductDto {
   sku: string;
   name: string;
-  nameEn?: string;
   description?: string;
   /** Category IDs (first one becomes primary) */
   categoryIds: string[];

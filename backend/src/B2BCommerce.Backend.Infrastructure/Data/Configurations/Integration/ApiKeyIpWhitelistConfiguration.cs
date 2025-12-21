@@ -15,6 +15,9 @@ public class ApiKeyIpWhitelistConfiguration : IEntityTypeConfiguration<ApiKeyIpW
 
         builder.HasKey(x => x.Id);
 
+        // Match parent's soft delete filter to avoid orphaned navigation issues
+        builder.HasQueryFilter(x => !x.ApiKey.IsDeleted);
+
         builder.Property(x => x.IpAddress)
             .IsRequired()
             .HasMaxLength(45);

@@ -15,6 +15,9 @@ public class ApiKeyUsageLogConfiguration : IEntityTypeConfiguration<ApiKeyUsageL
 
         builder.HasKey(x => x.Id);
 
+        // Match parent's soft delete filter to avoid orphaned navigation issues
+        builder.HasQueryFilter(x => !x.ApiKey.IsDeleted);
+
         // Use long for high volume
         builder.Property(x => x.Id)
             .ValueGeneratedOnAdd();

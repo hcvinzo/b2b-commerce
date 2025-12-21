@@ -15,6 +15,9 @@ public class ApiKeyPermissionConfiguration : IEntityTypeConfiguration<ApiKeyPerm
 
         builder.HasKey(x => x.Id);
 
+        // Match parent's soft delete filter to avoid orphaned navigation issues
+        builder.HasQueryFilter(x => !x.ApiKey.IsDeleted);
+
         builder.Property(x => x.Scope)
             .IsRequired()
             .HasMaxLength(100);

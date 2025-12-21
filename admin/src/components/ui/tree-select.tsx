@@ -76,20 +76,6 @@ function flattenCategories(
   return result;
 }
 
-function findCategoryById(
-  categories: Category[],
-  id: string
-): Category | undefined {
-  for (const cat of categories) {
-    if (cat.id === id) return cat;
-    if (cat.children) {
-      const found = findCategoryById(cat.children, id);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
-
 function findCategoryPath(categories: Category[], id: string): string {
   const buildPath = (
     cats: Category[],

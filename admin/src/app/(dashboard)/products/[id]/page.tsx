@@ -88,7 +88,6 @@ export default function ProductDetailPage() {
               defaultValues={{
                 sku: product.sku,
                 name: product.name,
-                nameEn: product.nameEn,
                 description: product.description,
                 categoryIds: product.categories?.length > 0
                   ? product.categories
@@ -172,12 +171,6 @@ export default function ProductDetailPage() {
                 <p className="text-sm text-muted-foreground">Name</p>
                 <p className="font-medium">{product.name}</p>
               </div>
-              {product.nameEn && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Name (English)</p>
-                  <p className="font-medium">{product.nameEn}</p>
-                </div>
-              )}
               <div>
                 <p className="text-sm text-muted-foreground">Categories</p>
                 <div className="flex flex-wrap gap-1">

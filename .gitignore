@@ -6,3 +6,5 @@ logs/
 deploy.sh
 .pem
 .DS_Store
+**/.DS_Store
+*.log

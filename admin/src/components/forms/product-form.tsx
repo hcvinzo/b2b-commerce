@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { HelpCircle, InfoIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import { useProductTypes } from "@/hooks/use-product-types";
 import { ProductImageManager } from "./product-image-manager";
 import { ProductAttributesForm } from "./product-attributes-form";
 import { ProductAttributeValueInput } from "@/types/entities";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "../ui/input-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface ProductFormProps {
   defaultValues?: Partial<ProductFormInput>;
@@ -62,7 +64,6 @@ export function ProductForm({
     defaultValues: {
       sku: "",
       name: "",
-      nameEn: "",
       description: "",
       categoryIds: [],
       brandId: "",
@@ -131,7 +132,7 @@ export function ProductForm({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-6 md:grid-cols-2 items-start">
                   <FormField
                     control={form.control}
                     name="sku"
@@ -176,20 +177,6 @@ export function ProductForm({
                         <FormLabel>Product Name *</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter product name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="nameEn"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Product Name (English)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter product name in English" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -275,6 +262,26 @@ export function ProductForm({
                     </FormItem>
                   )}
                 />
+
+                <InputGroup>
+                  <InputGroupInput placeholder="Enter API key" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InputGroupAddon>
+                        <InputGroupButton
+                          variant="ghost"
+                          aria-label="Info"
+                          size="icon-xs"
+                        >
+                          <InfoIcon />
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>Click for help with API keys</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </InputGroup>
 
                 <Separator />
 
