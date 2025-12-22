@@ -83,6 +83,8 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IAdminUserService, AdminUserService>();
+        services.AddScoped<IRoleManagementService, RoleManagementService>();
 
         // Integration Services
         services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();

@@ -15,6 +15,7 @@ import {
   Layers,
   Tag,
   Key,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -153,6 +154,11 @@ export const navigation: NavGroup[] = [
         title: "Admin Users",
         url: "/admin-users",
         icon: UserCog,
+      },
+      {
+        title: "Roles",
+        url: "/roles",
+        icon: Shield,
       },
       {
         title: "API Clients",

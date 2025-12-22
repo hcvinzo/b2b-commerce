@@ -4,6 +4,10 @@ using B2BCommerce.Backend.Application.DTOs.Integration;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities.Integration;
+using B2BCommerce.Backend.Domain.Enums;
+using B2BCommerce.Backend.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace B2BCommerce.Backend.Infrastructure.Services.Integration;
 
@@ -14,11 +18,19 @@ public class ApiClientService : IApiClientService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<ApiClientService> _logger;
 
-    public ApiClientService(IUnitOfWork unitOfWork, IMapper mapper)
+    public ApiClientService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        UserManager<ApplicationUser> userManager,
+        ILogger<ApiClientService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<Result<ApiClientDetailDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -74,6 +86,7 @@ public class ApiClientService : IApiClientService
             return Result<ApiClientDetailDto>.Failure("A client with this name already exists", "DUPLICATE_NAME");
         }
 
+        // Create the ApiClient entity
         var client = new ApiClient(
             dto.Name,
             dto.ContactEmail,
@@ -82,8 +95,33 @@ public class ApiClientService : IApiClientService
 
         client.CreatedBy = createdBy;
 
+        // Create an ApplicationUser for this API client (for audit trail purposes)
+        var apiClientUser = new ApplicationUser
+        {
+            UserName = $"api-client-{client.Id}",
+            Email = dto.ContactEmail,
+            EmailConfirmed = true, // API clients don't need email confirmation
+            FirstName = dto.Name,
+            LastName = "API Client",
+            UserType = UserType.ApiClient,
+            IsActive = true
+        };
+
+        var createUserResult = await _userManager.CreateAsync(apiClientUser);
+        if (!createUserResult.Succeeded)
+        {
+            var errors = string.Join(", ", createUserResult.Errors.Select(e => e.Description));
+            _logger.LogError("Failed to create user for API client {ClientName}: {Errors}", dto.Name, errors);
+            return Result<ApiClientDetailDto>.Failure($"Failed to create API client user: {errors}", "USER_CREATION_FAILED");
+        }
+
+        // Link the user to the API client
+        client.SetUser(apiClientUser.Id.ToString());
+
         await _unitOfWork.ApiClients.AddAsync(client, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Created API client {ClientName} with user {UserId}", dto.Name, apiClientUser.Id);
 
         var resultDto = _mapper.Map<ApiClientDetailDto>(client);
         return Result<ApiClientDetailDto>.Success(resultDto);
@@ -141,6 +179,17 @@ public class ApiClientService : IApiClientService
             return Result.Failure("Client is already active", "ALREADY_ACTIVE");
         }
 
+        // Reactivate the associated user if exists
+        if (!string.IsNullOrEmpty(client.UserId))
+        {
+            var user = await _userManager.FindByIdAsync(client.UserId);
+            if (user is not null)
+            {
+                user.IsActive = true;
+                await _userManager.UpdateAsync(user);
+            }
+        }
+
         client.Activate();
         client.UpdatedBy = updatedBy;
 
@@ -162,6 +211,17 @@ public class ApiClientService : IApiClientService
         if (!client.IsActive)
         {
             return Result.Failure("Client is already inactive", "ALREADY_INACTIVE");
+        }
+
+        // Deactivate the associated user if exists
+        if (!string.IsNullOrEmpty(client.UserId))
+        {
+            var user = await _userManager.FindByIdAsync(client.UserId);
+            if (user is not null)
+            {
+                user.IsActive = false;
+                await _userManager.UpdateAsync(user);
+            }
         }
 
         client.Deactivate(updatedBy);
@@ -189,6 +249,21 @@ public class ApiClientService : IApiClientService
             return Result.Failure("Cannot delete client with active API keys. Revoke all keys first.", "HAS_ACTIVE_KEYS");
         }
 
+        // Deactivate the associated user if exists
+        if (!string.IsNullOrEmpty(client.UserId) && Guid.TryParse(client.UserId, out var userId))
+        {
+            var user = await _userManager.FindByIdAsync(client.UserId);
+            if (user is not null)
+            {
+                user.IsActive = false;
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    _logger.LogWarning("Failed to deactivate user {UserId} for API client {ClientId}", client.UserId, id);
+                }
+            }
+        }
+
         // Soft delete using BaseEntity properties
         client.IsDeleted = true;
         client.DeletedAt = DateTime.UtcNow;
@@ -196,6 +271,8 @@ public class ApiClientService : IApiClientService
 
         _unitOfWork.ApiClients.Update(client);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Deleted API client {ClientId} and deactivated associated user", id);
 
         return Result.Success();
     }

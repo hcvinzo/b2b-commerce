@@ -632,3 +632,166 @@ export interface AvailableScopesResponse {
   scopes: string[];
   categories: PermissionScope[];
 }
+
+// =====================
+// Admin Users
+// =====================
+
+// Admin User (for list views)
+export interface AdminUserListItem {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  fullName: string;
+  roles: string[];
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+// Admin User (detailed view)
+export interface AdminUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  roles: string[];
+  isActive: boolean;
+  emailConfirmed: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+// DTOs for Admin User operations
+export interface CreateAdminUserDto {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  roles: string[];
+  temporaryPassword?: string;
+  sendWelcomeEmail?: boolean;
+}
+
+export interface UpdateAdminUserDto {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  roles?: string[];
+}
+
+// Filters
+export interface AdminUserFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  isActive?: boolean;
+}
+
+// Available roles
+export interface AvailableRole {
+  name: string;
+  description?: string;
+}
+
+// User login (external provider)
+export interface UserLogin {
+  id: string;
+  loginProvider: string;
+  providerDisplayName: string;
+  providerKey?: string;
+}
+
+// User claim
+export interface UserClaim {
+  id: number;
+  type: string;
+  value: string;
+}
+
+// DTOs for user claim operations
+export interface AddUserClaimDto {
+  type: string;
+  value: string;
+}
+
+// DTO for setting user roles
+export interface SetUserRolesDto {
+  roles: string[];
+}
+
+// ============================================
+// Role Management Types
+// ============================================
+
+// Role (list view)
+export interface RoleListItem {
+  id: string;
+  name: string;
+  description?: string;
+  userCount: number;
+  claimCount: number;
+  isProtected: boolean;
+  isSystemRole: boolean;
+  createdAt: string;
+}
+
+// Role (detailed view)
+export interface RoleDetail {
+  id: string;
+  name: string;
+  description?: string;
+  claims: string[];
+  userCount: number;
+  isProtected: boolean;
+  isSystemRole: boolean;
+  createdAt: string;
+}
+
+// DTOs for Role operations
+export interface CreateRoleDto {
+  name: string;
+  description?: string;
+  claims?: string[];
+}
+
+export interface UpdateRoleDto {
+  name?: string;
+  description?: string;
+}
+
+export interface SetRoleClaimsDto {
+  claims: string[];
+}
+
+// Role user list item
+export interface RoleUserListItem {
+  id: string;
+  email: string;
+  fullName?: string;
+  isActive: boolean;
+}
+
+// Available permission
+export interface AvailablePermission {
+  value: string;
+  displayName: string;
+  description?: string;
+  category: string;
+}
+
+// Permission category
+export interface PermissionCategory {
+  name: string;
+  description?: string;
+  permissions: AvailablePermission[];
+}
+
+// Filters
+export interface RoleFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
