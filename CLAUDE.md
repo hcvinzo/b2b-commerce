@@ -241,6 +241,77 @@ export type CategoryFormData = z.infer<typeof categorySchema>;
 - Supports `excludeId` to prevent selecting self as parent
 - Search within dropdown supported
 
+### List Page Pattern (Tables with Row Click Navigation)
+
+All list pages should follow the same pattern for row click navigation to detail pages:
+
+```tsx
+// ✅ CORRECT - Row click navigation pattern
+<TableBody>
+  {data.items.map((item) => (
+    <TableRow
+      key={item.id}
+      className="cursor-pointer"
+      onClick={() => router.push(`/entities/${item.id}`)}
+    >
+      <TableCell>{item.name}</TableCell>
+      {/* ... other cells ... */}
+      <TableCell onClick={(e) => e.stopPropagation()}>
+        <DropdownMenu>
+          {/* Dropdown menu content */}
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+```
+
+**Key points**:
+- Add `cursor-pointer` class to `TableRow`
+- Add `onClick` handler to navigate to detail page
+- Add `onClick={(e) => e.stopPropagation()}` to the dropdown menu cell to prevent row click when using dropdown
+- Use `useRouter` from `next/navigation` for navigation
+- Remove any `<Link>` wrappers on clickable text (the entire row is clickable)
+
+**Pages following this pattern**:
+- `/roles` → `/roles/[id]`
+- `/admin-users` → `/admin-users/[id]`
+- `/api-clients` → `/api-clients/[id]`
+- `/customers` → `/customers/[id]`
+
+### Detail Page Pattern (Tabbed Interface)
+
+Entity detail pages use a tabbed interface for managing different aspects:
+
+```
+/admin/src/app/(dashboard)/{entity}/[id]/page.tsx
+```
+
+**Common structure**:
+- Header with entity info and back button
+- Info cards showing key details
+- Tabs component with different management sections
+
+**Example - Admin User Detail Page Tabs**:
+- Overview (edit user info form)
+- Roles (manage user roles with checkboxes)
+- Login History (view external login providers)
+- Claims (manage direct user claims)
+
+**Example - Role Detail Page Tabs**:
+- Overview (edit role info)
+- Permissions (checkbox grid by category)
+- Users (list and manage users in role)
+
+**Component organization**:
+```
+/admin/src/components/{entity}/
+├── user-roles-editor.tsx      # Manage roles for a user
+├── user-login-history.tsx     # Display login providers
+├── user-claims-editor.tsx     # Add/remove claims
+└── ...
+```
+
 ### Extended Form Components (Standard)
 
 **IMPORTANT**: Use the extended `-ext` components for all form inputs in admin forms. These components support an optional `info` prop that displays a tooltip icon on the left side of the input.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   MoreHorizontal,
@@ -68,6 +68,7 @@ import { type ApiClientListItem, type ApiClientFilters } from "@/types/entities"
 import { formatDateTime } from "@/lib/utils";
 
 export default function ApiClientsPage() {
+  const router = useRouter();
   const [filters, setFilters] = useState<ApiClientFilters>({
     page: 1,
     pageSize: 10,
@@ -221,14 +222,15 @@ export default function ApiClientsPage() {
                 </TableHeader>
                 <TableBody>
                   {data.items.map((client) => (
-                    <TableRow key={client.id}>
+                    <TableRow
+                      key={client.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/api-clients/${client.id}`)}
+                    >
                       <TableCell>
-                        <Link
-                          href={`/api-clients/${client.id}`}
-                          className="font-medium hover:underline"
-                        >
+                        <span className="font-medium">
                           {client.name}
-                        </Link>
+                        </span>
                       </TableCell>
                       <TableCell>{client.contactEmail}</TableCell>
                       <TableCell className="text-center">
@@ -247,7 +249,7 @@ export default function ApiClientsPage() {
                       <TableCell className="text-muted-foreground text-sm">
                         {formatDateTime(client.createdAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -255,11 +257,11 @@ export default function ApiClientsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/api-clients/${client.id}`}>
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View Details
-                              </Link>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/api-clients/${client.id}`)}
+                            >
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(client)}>
                               <Pencil className="mr-2 h-4 w-4" />

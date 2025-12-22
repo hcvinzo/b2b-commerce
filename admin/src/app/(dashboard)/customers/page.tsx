@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Eye, MoreHorizontal, CheckCircle, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ import { formatCurrency } from "@/lib/utils";
 import { CustomerFilters } from "@/types/entities";
 
 export default function CustomersPage() {
+  const router = useRouter();
   const [filters, setFilters] = useState<CustomerFilters>({
     page: 1,
     pageSize: 10,
@@ -199,25 +200,24 @@ export default function CustomersPage() {
               </TableRow>
             ) : (
               data?.items.map((customer) => (
-                <TableRow key={customer.id}>
+                <TableRow
+                  key={customer.id}
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/customers/${customer.id}`)}
+                >
                   <TableCell>
                     <div>
-                      <Link
-                        href={`/customers/${customer.id}`}
-                        className="font-medium hover:underline text-primary"
-                      >
+                      <span className="font-medium">
                         {customer.companyName}
-                      </Link>
-                      {customer.tradeName && (
-                        <p className="text-sm text-muted-foreground">
-                          {customer.tradeName}
-                        </p>
-                      )}
+                      </span>
+                      <p className="text-sm text-muted-foreground">
+                        {customer.type}
+                      </p>
                     </div>
                   </TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{formatCurrency(customer.creditLimit)}</TableCell>
-                  <TableCell>{formatCurrency(customer.availableCredit)}</TableCell>
+                  <TableCell>{formatCurrency(customer.creditLimit, customer.currency)}</TableCell>
+                  <TableCell>{formatCurrency(customer.availableCredit, customer.currency)}</TableCell>
                   <TableCell>
                     <Badge variant={customer.isActive ? "default" : "secondary"}>
                       {customer.isActive ? "Active" : "Inactive"}
@@ -235,7 +235,7 @@ export default function CustomersPage() {
                       {customer.isApproved ? "Approved" : "Pending"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -243,11 +243,11 @@ export default function CustomersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </Link>
+                        <DropdownMenuItem
+                          onClick={() => router.push(`/customers/${customer.id}`)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {!customer.isApproved && (

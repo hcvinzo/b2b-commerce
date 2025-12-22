@@ -20,6 +20,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(c => c.TradeName)
+            .IsRequired()
+            .HasMaxLength(100);
+
         // TaxNumber value object - simple wrapper
         builder.Property(c => c.TaxNumber)
             .HasConversion(
@@ -28,6 +32,20 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasColumnName("TaxNumber")
             .IsRequired()
             .HasMaxLength(20);
+
+        builder.Property(c => c.TaxOffice)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Property(c => c.MersisNo)
+            .HasMaxLength(20);
+
+        builder.Property(c => c.IdentityNo)
+            .HasColumnName("IdentityNo")
+            .HasMaxLength(11);
+
+        builder.Property(c => c.TradeRegistryNo)
+            .HasMaxLength(50);
 
         // Email value object - simple wrapper
         builder.Property(c => c.Email)
@@ -46,6 +64,20 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasColumnName("Phone")
             .IsRequired()
             .HasMaxLength(20);
+
+        // MobilePhone value object - nullable
+        builder.Property(c => c.MobilePhone)
+            .HasConversion(
+                v => v != null ? v.Value : null,
+                v => v != null ? new Domain.ValueObjects.PhoneNumber(v) : null)
+            .HasColumnName("MobilePhone")
+            .HasMaxLength(20);
+
+        builder.Property(c => c.Fax)
+            .HasMaxLength(20);
+
+        builder.Property(c => c.Website)
+            .HasMaxLength(200);
 
         // Enum properties
         builder.Property(c => c.Type)
@@ -105,72 +137,22 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired()
             .HasMaxLength(100);
 
-        // Address value objects as owned types - Billing Address
-        builder.OwnsOne(c => c.BillingAddress, address =>
-        {
-            address.Property(a => a.Street)
-                .HasColumnName("BillingStreet")
-                .IsRequired()
-                .HasMaxLength(500);
-
-            address.Property(a => a.City)
-                .HasColumnName("BillingCity")
-                .IsRequired()
-                .HasMaxLength(100);
-
-            address.Property(a => a.State)
-                .HasColumnName("BillingState")
-                .HasMaxLength(100);
-
-            address.Property(a => a.Country)
-                .HasColumnName("BillingCountry")
-                .IsRequired()
-                .HasMaxLength(100);
-
-            address.Property(a => a.PostalCode)
-                .HasColumnName("BillingPostalCode")
-                .IsRequired()
-                .HasMaxLength(20);
-        });
-
-        // Address value objects as owned types - Shipping Address
-        builder.OwnsOne(c => c.ShippingAddress, address =>
-        {
-            address.Property(a => a.Street)
-                .HasColumnName("ShippingStreet")
-                .IsRequired()
-                .HasMaxLength(500);
-
-            address.Property(a => a.City)
-                .HasColumnName("ShippingCity")
-                .IsRequired()
-                .HasMaxLength(100);
-
-            address.Property(a => a.State)
-                .HasColumnName("ShippingState")
-                .HasMaxLength(100);
-
-            address.Property(a => a.Country)
-                .HasColumnName("ShippingCountry")
-                .IsRequired()
-                .HasMaxLength(100);
-
-            address.Property(a => a.PostalCode)
-                .HasColumnName("ShippingPostalCode")
-                .IsRequired()
-                .HasMaxLength(20);
-        });
+        // Addresses relationship - handled by CustomerAddressConfiguration
+        builder.HasMany(c => c.Addresses)
+            .WithOne(a => a.Customer)
+            .HasForeignKey(a => a.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Settings
         builder.Property(c => c.PreferredCurrency)
             .IsRequired()
             .HasMaxLength(3)
-            .HasDefaultValue("USD");
+            .HasDefaultValue("TRY");
 
         builder.Property(c => c.PreferredLanguage)
             .IsRequired()
             .HasMaxLength(10)
-            .HasDefaultValue("en");
+            .HasDefaultValue("tr");
 
         builder.Property(c => c.IsActive)
             .IsRequired()

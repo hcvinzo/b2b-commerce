@@ -38,23 +38,25 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TaxNumber, opt => opt.MapFrom(src => src.TaxNumber.Value))
             .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email.Value))
             .ForMember(dest => dest.Phone, opt => opt.MapFrom(src => src.Phone.Value))
+            .ForMember(dest => dest.MobilePhone, opt => opt.MapFrom(src => src.MobilePhone != null ? src.MobilePhone.Value : null))
             .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
             .ForMember(dest => dest.PriceTier, opt => opt.MapFrom(src => src.PriceTier.ToString()))
             .ForMember(dest => dest.CreditLimit, opt => opt.MapFrom(src => src.CreditLimit.Amount))
             .ForMember(dest => dest.UsedCredit, opt => opt.MapFrom(src => src.UsedCredit.Amount))
             .ForMember(dest => dest.AvailableCredit, opt => opt.MapFrom(src => src.GetAvailableCredit().Amount))
             .ForMember(dest => dest.Currency, opt => opt.MapFrom(src => src.CreditLimit.Currency))
-            .ForMember(dest => dest.BillingStreet, opt => opt.MapFrom(src => src.BillingAddress.Street))
-            .ForMember(dest => dest.BillingCity, opt => opt.MapFrom(src => src.BillingAddress.City))
-            .ForMember(dest => dest.BillingState, opt => opt.MapFrom(src => src.BillingAddress.State))
-            .ForMember(dest => dest.BillingCountry, opt => opt.MapFrom(src => src.BillingAddress.Country))
-            .ForMember(dest => dest.BillingPostalCode, opt => opt.MapFrom(src => src.BillingAddress.PostalCode))
-            .ForMember(dest => dest.ShippingStreet, opt => opt.MapFrom(src => src.ShippingAddress.Street))
-            .ForMember(dest => dest.ShippingCity, opt => opt.MapFrom(src => src.ShippingAddress.City))
-            .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingAddress.State))
-            .ForMember(dest => dest.ShippingCountry, opt => opt.MapFrom(src => src.ShippingAddress.Country))
-            .ForMember(dest => dest.ShippingPostalCode, opt => opt.MapFrom(src => src.ShippingAddress.PostalCode))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt ?? src.CreatedAt));
+
+        // CustomerAddress mappings
+        CreateMap<CustomerAddress, CustomerAddressDto>()
+            .ForMember(dest => dest.AddressType, opt => opt.MapFrom(src => src.AddressType.ToString()))
+            .ForMember(dest => dest.Street, opt => opt.MapFrom(src => src.Address.Street))
+            .ForMember(dest => dest.District, opt => opt.MapFrom(src => src.Address.District))
+            .ForMember(dest => dest.Neighborhood, opt => opt.MapFrom(src => src.Address.Neighborhood))
+            .ForMember(dest => dest.City, opt => opt.MapFrom(src => src.Address.City))
+            .ForMember(dest => dest.State, opt => opt.MapFrom(src => src.Address.State))
+            .ForMember(dest => dest.Country, opt => opt.MapFrom(src => src.Address.Country))
+            .ForMember(dest => dest.PostalCode, opt => opt.MapFrom(src => src.Address.PostalCode));
 
         // Order mappings
         CreateMap<Order, OrderDto>()

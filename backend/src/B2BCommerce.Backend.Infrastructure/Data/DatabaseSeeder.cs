@@ -473,19 +473,38 @@ public class DatabaseSeeder
             return;
         }
 
-        // Create customer entity
-        var customer = new Customer(
+        // Create customer entity using factory method
+        var customer = Customer.Create(
             companyName: "Acme Corporation",
+            tradeName: "Acme",
             taxNumber: new TaxNumber("1234567890"),
+            taxOffice: "Manhattan",
             email: new Email(customerEmail),
             phone: new PhoneNumber("+1-555-123-4567"),
             contactPersonName: "John Smith",
             contactPersonTitle: "Procurement Manager",
-            billingAddress: new Address("123 Business Ave", "New York", "NY", "USA", "10001"),
-            shippingAddress: new Address("456 Warehouse Blvd", "Newark", "NJ", "USA", "07102"),
             creditLimit: new Money(50000m, "USD"),
             type: CustomerType.Premium
         );
+
+        // Create addresses for the customer
+        var billingAddress = CustomerAddress.Create(
+            customerId: customer.Id,
+            title: "Billing Address",
+            addressType: CustomerAddressType.Billing,
+            address: new Address("123 Business Ave", "New York", "NY", "USA", "10001"),
+            isDefault: true
+        );
+        customer.Addresses.Add(billingAddress);
+
+        var shippingAddress = CustomerAddress.Create(
+            customerId: customer.Id,
+            title: "Shipping Address",
+            addressType: CustomerAddressType.Shipping,
+            address: new Address("456 Warehouse Blvd", "Newark", "NJ", "USA", "07102"),
+            isDefault: true
+        );
+        customer.Addresses.Add(shippingAddress);
 
         // Approve the customer
         customer.Approve("System");

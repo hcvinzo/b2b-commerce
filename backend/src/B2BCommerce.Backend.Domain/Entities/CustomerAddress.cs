@@ -1,15 +1,17 @@
 using B2BCommerce.Backend.Domain.Common;
+using B2BCommerce.Backend.Domain.Enums;
 using B2BCommerce.Backend.Domain.ValueObjects;
 
 namespace B2BCommerce.Backend.Domain.Entities;
 
 /// <summary>
-/// Multiple addresses for a customer
+/// Customer address entity supporting multiple addresses per customer
 /// </summary>
 public class CustomerAddress : BaseEntity
 {
     public Guid CustomerId { get; private set; }
-    public string AddressTitle { get; private set; }
+    public string Title { get; private set; }
+    public CustomerAddressType AddressType { get; private set; }
     public Address Address { get; private set; }
     public bool IsDefault { get; private set; }
     public bool IsActive { get; private set; }
@@ -19,17 +21,47 @@ public class CustomerAddress : BaseEntity
 
     private CustomerAddress() // For EF Core
     {
-        AddressTitle = string.Empty;
+        Title = string.Empty;
         Address = new Address("Street", "City", "State", "Country", "00000");
     }
 
+    /// <summary>
+    /// Creates a new customer address
+    /// </summary>
+    public static CustomerAddress Create(
+        Guid customerId,
+        string title,
+        CustomerAddressType addressType,
+        Address address,
+        bool isDefault = false)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Address title cannot be null or empty", nameof(title));
+        }
+
+        return new CustomerAddress
+        {
+            CustomerId = customerId,
+            Title = title,
+            AddressType = addressType,
+            Address = address ?? throw new ArgumentNullException(nameof(address)),
+            IsDefault = isDefault,
+            IsActive = true
+        };
+    }
+
+    [Obsolete("Use CustomerAddress.Create() factory method instead")]
     public CustomerAddress(Guid customerId, string addressTitle, Address address, bool isDefault = false)
     {
         if (string.IsNullOrWhiteSpace(addressTitle))
+        {
             throw new ArgumentException("Address title cannot be null or empty", nameof(addressTitle));
+        }
 
         CustomerId = customerId;
-        AddressTitle = addressTitle;
+        Title = addressTitle;
+        AddressType = CustomerAddressType.Shipping;
         Address = address ?? throw new ArgumentNullException(nameof(address));
         IsDefault = isDefault;
         IsActive = true;
@@ -45,12 +77,29 @@ public class CustomerAddress : BaseEntity
         IsDefault = false;
     }
 
-    public void Update(string addressTitle, Address address)
+    public void Update(string title, Address address)
     {
-        if (string.IsNullOrWhiteSpace(addressTitle))
-            throw new ArgumentException("Address title cannot be null or empty", nameof(addressTitle));
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Address title cannot be null or empty", nameof(title));
+        }
 
-        AddressTitle = addressTitle;
+        Title = title;
         Address = address ?? throw new ArgumentNullException(nameof(address));
+    }
+
+    public void UpdateAddressType(CustomerAddressType addressType)
+    {
+        AddressType = addressType;
+    }
+
+    public void Activate()
+    {
+        IsActive = true;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
     }
 }

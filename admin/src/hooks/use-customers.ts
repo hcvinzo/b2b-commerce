@@ -7,8 +7,10 @@ import {
   activateCustomer,
   deactivateCustomer,
   updateCreditLimit,
+  updateCustomer,
+  deleteCustomer,
 } from "@/lib/api/customers";
-import { CustomerFilters } from "@/types/entities";
+import { CustomerFilters, UpdateCustomerData } from "@/types/entities";
 
 export const customerKeys = {
   all: ["customers"] as const,
@@ -106,6 +108,46 @@ export function useUpdateCreditLimit() {
     onError: (error: Error) => {
       toast.error("Error", {
         description: error.message || "Failed to update credit limit.",
+      });
+    },
+  });
+}
+
+export function useUpdateCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateCustomerData }) =>
+      updateCustomer(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.all });
+      queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
+      toast.success("Customer updated", {
+        description: "The customer has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "Failed to update customer.",
+      });
+    },
+  });
+}
+
+export function useDeleteCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteCustomer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.all });
+      toast.success("Customer deleted", {
+        description: "The customer has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "Failed to delete customer.",
       });
     },
   });

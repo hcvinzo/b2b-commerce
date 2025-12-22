@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2, Mail, Phone, Globe, CreditCard, MapPin } from "lucide-react";
+import { ArrowLeft, Building2, Mail, Phone, CreditCard, MapPin, User, Globe, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -98,9 +98,9 @@ export default function CustomerDetailPage() {
             <h1 className="text-3xl font-bold tracking-tight">
               {customer.companyName}
             </h1>
-            {customer.tradeName && (
-              <p className="text-muted-foreground">{customer.tradeName}</p>
-            )}
+            <p className="text-muted-foreground">
+              {customer.tradeName && `${customer.tradeName} - `}{customer.type}
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -151,40 +151,32 @@ export default function CustomerDetailPage() {
                 <p className="text-sm text-muted-foreground">Tax Number</p>
                 <p className="font-medium">{customer.taxNumber}</p>
               </div>
-              {customer.taxOffice && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Tax Office</p>
-                  <p className="font-medium">{customer.taxOffice}</p>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{customer.email}</span>
+              <div>
+                <p className="text-sm text-muted-foreground">Tax Office</p>
+                <p className="font-medium">{customer.taxOffice}</p>
               </div>
-              {customer.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{customer.phone}</span>
+              {customer.mersisNo && (
+                <div>
+                  <p className="text-sm text-muted-foreground">MERSIS No</p>
+                  <p className="font-medium">{customer.mersisNo}</p>
                 </div>
               )}
-              {customer.website && (
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <a
-                    href={customer.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    {customer.website}
-                  </a>
+              {customer.identityNo && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Identity No</p>
+                  <p className="font-medium">{customer.identityNo}</p>
                 </div>
               )}
+              {customer.tradeRegistryNo && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Trade Registry No</p>
+                  <p className="font-medium">{customer.tradeRegistryNo}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Customer Type</p>
+                <p className="font-medium">{customer.type}</p>
+              </div>
             </div>
 
             <Separator />
@@ -211,7 +203,7 @@ export default function CustomerDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Price Tier</p>
-                <Badge variant="outline">Tier {customer.priceTier}</Badge>
+                <Badge variant="outline">{customer.priceTier}</Badge>
               </div>
             </div>
           </CardContent>
@@ -225,26 +217,26 @@ export default function CustomerDetailPage() {
               Credit
             </CardTitle>
             <CardDescription>
-              Payment terms: {customer.paymentTermDays} days
+              Currency: {customer.currency}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground">Credit Limit</p>
               <p className="text-2xl font-bold">
-                {formatCurrency(customer.creditLimit)}
+                {formatCurrency(customer.creditLimit, customer.currency)}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Used Credit</p>
               <p className="text-xl font-semibold text-orange-600">
-                {formatCurrency(customer.usedCredit)}
+                {formatCurrency(customer.usedCredit, customer.currency)}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Available Credit</p>
               <p className="text-xl font-semibold text-green-600">
-                {formatCurrency(customer.availableCredit)}
+                {formatCurrency(customer.availableCredit, customer.currency)}
               </p>
             </div>
 
@@ -262,13 +254,6 @@ export default function CustomerDetailPage() {
               </div>
             </div>
 
-            {customer.discountRate > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground">Discount Rate</p>
-                <p className="font-medium">{customer.discountRate}%</p>
-              </div>
-            )}
-
             <Button
               className="w-full"
               variant="outline"
@@ -282,57 +267,111 @@ export default function CustomerDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Contact Person */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Contact Person
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Name</p>
+              <p className="font-medium">{customer.contactPersonName}</p>
+            </div>
+            {customer.contactPersonTitle && (
+              <div>
+                <p className="text-sm text-muted-foreground">Title</p>
+                <p className="font-medium">{customer.contactPersonTitle}</p>
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{customer.email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{customer.phone}</span>
+              </div>
+              {customer.mobilePhone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{customer.mobilePhone} (Mobile)</span>
+                </div>
+              )}
+              {customer.fax && (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{customer.fax} (Fax)</span>
+                </div>
+              )}
+              {customer.website && (
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <a
+                    href={customer.website.startsWith("http") ? customer.website : `https://${customer.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {customer.website}
+                  </a>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Addresses */}
-        {customer.addresses.length > 0 && (
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Addresses
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Addresses
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {customer.addresses && customer.addresses.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {customer.addresses.map((address) => (
-                  <div
-                    key={address.id}
-                    className="p-4 border rounded-lg space-y-2"
-                  >
+                  <div key={address.id} className="p-4 border rounded-lg space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="font-medium">{address.title}</p>
                       <div className="flex gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          {address.addressType}
+                        </Badge>
                         {address.isDefault && (
                           <Badge variant="secondary" className="text-xs">
                             Default
                           </Badge>
                         )}
-                        {address.isBilling && (
-                          <Badge variant="outline" className="text-xs">
-                            Billing
-                          </Badge>
-                        )}
-                        {address.isShipping && (
-                          <Badge variant="outline" className="text-xs">
-                            Shipping
-                          </Badge>
-                        )}
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <p>{address.addressLine1}</p>
-                      {address.addressLine2 && <p>{address.addressLine2}</p>}
+                      <p>{address.street}</p>
+                      {address.neighborhood && <p>{address.neighborhood}</p>}
                       <p>
                         {address.district && `${address.district}, `}
-                        {address.city} {address.postalCode}
+                        {address.city}
+                        {address.state && `, ${address.state}`}
+                        {address.postalCode && ` ${address.postalCode}`}
                       </p>
                       <p>{address.country}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <p className="text-sm text-muted-foreground">No addresses on file</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Metadata */}
         <Card>
@@ -340,6 +379,15 @@ export default function CustomerDetailPage() {
             <CardTitle>Account Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Currency</span>
+              <span>{customer.preferredCurrency}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Language</span>
+              <span>{customer.preferredLanguage}</span>
+            </div>
+            <Separator className="my-2" />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Created</span>
               <span>{formatDateTime(customer.createdAt)}</span>
@@ -350,16 +398,16 @@ export default function CustomerDetailPage() {
                 <span>{formatDateTime(customer.approvedAt)}</span>
               </div>
             )}
+            {customer.approvedBy && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Approved By</span>
+                <span>{customer.approvedBy}</span>
+              </div>
+            )}
             {customer.updatedAt && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Updated</span>
                 <span>{formatDateTime(customer.updatedAt)}</span>
-              </div>
-            )}
-            {customer.externalId && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">External ID</span>
-                <span className="font-mono text-xs">{customer.externalId}</span>
               </div>
             )}
           </CardContent>

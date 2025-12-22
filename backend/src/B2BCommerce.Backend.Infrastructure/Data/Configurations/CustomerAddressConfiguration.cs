@@ -19,9 +19,14 @@ public class CustomerAddressConfiguration : IEntityTypeConfiguration<CustomerAdd
         builder.Property(ca => ca.CustomerId)
             .IsRequired();
 
-        builder.Property(ca => ca.AddressTitle)
+        builder.Property(ca => ca.Title)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.Property(ca => ca.AddressType)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
 
         // Address value object as owned type
         builder.OwnsOne(ca => ca.Address, address =>
@@ -30,6 +35,14 @@ public class CustomerAddressConfiguration : IEntityTypeConfiguration<CustomerAdd
                 .HasColumnName("Street")
                 .IsRequired()
                 .HasMaxLength(500);
+
+            address.Property(a => a.District)
+                .HasColumnName("District")
+                .HasMaxLength(100);
+
+            address.Property(a => a.Neighborhood)
+                .HasColumnName("Neighborhood")
+                .HasMaxLength(100);
 
             address.Property(a => a.City)
                 .HasColumnName("City")
@@ -88,6 +101,8 @@ public class CustomerAddressConfiguration : IEntityTypeConfiguration<CustomerAdd
 
         // Indexes
         builder.HasIndex(ca => ca.CustomerId);
+
+        builder.HasIndex(ca => ca.AddressType);
 
         builder.HasIndex(ca => ca.IsDefault);
 

@@ -210,29 +210,66 @@ export interface ProductFilters {
   sortOrder?: "asc" | "desc";
 }
 
+// Customer Address Type
+export type CustomerAddressType = "Billing" | "Shipping" | "Contact";
+
+// Customer Address
+export interface CustomerAddress {
+  id: string;
+  customerId: string;
+  title: string;
+  addressType: CustomerAddressType;
+  street: string;
+  district?: string;
+  neighborhood?: string;
+  city: string;
+  state?: string;
+  country: string;
+  postalCode: string;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
 // Customer
-export interface Customer extends ExternalEntity {
+export interface Customer extends BaseEntity {
+  // Company Information
   companyName: string;
-  tradeName?: string;
+  tradeName: string;
   taxNumber: string;
-  taxOffice?: string;
+  taxOffice: string;
+  mersisNo?: string;
+  identityNo?: string;
+  tradeRegistryNo?: string;
+
+  // Contact Information
   email: string;
-  phone?: string;
+  phone: string;
+  mobilePhone?: string;
+  fax?: string;
   website?: string;
+  contactPersonName: string;
+  contactPersonTitle: string;
+
+  // Credit & Type
+  type: string;
+  priceTier: string;
   creditLimit: number;
-  creditLimitCurrency: string;
   usedCredit: number;
   availableCredit: number;
-  paymentTermDays: number;
-  discountRate: number;
-  priceTier: number;
-  isActive: boolean;
+  currency: string;
+
+  // Approval
   isApproved: boolean;
   approvedAt?: string;
   approvedBy?: string;
-  primaryAddress?: Address;
-  addresses: Address[];
-  contacts: CustomerContact[];
+
+  // Addresses
+  addresses: CustomerAddress[];
+
+  // Preferences
+  preferredCurrency: string;
+  preferredLanguage: string;
+  isActive: boolean;
 }
 
 export interface Address {
@@ -266,6 +303,27 @@ export interface CustomerFilters {
   isApproved?: boolean;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+}
+
+export interface UpdateCustomerData {
+  // Company Information
+  companyName: string;
+  tradeName: string;
+  taxOffice: string;
+  mersisNo?: string;
+  identityNo?: string;
+  tradeRegistryNo?: string;
+
+  // Contact Information
+  phone: string;
+  mobilePhone?: string;
+  fax?: string;
+  website?: string;
+  contactPersonName: string;
+  contactPersonTitle: string;
+
+  // Preferences
+  preferredLanguage: string;
 }
 
 // Order

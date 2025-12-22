@@ -22,19 +22,17 @@ public class UpdateCustomerCommandHandler : ICommandHandler<UpdateCustomerComman
         var updateDto = new UpdateCustomerDto
         {
             CompanyName = request.CompanyName,
+            TradeName = request.TradeName,
+            TaxOffice = request.TaxOffice,
+            MersisNo = request.MersisNo,
+            IdentityNo = request.IdentityNo,
+            TradeRegistryNo = request.TradeRegistryNo,
             Phone = request.Phone,
+            MobilePhone = request.MobilePhone,
+            Fax = request.Fax,
+            Website = request.Website,
             ContactPersonName = request.ContactPersonName,
             ContactPersonTitle = request.ContactPersonTitle,
-            BillingStreet = request.BillingStreet,
-            BillingCity = request.BillingCity,
-            BillingState = request.BillingState,
-            BillingCountry = request.BillingCountry,
-            BillingPostalCode = request.BillingPostalCode,
-            ShippingStreet = request.ShippingStreet,
-            ShippingCity = request.ShippingCity,
-            ShippingState = request.ShippingState,
-            ShippingCountry = request.ShippingCountry,
-            ShippingPostalCode = request.ShippingPostalCode,
             PreferredLanguage = request.PreferredLanguage
         };
 

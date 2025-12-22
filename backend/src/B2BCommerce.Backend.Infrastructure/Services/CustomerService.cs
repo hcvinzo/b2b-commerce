@@ -3,6 +3,7 @@ using B2BCommerce.Backend.Application.DTOs.Customers;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 using B2BCommerce.Backend.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
@@ -44,13 +45,65 @@ public class CustomerService : ICustomerService
         return Result<CustomerDto>.Success(MapToCustomerDto(customer));
     }
 
-    public async Task<Result<PagedResult<CustomerDto>>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<Result<PagedResult<CustomerDto>>> GetAllAsync(
+        int pageNumber,
+        int pageSize,
+        string? search = null,
+        bool? isActive = null,
+        bool? isApproved = null,
+        string? sortBy = null,
+        string? sortDirection = null,
+        CancellationToken cancellationToken = default)
     {
         var customers = await _unitOfWork.Customers.GetAllAsync(cancellationToken);
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLowerInvariant();
+            customers = customers.Where(c =>
+                c.CompanyName.ToLowerInvariant().Contains(searchLower) ||
+                c.Email.Value.ToLowerInvariant().Contains(searchLower) ||
+                c.TaxNumber.Value.Contains(searchLower) ||
+                c.ContactPersonName.ToLowerInvariant().Contains(searchLower));
+        }
+
+        // Apply active filter
+        if (isActive.HasValue)
+        {
+            customers = customers.Where(c => c.IsActive == isActive.Value);
+        }
+
+        // Apply approved filter
+        if (isApproved.HasValue)
+        {
+            customers = customers.Where(c => c.IsApproved == isApproved.Value);
+        }
+
         var totalCount = customers.Count();
 
+        // Apply sorting
+        var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        customers = sortBy?.ToLowerInvariant() switch
+        {
+            "companyname" => isDescending
+                ? customers.OrderByDescending(c => c.CompanyName)
+                : customers.OrderBy(c => c.CompanyName),
+            "email" => isDescending
+                ? customers.OrderByDescending(c => c.Email.Value)
+                : customers.OrderBy(c => c.Email.Value),
+            "creditlimit" => isDescending
+                ? customers.OrderByDescending(c => c.CreditLimit.Amount)
+                : customers.OrderBy(c => c.CreditLimit.Amount),
+            "createdat" => isDescending
+                ? customers.OrderByDescending(c => c.CreatedAt)
+                : customers.OrderBy(c => c.CreatedAt),
+            _ => isDescending
+                ? customers.OrderByDescending(c => c.CreatedAt)
+                : customers.OrderBy(c => c.CompanyName)
+        };
+
         var pagedCustomers = customers
-            .OrderBy(c => c.CompanyName)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(MapToCustomerDto)
@@ -77,31 +130,25 @@ public class CustomerService : ICustomerService
 
         try
         {
+            // Update company info
+            customer.UpdateCompanyInfo(
+                tradeName: dto.TradeName,
+                taxOffice: dto.TaxOffice,
+                mersisNo: dto.MersisNo,
+                identityNo: dto.IdentityNo,
+                tradeRegistryNo: dto.TradeRegistryNo
+            );
+
             // Update contact info
             customer.UpdateContactInfo(
                 companyName: dto.CompanyName,
                 contactPersonName: dto.ContactPersonName,
                 contactPersonTitle: dto.ContactPersonTitle,
-                phone: new PhoneNumber(dto.Phone)
+                phone: new PhoneNumber(dto.Phone),
+                mobilePhone: !string.IsNullOrWhiteSpace(dto.MobilePhone) ? new PhoneNumber(dto.MobilePhone) : null,
+                fax: dto.Fax,
+                website: dto.Website
             );
-
-            // Update billing address
-            customer.UpdateBillingAddress(new Address(
-                dto.BillingStreet,
-                dto.BillingCity,
-                dto.BillingState,
-                dto.BillingCountry,
-                dto.BillingPostalCode
-            ));
-
-            // Update shipping address
-            customer.UpdateShippingAddress(new Address(
-                dto.ShippingStreet,
-                dto.ShippingCity,
-                dto.ShippingState,
-                dto.ShippingCountry,
-                dto.ShippingPostalCode
-            ));
 
             _unitOfWork.Customers.Update(customer);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -262,9 +309,17 @@ public class CustomerService : ICustomerService
         {
             Id = customer.Id,
             CompanyName = customer.CompanyName,
+            TradeName = customer.TradeName,
             TaxNumber = customer.TaxNumber.Value,
+            TaxOffice = customer.TaxOffice,
+            MersisNo = customer.MersisNo,
+            IdentityNo = customer.IdentityNo,
+            TradeRegistryNo = customer.TradeRegistryNo,
             Email = customer.Email.Value,
             Phone = customer.Phone.Value,
+            MobilePhone = customer.MobilePhone?.Value,
+            Fax = customer.Fax,
+            Website = customer.Website,
             Type = customer.Type.ToString(),
             PriceTier = customer.PriceTier.ToString(),
             CreditLimit = customer.CreditLimit.Amount,
@@ -276,21 +331,32 @@ public class CustomerService : ICustomerService
             ApprovedBy = customer.ApprovedBy,
             ContactPersonName = customer.ContactPersonName,
             ContactPersonTitle = customer.ContactPersonTitle,
-            BillingStreet = customer.BillingAddress.Street,
-            BillingCity = customer.BillingAddress.City,
-            BillingState = customer.BillingAddress.State,
-            BillingCountry = customer.BillingAddress.Country,
-            BillingPostalCode = customer.BillingAddress.PostalCode,
-            ShippingStreet = customer.ShippingAddress.Street,
-            ShippingCity = customer.ShippingAddress.City,
-            ShippingState = customer.ShippingAddress.State,
-            ShippingCountry = customer.ShippingAddress.Country,
-            ShippingPostalCode = customer.ShippingAddress.PostalCode,
+            Addresses = customer.Addresses?.Select(MapToCustomerAddressDto).ToList() ?? new List<CustomerAddressDto>(),
             PreferredCurrency = customer.PreferredCurrency,
             PreferredLanguage = customer.PreferredLanguage,
             IsActive = customer.IsActive,
             CreatedAt = customer.CreatedAt,
             UpdatedAt = customer.UpdatedAt ?? customer.CreatedAt
+        };
+    }
+
+    private static CustomerAddressDto MapToCustomerAddressDto(CustomerAddress address)
+    {
+        return new CustomerAddressDto
+        {
+            Id = address.Id,
+            CustomerId = address.CustomerId,
+            Title = address.Title,
+            AddressType = address.AddressType.ToString(),
+            Street = address.Address.Street,
+            District = address.Address.District,
+            Neighborhood = address.Address.Neighborhood,
+            City = address.Address.City,
+            State = address.Address.State,
+            Country = address.Address.Country,
+            PostalCode = address.Address.PostalCode,
+            IsDefault = address.IsDefault,
+            IsActive = address.IsActive
         };
     }
 }

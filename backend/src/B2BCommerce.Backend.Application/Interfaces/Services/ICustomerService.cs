@@ -19,9 +19,17 @@ public interface ICustomerService
     Task<Result<CustomerDto>> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get all customers with pagination
+    /// Get all customers with pagination, search, and filtering
     /// </summary>
-    Task<Result<PagedResult<CustomerDto>>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<Result<PagedResult<CustomerDto>>> GetAllAsync(
+        int pageNumber,
+        int pageSize,
+        string? search = null,
+        bool? isActive = null,
+        bool? isApproved = null,
+        string? sortBy = null,
+        string? sortDirection = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get customers pending approval

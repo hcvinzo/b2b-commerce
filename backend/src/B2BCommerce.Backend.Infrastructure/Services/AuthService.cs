@@ -122,29 +122,80 @@ public class AuthService : IAuthService
                 customerType = parsedType;
             }
 
-            // Create customer
-            var customer = new Customer(
+            // Create customer using factory method
+            var customer = Customer.Create(
                 companyName: request.CompanyName,
+                tradeName: request.TradeName,
                 taxNumber: new TaxNumber(request.TaxNumber),
+                taxOffice: request.TaxOffice,
                 email: new Email(request.Email),
                 phone: new PhoneNumber(request.Phone),
                 contactPersonName: request.ContactPersonName,
                 contactPersonTitle: request.ContactPersonTitle,
-                billingAddress: new Address(
+                creditLimit: new Money(request.CreditLimit, request.Currency),
+                type: customerType,
+                mersisNo: request.MersisNo,
+                identityNo: request.IdentityNo,
+                tradeRegistryNo: request.TradeRegistryNo,
+                mobilePhone: !string.IsNullOrWhiteSpace(request.MobilePhone) ? new PhoneNumber(request.MobilePhone) : null,
+                fax: request.Fax,
+                website: request.Website
+            );
+
+            // Create billing address and add to customer
+            var billingAddress = CustomerAddress.Create(
+                customerId: customer.Id,
+                title: "Billing Address",
+                addressType: CustomerAddressType.Billing,
+                address: new Address(
                     request.BillingStreet,
                     request.BillingCity,
                     request.BillingState,
                     request.BillingCountry,
-                    request.BillingPostalCode),
-                shippingAddress: new Address(
-                    request.ShippingStreet,
-                    request.ShippingCity,
-                    request.ShippingState,
-                    request.ShippingCountry,
-                    request.ShippingPostalCode),
-                creditLimit: new Money(request.CreditLimit, request.Currency),
-                type: customerType
+                    request.BillingPostalCode,
+                    request.BillingDistrict,
+                    request.BillingNeighborhood),
+                isDefault: true
             );
+            customer.Addresses.Add(billingAddress);
+
+            // Create shipping address if different from billing
+            CustomerAddress shippingAddress;
+            if (request.UseSameAddressForBilling)
+            {
+                shippingAddress = CustomerAddress.Create(
+                    customerId: customer.Id,
+                    title: "Shipping Address",
+                    addressType: CustomerAddressType.Shipping,
+                    address: new Address(
+                        request.BillingStreet,
+                        request.BillingCity,
+                        request.BillingState,
+                        request.BillingCountry,
+                        request.BillingPostalCode,
+                        request.BillingDistrict,
+                        request.BillingNeighborhood),
+                    isDefault: true
+                );
+            }
+            else
+            {
+                shippingAddress = CustomerAddress.Create(
+                    customerId: customer.Id,
+                    title: "Shipping Address",
+                    addressType: CustomerAddressType.Shipping,
+                    address: new Address(
+                        request.ShippingStreet,
+                        request.ShippingCity,
+                        request.ShippingState,
+                        request.ShippingCountry,
+                        request.ShippingPostalCode,
+                        request.ShippingDistrict,
+                        request.ShippingNeighborhood),
+                    isDefault: true
+                );
+            }
+            customer.Addresses.Add(shippingAddress);
 
             await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -374,9 +425,17 @@ public class AuthService : IAuthService
         {
             Id = customer.Id,
             CompanyName = customer.CompanyName,
+            TradeName = customer.TradeName,
             TaxNumber = customer.TaxNumber.Value,
+            TaxOffice = customer.TaxOffice,
+            MersisNo = customer.MersisNo,
+            IdentityNo = customer.IdentityNo,
+            TradeRegistryNo = customer.TradeRegistryNo,
             Email = customer.Email.Value,
             Phone = customer.Phone.Value,
+            MobilePhone = customer.MobilePhone?.Value,
+            Fax = customer.Fax,
+            Website = customer.Website,
             Type = customer.Type.ToString(),
             PriceTier = customer.PriceTier.ToString(),
             CreditLimit = customer.CreditLimit.Amount,
@@ -388,16 +447,22 @@ public class AuthService : IAuthService
             ApprovedBy = customer.ApprovedBy,
             ContactPersonName = customer.ContactPersonName,
             ContactPersonTitle = customer.ContactPersonTitle,
-            BillingStreet = customer.BillingAddress.Street,
-            BillingCity = customer.BillingAddress.City,
-            BillingState = customer.BillingAddress.State,
-            BillingCountry = customer.BillingAddress.Country,
-            BillingPostalCode = customer.BillingAddress.PostalCode,
-            ShippingStreet = customer.ShippingAddress.Street,
-            ShippingCity = customer.ShippingAddress.City,
-            ShippingState = customer.ShippingAddress.State,
-            ShippingCountry = customer.ShippingAddress.Country,
-            ShippingPostalCode = customer.ShippingAddress.PostalCode,
+            Addresses = customer.Addresses?.Select(a => new CustomerAddressDto
+            {
+                Id = a.Id,
+                CustomerId = a.CustomerId,
+                Title = a.Title,
+                AddressType = a.AddressType.ToString(),
+                Street = a.Address.Street,
+                District = a.Address.District,
+                Neighborhood = a.Address.Neighborhood,
+                City = a.Address.City,
+                State = a.Address.State,
+                Country = a.Address.Country,
+                PostalCode = a.Address.PostalCode,
+                IsDefault = a.IsDefault,
+                IsActive = a.IsActive
+            }).ToList() ?? new List<CustomerAddressDto>(),
             PreferredCurrency = customer.PreferredCurrency,
             PreferredLanguage = customer.PreferredLanguage,
             IsActive = customer.IsActive,

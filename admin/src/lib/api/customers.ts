@@ -1,5 +1,5 @@
 import { apiClient, PaginatedResponse } from "./client";
-import { Customer, CustomerFilters } from "@/types/entities";
+import { Customer, CustomerFilters, UpdateCustomerData } from "@/types/entities";
 
 const CUSTOMERS_BASE = "/customers";
 
@@ -33,10 +33,6 @@ export async function approveCustomer(id: string): Promise<void> {
   await apiClient.post(`${CUSTOMERS_BASE}/${id}/approve`);
 }
 
-export async function rejectCustomer(id: string, reason?: string): Promise<void> {
-  await apiClient.post(`${CUSTOMERS_BASE}/${id}/reject`, { reason });
-}
-
 export async function activateCustomer(id: string): Promise<void> {
   await apiClient.post(`${CUSTOMERS_BASE}/${id}/activate`);
 }
@@ -49,5 +45,17 @@ export async function updateCreditLimit(
   id: string,
   creditLimit: number
 ): Promise<void> {
-  await apiClient.patch(`${CUSTOMERS_BASE}/${id}/credit-limit`, { creditLimit });
+  await apiClient.put(`${CUSTOMERS_BASE}/${id}/credit-limit`, { newCreditLimit: creditLimit });
+}
+
+export async function updateCustomer(
+  id: string,
+  data: UpdateCustomerData
+): Promise<Customer> {
+  const response = await apiClient.put<Customer>(`${CUSTOMERS_BASE}/${id}`, data);
+  return response.data;
+}
+
+export async function deleteCustomer(id: string): Promise<void> {
+  await apiClient.delete(`${CUSTOMERS_BASE}/${id}`);
 }

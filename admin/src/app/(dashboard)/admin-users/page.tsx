@@ -264,7 +264,11 @@ export default function AdminUsersPage() {
                 </TableHeader>
                 <TableBody>
                   {data.items.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer"
+                      onClick={() => handleView(user)}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">
@@ -302,7 +306,7 @@ export default function AdminUsersPage() {
                       <TableCell className="text-muted-foreground text-sm">
                         {formatDateTime(user.createdAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">

@@ -11,9 +11,17 @@ namespace B2BCommerce.Backend.Domain.Entities;
 public class Customer : BaseEntity, IAggregateRoot
 {
     public string CompanyName { get; private set; }
+    public string TradeName { get; private set; }
     public TaxNumber TaxNumber { get; private set; }
+    public string TaxOffice { get; private set; }
+    public string? MersisNo { get; private set; }
+    public string? IdentityNo { get; private set; }
+    public string? TradeRegistryNo { get; private set; }
     public Email Email { get; private set; }
     public PhoneNumber Phone { get; private set; }
+    public PhoneNumber? MobilePhone { get; private set; }
+    public string? Fax { get; private set; }
+    public string? Website { get; private set; }
     public CustomerType Type { get; private set; }
     public PriceTier PriceTier { get; private set; }
 
@@ -28,10 +36,6 @@ public class Customer : BaseEntity, IAggregateRoot
     public string ContactPersonName { get; private set; }
     public string ContactPersonTitle { get; private set; }
 
-    // Addresses
-    public Address BillingAddress { get; private set; }
-    public Address ShippingAddress { get; private set; }
-
     // Settings
     public string PreferredCurrency { get; private set; }
     public string PreferredLanguage { get; private set; }
@@ -44,15 +48,15 @@ public class Customer : BaseEntity, IAggregateRoot
     private Customer() // For EF Core
     {
         CompanyName = string.Empty;
+        TradeName = string.Empty;
         TaxNumber = new TaxNumber("0000000000");
+        TaxOffice = string.Empty;
         Email = new Email("default@example.com");
         Phone = new PhoneNumber("0000000000");
         CreditLimit = Money.Zero("USD");
         UsedCredit = Money.Zero("USD");
         ContactPersonName = string.Empty;
         ContactPersonTitle = string.Empty;
-        BillingAddress = new Address("Street", "City", "State", "Country", "00000");
-        ShippingAddress = new Address("Street", "City", "State", "Country", "00000");
         PreferredCurrency = "USD";
         PreferredLanguage = "en";
         Orders = new List<Order>();
@@ -64,39 +68,60 @@ public class Customer : BaseEntity, IAggregateRoot
     /// </summary>
     public static Customer Create(
         string companyName,
+        string tradeName,
         TaxNumber taxNumber,
+        string taxOffice,
         Email email,
         PhoneNumber phone,
         string contactPersonName,
         string contactPersonTitle,
-        Address billingAddress,
-        Address shippingAddress,
         Money creditLimit,
         CustomerType type = CustomerType.Standard,
-        PriceTier priceTier = PriceTier.List)
+        PriceTier priceTier = PriceTier.List,
+        string? mersisNo = null,
+        string? identityNo = null,
+        string? tradeRegistryNo = null,
+        PhoneNumber? mobilePhone = null,
+        string? fax = null,
+        string? website = null)
     {
         if (string.IsNullOrWhiteSpace(companyName))
+        {
             throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
+        }
 
         if (string.IsNullOrWhiteSpace(contactPersonName))
+        {
             throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
+        }
+
+        if (string.IsNullOrWhiteSpace(taxOffice))
+        {
+            throw new ArgumentException("Tax office cannot be null or empty", nameof(taxOffice));
+        }
 
         var customer = new Customer
         {
             CompanyName = companyName,
+            TradeName = tradeName ?? string.Empty,
             TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber)),
+            TaxOffice = taxOffice,
+            MersisNo = mersisNo,
+            IdentityNo = identityNo,
+            TradeRegistryNo = tradeRegistryNo,
             Email = email ?? throw new ArgumentNullException(nameof(email)),
             Phone = phone ?? throw new ArgumentNullException(nameof(phone)),
+            MobilePhone = mobilePhone,
+            Fax = fax,
+            Website = website,
             ContactPersonName = contactPersonName,
             ContactPersonTitle = contactPersonTitle ?? string.Empty,
-            BillingAddress = billingAddress ?? throw new ArgumentNullException(nameof(billingAddress)),
-            ShippingAddress = shippingAddress ?? throw new ArgumentNullException(nameof(shippingAddress)),
             CreditLimit = creditLimit ?? throw new ArgumentNullException(nameof(creditLimit)),
             UsedCredit = Money.Zero(creditLimit.Currency),
             Type = type,
             PriceTier = priceTier,
             PreferredCurrency = creditLimit.Currency,
-            PreferredLanguage = "en",
+            PreferredLanguage = "tr",
             IsApproved = false,
             IsActive = true,
             Orders = new List<Order>(),
@@ -114,32 +139,34 @@ public class Customer : BaseEntity, IAggregateRoot
         PhoneNumber phone,
         string contactPersonName,
         string contactPersonTitle,
-        Address billingAddress,
-        Address shippingAddress,
         Money creditLimit,
         CustomerType type = CustomerType.Standard,
         PriceTier priceTier = PriceTier.List)
     {
         if (string.IsNullOrWhiteSpace(companyName))
+        {
             throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
+        }
 
         if (string.IsNullOrWhiteSpace(contactPersonName))
+        {
             throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
+        }
 
         CompanyName = companyName;
+        TradeName = string.Empty;
         TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber));
+        TaxOffice = string.Empty;
         Email = email ?? throw new ArgumentNullException(nameof(email));
         Phone = phone ?? throw new ArgumentNullException(nameof(phone));
         ContactPersonName = contactPersonName;
         ContactPersonTitle = contactPersonTitle ?? string.Empty;
-        BillingAddress = billingAddress ?? throw new ArgumentNullException(nameof(billingAddress));
-        ShippingAddress = shippingAddress ?? throw new ArgumentNullException(nameof(shippingAddress));
         CreditLimit = creditLimit ?? throw new ArgumentNullException(nameof(creditLimit));
         UsedCredit = Money.Zero(creditLimit.Currency);
         Type = type;
         PriceTier = priceTier;
         PreferredCurrency = creditLimit.Currency;
-        PreferredLanguage = "en";
+        PreferredLanguage = "tr";
         IsApproved = false;
         IsActive = true;
         Orders = new List<Order>();
@@ -205,28 +232,51 @@ public class Customer : BaseEntity, IAggregateRoot
         return usedPercentage >= thresholdPercentage;
     }
 
-    public void UpdateContactInfo(string companyName, string contactPersonName, string contactPersonTitle, PhoneNumber phone)
+    public void UpdateContactInfo(
+        string companyName,
+        string contactPersonName,
+        string contactPersonTitle,
+        PhoneNumber phone,
+        PhoneNumber? mobilePhone = null,
+        string? fax = null,
+        string? website = null)
     {
         if (string.IsNullOrWhiteSpace(companyName))
+        {
             throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
+        }
 
         if (string.IsNullOrWhiteSpace(contactPersonName))
+        {
             throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
+        }
 
         CompanyName = companyName;
         ContactPersonName = contactPersonName;
         ContactPersonTitle = contactPersonTitle ?? string.Empty;
         Phone = phone ?? throw new ArgumentNullException(nameof(phone));
+        MobilePhone = mobilePhone;
+        Fax = fax;
+        Website = website;
     }
 
-    public void UpdateBillingAddress(Address address)
+    public void UpdateCompanyInfo(
+        string tradeName,
+        string taxOffice,
+        string? mersisNo = null,
+        string? identityNo = null,
+        string? tradeRegistryNo = null)
     {
-        BillingAddress = address ?? throw new ArgumentNullException(nameof(address));
-    }
+        if (string.IsNullOrWhiteSpace(taxOffice))
+        {
+            throw new ArgumentException("Tax office cannot be null or empty", nameof(taxOffice));
+        }
 
-    public void UpdateShippingAddress(Address address)
-    {
-        ShippingAddress = address ?? throw new ArgumentNullException(nameof(address));
+        TradeName = tradeName ?? string.Empty;
+        TaxOffice = taxOffice;
+        MersisNo = mersisNo;
+        IdentityNo = identityNo;
+        TradeRegistryNo = tradeRegistryNo;
     }
 
     public void UpdatePriceTier(PriceTier priceTier)

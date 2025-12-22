@@ -11,24 +11,64 @@ public class CustomerDto
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Company name
+    /// Company name (Firma Ünvanı)
     /// </summary>
     public string CompanyName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Tax number
+    /// Trade name / Short company name (Firma Kısa Adı)
+    /// </summary>
+    public string TradeName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Tax number (Vergi Numarası)
     /// </summary>
     public string TaxNumber { get; set; } = string.Empty;
 
     /// <summary>
-    /// Email address
+    /// Tax office (Vergi Dairesi)
+    /// </summary>
+    public string TaxOffice { get; set; } = string.Empty;
+
+    /// <summary>
+    /// MERSIS number (Mersis No)
+    /// </summary>
+    public string? MersisNo { get; set; }
+
+    /// <summary>
+    /// Identity number (TC Kimlik No / Kimlik Numarası)
+    /// </summary>
+    public string? IdentityNo { get; set; }
+
+    /// <summary>
+    /// Trade registry number (Ticaret Sicil No)
+    /// </summary>
+    public string? TradeRegistryNo { get; set; }
+
+    /// <summary>
+    /// Email address (E-posta)
     /// </summary>
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
-    /// Phone number
+    /// Phone number (Telefon)
     /// </summary>
     public string Phone { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Mobile phone number (Cep Telefonu)
+    /// </summary>
+    public string? MobilePhone { get; set; }
+
+    /// <summary>
+    /// Fax number (Faks)
+    /// </summary>
+    public string? Fax { get; set; }
+
+    /// <summary>
+    /// Website URL (Web Sitesi)
+    /// </summary>
+    public string? Website { get; set; }
 
     /// <summary>
     /// Customer type
@@ -76,64 +116,19 @@ public class CustomerDto
     public string? ApprovedBy { get; set; }
 
     /// <summary>
-    /// Contact person name
+    /// Contact person name (Yetkili Adı Soyadı)
     /// </summary>
     public string ContactPersonName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Contact person title
+    /// Contact person title (Yetkili Ünvanı)
     /// </summary>
     public string ContactPersonTitle { get; set; } = string.Empty;
 
     /// <summary>
-    /// Billing address street
+    /// Customer addresses
     /// </summary>
-    public string BillingStreet { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address city
-    /// </summary>
-    public string BillingCity { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address state
-    /// </summary>
-    public string BillingState { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address country
-    /// </summary>
-    public string BillingCountry { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address postal code
-    /// </summary>
-    public string BillingPostalCode { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Shipping address street
-    /// </summary>
-    public string ShippingStreet { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Shipping address city
-    /// </summary>
-    public string ShippingCity { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Shipping address state
-    /// </summary>
-    public string ShippingState { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Shipping address country
-    /// </summary>
-    public string ShippingCountry { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Shipping address postal code
-    /// </summary>
-    public string ShippingPostalCode { get; set; } = string.Empty;
+    public List<CustomerAddressDto> Addresses { get; set; } = new();
 
     /// <summary>
     /// Preferred currency

@@ -19,6 +19,14 @@ public class GetAllCustomersQueryHandler : IQueryHandler<GetAllCustomersQuery, R
 
     public async Task<Result<PagedResult<CustomerDto>>> Handle(GetAllCustomersQuery request, CancellationToken cancellationToken)
     {
-        return await _customerService.GetAllAsync(request.PageNumber, request.PageSize, cancellationToken);
+        return await _customerService.GetAllAsync(
+            request.PageNumber,
+            request.PageSize,
+            request.Search,
+            request.IsActive,
+            request.IsApproved,
+            request.SortBy,
+            request.SortDirection,
+            cancellationToken);
     }
 }

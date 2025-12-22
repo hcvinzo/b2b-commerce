@@ -31,16 +31,21 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Get all customers with pagination
+    /// Get all customers with pagination, search, and filtering
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<CustomerDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] bool? isApproved = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDirection = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAllCustomersQuery(pageNumber, pageSize);
+        var query = new GetAllCustomersQuery(pageNumber, pageSize, search, isActive, isApproved, sortBy, sortDirection);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)
@@ -164,19 +169,17 @@ public class CustomersController : ControllerBase
         var command = new UpdateCustomerCommand(
             id,
             request.CompanyName,
+            request.TradeName,
+            request.TaxOffice,
+            request.MersisNo,
+            request.IdentityNo,
+            request.TradeRegistryNo,
             request.Phone,
+            request.MobilePhone,
+            request.Fax,
+            request.Website,
             request.ContactPersonName,
             request.ContactPersonTitle,
-            request.BillingStreet,
-            request.BillingCity,
-            request.BillingState,
-            request.BillingCountry,
-            request.BillingPostalCode,
-            request.ShippingStreet,
-            request.ShippingCity,
-            request.ShippingState,
-            request.ShippingCountry,
-            request.ShippingPostalCode,
             request.PreferredLanguage);
 
         var result = await _mediator.Send(command, cancellationToken);
