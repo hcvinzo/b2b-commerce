@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ import {
   useUpdateCreditLimit,
 } from "@/hooks/use-customers";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { CustomerAttributesEditor } from "@/components/customers/customer-attributes-editor";
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -126,9 +128,16 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Company Info */}
-        <Card className="md:col-span-2">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="attributes">Extra Info</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Company Info */}
+            <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -412,7 +421,13 @@ export default function CustomerDetailPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="attributes">
+          <CustomerAttributesEditor customerId={id} />
+        </TabsContent>
+      </Tabs>
 
       {/* Credit Limit Dialog */}
       <Dialog open={creditDialogOpen} onOpenChange={setCreditDialogOpen}>

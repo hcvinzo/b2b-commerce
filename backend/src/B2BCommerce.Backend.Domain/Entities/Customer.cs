@@ -44,6 +44,7 @@ public class Customer : BaseEntity, IAggregateRoot
     // Navigation properties
     public ICollection<Order> Orders { get; set; }
     public ICollection<CustomerAddress> Addresses { get; set; }
+    public ICollection<CustomerAttribute> Attributes { get; set; }
 
     private Customer() // For EF Core
     {
@@ -61,6 +62,7 @@ public class Customer : BaseEntity, IAggregateRoot
         PreferredLanguage = "en";
         Orders = new List<Order>();
         Addresses = new List<CustomerAddress>();
+        Attributes = new List<CustomerAttribute>();
     }
 
     /// <summary>
@@ -125,7 +127,8 @@ public class Customer : BaseEntity, IAggregateRoot
             IsApproved = false,
             IsActive = true,
             Orders = new List<Order>(),
-            Addresses = new List<CustomerAddress>()
+            Addresses = new List<CustomerAddress>(),
+            Attributes = new List<CustomerAttribute>()
         };
 
         return customer;
@@ -171,6 +174,7 @@ public class Customer : BaseEntity, IAggregateRoot
         IsActive = true;
         Orders = new List<Order>();
         Addresses = new List<CustomerAddress>();
+        Attributes = new List<CustomerAttribute>();
     }
 
     public void Approve(string approvedBy)

@@ -7,11 +7,15 @@ using B2BCommerce.Backend.Application.Features.Customers.Commands.DeactivateCust
 using B2BCommerce.Backend.Application.Features.Customers.Commands.DeleteCustomer;
 using B2BCommerce.Backend.Application.Features.Customers.Commands.UpdateCreditLimit;
 using B2BCommerce.Backend.Application.Features.Customers.Commands.UpdateCustomer;
+using B2BCommerce.Backend.Application.Features.CustomerAttributes.Commands.DeleteCustomerAttribute;
+using B2BCommerce.Backend.Application.Features.CustomerAttributes.Commands.UpsertCustomerAttributes;
+using B2BCommerce.Backend.Application.Features.CustomerAttributes.Queries.GetCustomerAttributes;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetAllCustomers;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetAvailableCredit;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetCustomerByEmail;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetCustomerById;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetUnapprovedCustomers;
+using B2BCommerce.Backend.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -304,6 +308,85 @@ public class CustomersController : ControllerBase
 
         return NoContent();
     }
+
+    #region Customer Attributes
+
+    /// <summary>
+    /// Get all attributes for a customer, optionally filtered by type
+    /// </summary>
+    [HttpGet("{id:guid}/attributes")]
+    [ProducesResponseType(typeof(IEnumerable<CustomerAttributeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAttributes(
+        Guid id,
+        [FromQuery] CustomerAttributeType? type = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetCustomerAttributesQuery(id, type);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Upsert customer attributes by type (replaces all existing attributes of the specified type)
+    /// </summary>
+    [HttpPut("{id:guid}/attributes")]
+    [ProducesResponseType(typeof(IEnumerable<CustomerAttributeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpsertAttributes(
+        Guid id,
+        [FromBody] UpsertCustomerAttributesByTypeDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpsertCustomerAttributesCommand(id, request.AttributeType, request.Items);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            if (result.ErrorCode == "CUSTOMER_NOT_FOUND")
+            {
+                return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+            }
+            if (result.ValidationErrors is not null)
+            {
+                return BadRequest(new { message = result.ErrorMessage, errors = result.ValidationErrors });
+            }
+            return BadRequest(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Delete a customer attribute
+    /// </summary>
+    [HttpDelete("{customerId:guid}/attributes/{attributeId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAttribute(
+        Guid customerId,
+        Guid attributeId,
+        CancellationToken cancellationToken)
+    {
+        var command = new DeleteCustomerAttributeCommand(attributeId);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return NoContent();
+    }
+
+    #endregion
 }
 
 /// <summary>

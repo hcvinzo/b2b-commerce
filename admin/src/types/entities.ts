@@ -853,3 +853,81 @@ export interface RoleFilters {
   pageSize?: number;
   search?: string;
 }
+
+// ============================================
+// Customer Attribute Types
+// ============================================
+
+// Customer Attribute Type enum (matching backend)
+export type CustomerAttributeType =
+  | "ShareholderOrDirector"
+  | "BusinessPartner"
+  | "ProductCategory"
+  | "BankAccount"
+  | "Collateral"
+  | "PaymentPreference";
+
+export const CustomerAttributeTypeEnum = {
+  ShareholderOrDirector: 1,
+  BusinessPartner: 2,
+  ProductCategory: 3,
+  BankAccount: 4,
+  Collateral: 5,
+  PaymentPreference: 6,
+} as const;
+
+// Customer Attribute
+export interface CustomerAttribute {
+  id: string;
+  customerId: string;
+  attributeType: CustomerAttributeType;
+  attributeTypeName: string;
+  displayOrder: number;
+  jsonData: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// Typed JSON data structures for each attribute type
+export interface ShareholderData {
+  fullName: string;
+  identityNumber: string;
+  sharePercentage: number;
+}
+
+export interface BusinessPartnerData {
+  companyName: string;
+  paymentTerm: string;
+  creditLimitUsd: number;
+}
+
+export interface ProductCategoryData {
+  categories: string[];
+}
+
+export interface BankAccountData {
+  bankName: string;
+  iban: string;
+}
+
+export interface CollateralData {
+  type: string;
+  amount: number;
+  currency: string;
+}
+
+export interface PaymentPreferenceData {
+  preferences: string[];
+}
+
+// DTO for upserting attributes
+export interface UpsertCustomerAttributesDto {
+  attributeType: CustomerAttributeType;
+  items: CustomerAttributeItemDto[];
+}
+
+export interface CustomerAttributeItemDto {
+  id?: string;
+  displayOrder: number;
+  jsonData: string;
+}

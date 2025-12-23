@@ -1,5 +1,12 @@
 import { apiClient, PaginatedResponse } from "./client";
-import { Customer, CustomerFilters, UpdateCustomerData } from "@/types/entities";
+import {
+  Customer,
+  CustomerFilters,
+  UpdateCustomerData,
+  CustomerAttribute,
+  CustomerAttributeType,
+  UpsertCustomerAttributesDto,
+} from "@/types/entities";
 
 const CUSTOMERS_BASE = "/customers";
 
@@ -58,4 +65,34 @@ export async function updateCustomer(
 
 export async function deleteCustomer(id: string): Promise<void> {
   await apiClient.delete(`${CUSTOMERS_BASE}/${id}`);
+}
+
+// Customer Attributes API
+export async function getCustomerAttributes(
+  customerId: string,
+  type?: CustomerAttributeType
+): Promise<CustomerAttribute[]> {
+  const params = type ? `?type=${type}` : "";
+  const response = await apiClient.get<CustomerAttribute[]>(
+    `${CUSTOMERS_BASE}/${customerId}/attributes${params}`
+  );
+  return response.data;
+}
+
+export async function upsertCustomerAttributes(
+  customerId: string,
+  data: UpsertCustomerAttributesDto
+): Promise<CustomerAttribute[]> {
+  const response = await apiClient.put<CustomerAttribute[]>(
+    `${CUSTOMERS_BASE}/${customerId}/attributes`,
+    data
+  );
+  return response.data;
+}
+
+export async function deleteCustomerAttribute(
+  customerId: string,
+  attributeId: string
+): Promise<void> {
+  await apiClient.delete(`${CUSTOMERS_BASE}/${customerId}/attributes/${attributeId}`);
 }

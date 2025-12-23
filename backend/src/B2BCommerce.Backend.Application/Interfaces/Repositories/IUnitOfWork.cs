@@ -86,6 +86,11 @@ public interface IUnitOfWork : IDisposable
     IProductCategoryRepository ProductCategories { get; }
 
     /// <summary>
+    /// Gets the customer attribute repository
+    /// </summary>
+    ICustomerAttributeRepository CustomerAttributes { get; }
+
+    /// <summary>
     /// Saves all changes made in this unit of work to the database
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>

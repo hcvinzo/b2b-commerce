@@ -37,6 +37,9 @@ public class UnitOfWork : IUnitOfWork
     private IProductAttributeValueRepository? _productAttributeValues;
     private IProductCategoryRepository? _productCategories;
 
+    // Customer repositories
+    private ICustomerAttributeRepository? _customerAttributes;
+
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
@@ -92,6 +95,10 @@ public class UnitOfWork : IUnitOfWork
 
     public IProductCategoryRepository ProductCategories =>
         _productCategories ??= new ProductCategoryRepository(_context);
+
+    // Customer repositories
+    public ICustomerAttributeRepository CustomerAttributes =>
+        _customerAttributes ??= new CustomerAttributeRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

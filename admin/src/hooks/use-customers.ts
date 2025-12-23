@@ -9,8 +9,16 @@ import {
   updateCreditLimit,
   updateCustomer,
   deleteCustomer,
+  getCustomerAttributes,
+  upsertCustomerAttributes,
+  deleteCustomerAttribute,
 } from "@/lib/api/customers";
-import { CustomerFilters, UpdateCustomerData } from "@/types/entities";
+import {
+  CustomerFilters,
+  UpdateCustomerData,
+  CustomerAttributeType,
+  UpsertCustomerAttributesDto,
+} from "@/types/entities";
 
 export const customerKeys = {
   all: ["customers"] as const,
@@ -18,6 +26,9 @@ export const customerKeys = {
   list: (filters: CustomerFilters) => [...customerKeys.lists(), filters] as const,
   details: () => [...customerKeys.all, "detail"] as const,
   detail: (id: string) => [...customerKeys.details(), id] as const,
+  attributes: (customerId: string) => [...customerKeys.detail(customerId), "attributes"] as const,
+  attributesByType: (customerId: string, type: CustomerAttributeType) =>
+    [...customerKeys.attributes(customerId), type] as const,
 };
 
 export function useCustomers(filters: CustomerFilters) {
@@ -148,6 +159,74 @@ export function useDeleteCustomer() {
     onError: (error: Error) => {
       toast.error("Error", {
         description: error.message || "Failed to delete customer.",
+      });
+    },
+  });
+}
+
+// Customer Attributes Hooks
+export function useCustomerAttributes(
+  customerId: string,
+  type?: CustomerAttributeType
+) {
+  return useQuery({
+    queryKey: type
+      ? customerKeys.attributesByType(customerId, type)
+      : customerKeys.attributes(customerId),
+    queryFn: () => getCustomerAttributes(customerId, type),
+    enabled: !!customerId,
+  });
+}
+
+export function useUpsertCustomerAttributes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      customerId,
+      data,
+    }: {
+      customerId: string;
+      data: UpsertCustomerAttributesDto;
+    }) => upsertCustomerAttributes(customerId, data),
+    onSuccess: (_, { customerId }) => {
+      queryClient.invalidateQueries({
+        queryKey: customerKeys.attributes(customerId),
+      });
+      toast.success("Attributes saved", {
+        description: "Customer attributes have been saved successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "Failed to save customer attributes.",
+      });
+    },
+  });
+}
+
+export function useDeleteCustomerAttribute() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      customerId,
+      attributeId,
+    }: {
+      customerId: string;
+      attributeId: string;
+    }) => deleteCustomerAttribute(customerId, attributeId),
+    onSuccess: (_, { customerId }) => {
+      queryClient.invalidateQueries({
+        queryKey: customerKeys.attributes(customerId),
+      });
+      toast.success("Attribute deleted", {
+        description: "Customer attribute has been deleted successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Error", {
+        description: error.message || "Failed to delete customer attribute.",
       });
     },
   });

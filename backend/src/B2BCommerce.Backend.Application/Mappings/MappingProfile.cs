@@ -58,6 +58,10 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Country, opt => opt.MapFrom(src => src.Address.Country))
             .ForMember(dest => dest.PostalCode, opt => opt.MapFrom(src => src.Address.PostalCode));
 
+        // CustomerAttribute mappings
+        CreateMap<CustomerAttribute, CustomerAttributeDto>()
+            .ForMember(dest => dest.AttributeTypeName, opt => opt.MapFrom(src => src.AttributeType.ToString()));
+
         // Order mappings
         CreateMap<Order, OrderDto>()
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
