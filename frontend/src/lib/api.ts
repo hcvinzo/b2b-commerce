@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { LoginFormData } from './validations/login.schema'
-import type { AuthResponse, DealerRegistration } from '@/types'
+import type { AuthResponse, CustomerDocumentDto, CustomerDocumentType, DealerRegistrationDto, FileUploadResponse, RegistrationResponse } from '@/types'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://localhost:5001/api',
@@ -42,8 +42,8 @@ export async function loginUser(data: LoginFormData): Promise<AuthResponse> {
   return response.data
 }
 
-export async function registerDealer(data: DealerRegistration): Promise<AuthResponse> {
-  const response = await api.post<AuthResponse>('/auth/register', data)
+export async function registerDealer(data: DealerRegistrationDto): Promise<RegistrationResponse> {
+  const response = await api.post<RegistrationResponse>('/auth/register', data)
   return response.data
 }
 
@@ -68,6 +68,60 @@ export interface NewsletterResponse {
 export async function subscribeNewsletter(email: string): Promise<NewsletterResponse> {
   const response = await api.post<NewsletterResponse>('/newsletter/subscribe', { email })
   return response.data
+}
+
+// Document Upload API functions
+
+/**
+ * Upload a document during registration (anonymous access)
+ * Returns the uploaded file URL and metadata
+ */
+export async function uploadRegistrationDocument(file: File): Promise<FileUploadResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post<FileUploadResponse>('/files/upload/registration-document', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return response.data
+}
+
+/**
+ * Save document association after customer registration (anonymous access)
+ */
+export async function saveCustomerDocument(
+  customerId: string,
+  documentType: CustomerDocumentType,
+  contentUrl: string,
+  fileName: string,
+  fileType: string,
+  fileSize: number
+): Promise<CustomerDocumentDto> {
+  const response = await api.post<CustomerDocumentDto>(`/customers/${customerId}/documents/registration`, {
+    documentType,
+    contentUrl,
+    fileName,
+    fileType,
+    fileSize,
+  })
+  return response.data
+}
+
+/**
+ * Get all documents for a customer
+ */
+export async function getCustomerDocuments(customerId: string): Promise<CustomerDocumentDto[]> {
+  const response = await api.get<CustomerDocumentDto[]>(`/customers/${customerId}/documents`)
+  return response.data
+}
+
+/**
+ * Delete a customer document
+ */
+export async function deleteCustomerDocument(customerId: string, documentId: string): Promise<void> {
+  await api.delete(`/customers/${customerId}/documents/${documentId}`)
 }
 
 export { api }

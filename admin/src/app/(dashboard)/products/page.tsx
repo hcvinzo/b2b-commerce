@@ -24,6 +24,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -96,206 +103,216 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="flex flex-1 gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search products..."
-              className="pl-8"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>All Products</CardTitle>
+          <CardDescription>
+            Browse and manage your product inventory
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Filters */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
+            <div className="flex flex-1 gap-2">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search products..."
+                  className="pl-8"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                />
+              </div>
+              <Button variant="secondary" onClick={handleSearch}>
+                Search
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Select
+                value={filters.categoryId || "all"}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={filters.status || "all"}
+                onValueChange={handleStatusChange}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Button variant="secondary" onClick={handleSearch}>
-            Search
-          </Button>
-        </div>
-        <div className="flex gap-2">
-          <Select
-            value={filters.categoryId || "all"}
-            onValueChange={handleCategoryChange}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filters.status || "all"}
-            onValueChange={handleStatusChange}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[60px]">Image</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Product Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={8}>
-                    <Skeleton className="h-10 w-full" />
-                  </TableCell>
+          {/* Table */}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[60px]">Image</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
+                  <TableHead className="text-right">Stock</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
-              ))
-            ) : data?.items.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-10">
-                  <p className="text-muted-foreground">No products found</p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.items.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    {product.mainImageUrl ? (
-                      <div className="relative h-10 w-10 overflow-hidden rounded-md bg-muted">
-                        <Image
-                          src={product.mainImageUrl}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                          sizes="40px"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground text-xs">
-                        N/A
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{product.sku}</TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/products/${product.id}`}
-                      className="hover:underline text-primary"
-                    >
-                      {product.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{product.categoryName}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(product.listPrice)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {product.stockQuantity}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        product.status === "Active"
-                          ? "default"
-                          : product.status === "Draft"
-                          ? "outline"
-                          : "secondary"
-                      }
-                    >
-                      {product.status || (product.isActive ? "Active" : "Inactive")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/products/${product.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/products/${product.id}?edit=true`}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setDeleteId(product.id)}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={8}>
+                        <Skeleton className="h-10 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : data?.items.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-10">
+                      <p className="text-muted-foreground">No products found</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data?.items.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        {product.mainImageUrl ? (
+                          <div className="relative h-10 w-10 overflow-hidden rounded-md bg-muted">
+                            <Image
+                              src={product.mainImageUrl}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground text-xs">
+                            N/A
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{product.sku}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/products/${product.id}`}
+                          className="hover:underline text-primary"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      {data && data.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {(data.pageNumber - 1) * data.pageSize + 1} to{" "}
-            {Math.min(data.pageNumber * data.pageSize, data.totalCount)} of{" "}
-            {data.totalCount} products
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!data.hasPreviousPage}
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, page: (prev.page || 1) - 1 }))
-              }
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!data.hasNextPage}
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, page: (prev.page || 1) + 1 }))
-              }
-            >
-              Next
-            </Button>
+                          {product.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{product.categoryName}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(product.listPrice)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {product.stockQuantity}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            product.status === "Active"
+                              ? "default"
+                              : product.status === "Draft"
+                              ? "outline"
+                              : "secondary"
+                          }
+                        >
+                          {product.status || (product.isActive ? "Active" : "Inactive")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.id}?edit=true`}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteId(product.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
-        </div>
-      )}
+
+          {/* Pagination */}
+          {data && data.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {(data.pageNumber - 1) * data.pageSize + 1} to{" "}
+                {Math.min(data.pageNumber * data.pageSize, data.totalCount)} of{" "}
+                {data.totalCount} products
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!data.hasPreviousPage}
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, page: (prev.page || 1) - 1 }))
+                  }
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!data.hasNextPage}
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, page: (prev.page || 1) + 1 }))
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Delete Confirmation */}
       <ConfirmDialog

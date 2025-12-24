@@ -35,6 +35,7 @@ import {
 } from "@/hooks/use-customers";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { CustomerAttributesEditor } from "@/components/customers/customer-attributes-editor";
+import { CustomerDocumentsEditor } from "@/components/customers/customer-documents-editor";
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -114,23 +115,26 @@ export default function CustomerDetailPage() {
               Approve Customer
             </Button>
           )}
-          <Button
-            variant={customer.isActive ? "destructive" : "default"}
-            onClick={() =>
-              customer.isActive
-                ? deactivateCustomer.mutate(id)
-                : activateCustomer.mutate(id)
-            }
-            disabled={activateCustomer.isPending || deactivateCustomer.isPending}
-          >
-            {customer.isActive ? "Deactivate" : "Activate"}
-          </Button>
+          {customer.isApproved && (
+            <Button
+              variant={customer.isActive ? "destructive" : "default"}
+              onClick={() =>
+                customer.isActive
+                  ? deactivateCustomer.mutate(id)
+                  : activateCustomer.mutate(id)
+              }
+              disabled={activateCustomer.isPending || deactivateCustomer.isPending}
+            >
+              {customer.isActive ? "Deactivate" : "Activate"}
+            </Button>
+          )}
         </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="documents">Belgeler</TabsTrigger>
           <TabsTrigger value="attributes">Extra Info</TabsTrigger>
         </TabsList>
 
@@ -422,6 +426,10 @@ export default function CustomerDetailPage() {
           </CardContent>
         </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <CustomerDocumentsEditor customerId={id} />
         </TabsContent>
 
         <TabsContent value="attributes">

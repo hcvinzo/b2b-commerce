@@ -89,6 +89,20 @@ public class Product : ExternalEntity, IAggregateRoot
     private readonly List<ProductAttributeValue> _attributeValues = new();
     public IReadOnlyCollection<ProductAttributeValue> AttributeValues => _attributeValues.AsReadOnly();
 
+    // Product relations
+    private readonly List<ProductRelation> _sourceRelations = new();
+    private readonly List<ProductRelation> _targetRelations = new();
+
+    /// <summary>
+    /// Relations where this product is the source (relations FROM this product)
+    /// </summary>
+    public IReadOnlyCollection<ProductRelation> SourceRelations => _sourceRelations.AsReadOnly();
+
+    /// <summary>
+    /// Relations where this product is the target (relations TO this product from other products)
+    /// </summary>
+    public IReadOnlyCollection<ProductRelation> TargetRelations => _targetRelations.AsReadOnly();
+
     private Product() // For EF Core
     {
         Name = string.Empty;
@@ -665,6 +679,99 @@ public class Product : ExternalEntity, IAggregateRoot
     public ProductAttributeValue? GetAttributeValue(Guid attributeDefinitionId)
     {
         return _attributeValues.FirstOrDefault(av => av.AttributeDefinitionId == attributeDefinitionId);
+    }
+
+    #endregion
+
+    #region Product Relation Management
+
+    /// <summary>
+    /// Adds a related product. Creates the forward relation only.
+    /// The reverse relation should be created separately for bidirectional relationships.
+    /// </summary>
+    /// <param name="relatedProductId">ID of the product to relate</param>
+    /// <param name="relationType">Type of relationship</param>
+    /// <param name="displayOrder">Display order for this relation</param>
+    /// <returns>The created ProductRelation</returns>
+    public ProductRelation AddRelatedProduct(Guid relatedProductId, ProductRelationType relationType, int displayOrder = 0)
+    {
+        if (relatedProductId == Id)
+        {
+            throw new DomainException("A product cannot be related to itself");
+        }
+
+        // Check if relation already exists
+        if (_sourceRelations.Any(r => r.RelatedProductId == relatedProductId && r.RelationType == relationType))
+        {
+            throw new DomainException($"Relation of type {relationType} already exists with this product");
+        }
+
+        // Check max limit
+        var countForType = _sourceRelations.Count(r => r.RelationType == relationType);
+        if (countForType >= ProductRelation.MaxRelatedProductsPerType)
+        {
+            throw new DomainException($"Maximum of {ProductRelation.MaxRelatedProductsPerType} {relationType} products reached");
+        }
+
+        var relation = ProductRelation.Create(Id, relatedProductId, relationType, displayOrder);
+        _sourceRelations.Add(relation);
+        return relation;
+    }
+
+    /// <summary>
+    /// Removes a related product from the source relations.
+    /// </summary>
+    public void RemoveRelatedProduct(Guid relatedProductId, ProductRelationType relationType)
+    {
+        var relation = _sourceRelations.FirstOrDefault(r =>
+            r.RelatedProductId == relatedProductId && r.RelationType == relationType);
+
+        if (relation is not null)
+        {
+            _sourceRelations.Remove(relation);
+        }
+    }
+
+    /// <summary>
+    /// Gets all source relations of a specific type
+    /// </summary>
+    public IEnumerable<ProductRelation> GetRelationsOfType(ProductRelationType relationType)
+    {
+        return _sourceRelations.Where(r => r.RelationType == relationType);
+    }
+
+    /// <summary>
+    /// Updates display orders for relations of a specific type
+    /// </summary>
+    public void UpdateRelationDisplayOrders(ProductRelationType relationType, Dictionary<Guid, int> displayOrders)
+    {
+        foreach (var relation in _sourceRelations.Where(r => r.RelationType == relationType))
+        {
+            if (displayOrders.TryGetValue(relation.RelatedProductId, out var order))
+            {
+                relation.UpdateDisplayOrder(order);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears all source relations of a specific type
+    /// </summary>
+    public void ClearRelationsOfType(ProductRelationType relationType)
+    {
+        var toRemove = _sourceRelations.Where(r => r.RelationType == relationType).ToList();
+        foreach (var relation in toRemove)
+        {
+            _sourceRelations.Remove(relation);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a relation exists with the specified product and type
+    /// </summary>
+    public bool HasRelation(Guid relatedProductId, ProductRelationType relationType)
+    {
+        return _sourceRelations.Any(r => r.RelatedProductId == relatedProductId && r.RelationType == relationType);
     }
 
     #endregion

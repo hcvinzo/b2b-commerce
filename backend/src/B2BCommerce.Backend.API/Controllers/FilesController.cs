@@ -33,7 +33,24 @@ public class FilesController : ControllerBase
         ".webp"
     };
 
+    private static readonly HashSet<string> AllowedDocumentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/pdf",
+        "image/jpeg",
+        "image/jpg",
+        "image/png"
+    };
+
+    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf",
+        ".jpg",
+        ".jpeg",
+        ".png"
+    };
+
     private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
+    private const long MaxDocumentFileSize = 10 * 1024 * 1024; // 10MB
 
     public FilesController(
         IStorageService storageService,
@@ -197,6 +214,97 @@ public class FilesController : ControllerBase
             Uploaded = results,
             Errors = errors
         });
+    }
+
+    /// <summary>
+    /// Upload a document file (PDF, JPG, PNG) - for authenticated users
+    /// </summary>
+    /// <param name="file">The document file to upload</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The public URL of the uploaded document</returns>
+    [HttpPost("upload/document")]
+    [ProducesResponseType(typeof(FileUploadResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(MaxDocumentFileSize)]
+    public async Task<IActionResult> UploadDocument(
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        return await UploadDocumentInternal(file, cancellationToken);
+    }
+
+    /// <summary>
+    /// Upload a document file during registration (anonymous access)
+    /// Used for uploading customer documents before the customer is created
+    /// </summary>
+    /// <param name="file">The document file to upload</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The public URL of the uploaded document</returns>
+    [HttpPost("upload/registration-document")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(FileUploadResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(MaxDocumentFileSize)]
+    public async Task<IActionResult> UploadRegistrationDocument(
+        IFormFile file,
+        CancellationToken cancellationToken = default)
+    {
+        return await UploadDocumentInternal(file, cancellationToken);
+    }
+
+    private async Task<IActionResult> UploadDocumentInternal(
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file provided" });
+        }
+
+        // Validate file size
+        if (file.Length > MaxDocumentFileSize)
+        {
+            return BadRequest(new { message = $"File size exceeds the maximum allowed size of {MaxDocumentFileSize / 1024 / 1024}MB" });
+        }
+
+        // Validate content type
+        if (!AllowedDocumentTypes.Contains(file.ContentType))
+        {
+            return BadRequest(new { message = $"Invalid file type. Allowed types: PDF, JPEG, PNG" });
+        }
+
+        // Validate file extension
+        var extension = Path.GetExtension(file.FileName);
+        if (!AllowedDocumentExtensions.Contains(extension))
+        {
+            return BadRequest(new { message = $"Invalid file extension. Allowed extensions: {string.Join(", ", AllowedDocumentExtensions)}" });
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var url = await _storageService.UploadFileAsync(
+                stream,
+                file.FileName,
+                file.ContentType,
+                "files", // Documents are stored in the 'files' folder
+                cancellationToken);
+
+            _logger.LogInformation("Document uploaded successfully: {FileName} -> {Url}", file.FileName, url);
+
+            return Ok(new FileUploadResponse
+            {
+                Url = url,
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                Size = file.Length
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload document: {FileName}", file.FileName);
+            return StatusCode(500, new { message = "Failed to upload document. Please try again." });
+        }
     }
 
     /// <summary>

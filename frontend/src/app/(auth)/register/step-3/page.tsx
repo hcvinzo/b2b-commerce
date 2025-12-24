@@ -150,7 +150,7 @@ export default function RegisterStep3Page() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <Input
                     type="number"
-                    label="Satıcı & Kurgu"
+                    label="Devlet & Kamu"
                     placeholder="%"
                     min={0}
                     max={100}
@@ -166,7 +166,7 @@ export default function RegisterStep3Page() {
                   />
                   <Input
                     type="number"
-                    label="Boya"
+                    label="Bayi"
                     placeholder="%"
                     min={0}
                     max={100}
@@ -181,6 +181,12 @@ export default function RegisterStep3Page() {
                     {...register('customerBase.retail', { valueAsNumber: true })}
                   />
                 </div>
+                {errors.customerBase?.message && (
+                  <p className="input-error mt-2">{errors.customerBase.message}</p>
+                )}
+                {errors.customerBase?.root?.message && (
+                  <p className="input-error mt-2">{errors.customerBase.root.message}</p>
+                )}
               </div>
 
               {/* Product Categories */}

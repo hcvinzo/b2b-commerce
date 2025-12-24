@@ -43,7 +43,8 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Register a new customer account
+    /// Register a new customer account (dealer application)
+    /// No password or addresses required - password set after admin approval
     /// </summary>
     [HttpPost("register")]
     [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status201Created)]
@@ -53,24 +54,21 @@ public class AuthController : ControllerBase
         var command = new RegisterCommand(
             request.CompanyName,
             request.TaxNumber,
+            request.TaxOffice,
             request.Email,
             request.Phone,
             request.ContactPersonName,
             request.ContactPersonTitle,
-            request.BillingStreet,
-            request.BillingCity,
-            request.BillingState,
-            request.BillingCountry,
-            request.BillingPostalCode,
-            request.ShippingStreet,
-            request.ShippingCity,
-            request.ShippingState,
-            request.ShippingCountry,
-            request.ShippingPostalCode,
+            request.TradeName,
+            request.MersisNo,
+            request.IdentityNo,
+            request.TradeRegistryNo,
+            request.MobilePhone,
+            request.Fax,
+            request.Website,
             request.CreditLimit,
             request.Currency,
-            request.Type,
-            request.Password);
+            request.Type);
 
         var result = await _mediator.Send(command, cancellationToken);
 

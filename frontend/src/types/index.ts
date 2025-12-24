@@ -29,7 +29,7 @@ export interface BusinessInfo {
   taxNumber: string
   foundedYear?: number
   address: string
-  city: string
+  country: string
   phone: string
   website?: string
   authorizedPersons: AuthorizedPerson[]
@@ -86,12 +86,44 @@ export interface BankingDocuments {
   }
 }
 
-// Complete Registration Data
+// Complete Registration Data (for form state)
 export interface DealerRegistration {
   contactPerson: ContactPerson
   businessInfo: BusinessInfo
   operationalDetails: OperationalDetails
   bankingDocuments: BankingDocuments
+}
+
+// DTO for backend registration API (matches RegisterCommand)
+export interface DealerRegistrationDto {
+  // Required company info
+  companyName: string
+  taxNumber: string
+  taxOffice: string
+  email: string
+  phone: string
+  contactPersonName: string
+  contactPersonTitle: string
+  // Optional company info
+  tradeName?: string
+  mersisNo?: string
+  identityNo?: string
+  tradeRegistryNo?: string
+  mobilePhone?: string
+  fax?: string
+  website?: string
+  // Optional financial info
+  creditLimit?: number
+  currency?: string
+  type?: string
+}
+
+// Registration response from backend
+export interface RegistrationResponse {
+  id: string
+  companyName: string
+  email: string
+  isApproved: boolean
 }
 
 // Auth Response
@@ -106,4 +138,46 @@ export interface AuthResponse {
     customerId?: string
     role: string
   }
+}
+
+// Customer Document Types
+export type CustomerDocumentType =
+  | 'TaxCertificate'
+  | 'SignatureCircular'
+  | 'TradeRegistry'
+  | 'PartnershipAgreement'
+  | 'AuthorizedIdCopy'
+  | 'AuthorizedResidenceDocument'
+
+// Customer Document DTO
+export interface CustomerDocumentDto {
+  id: string
+  customerId: string
+  documentType: CustomerDocumentType
+  documentTypeName: string
+  fileName: string
+  fileType: string
+  contentUrl: string
+  fileSize: number
+  createdAt: string
+  updatedAt?: string
+}
+
+// File upload response
+export interface FileUploadResponse {
+  url: string
+  fileName: string
+  contentType: string
+  size: number
+}
+
+// Document upload state for registration
+export interface DocumentUploadState {
+  file: File | null
+  uploadedUrl: string | null
+  fileName: string | null
+  fileType: string | null
+  fileSize: number | null
+  isUploading: boolean
+  error: string | null
 }

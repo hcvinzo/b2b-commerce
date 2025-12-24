@@ -39,6 +39,7 @@ public class UnitOfWork : IUnitOfWork
 
     // Customer repositories
     private ICustomerAttributeRepository? _customerAttributes;
+    private ICustomerDocumentRepository? _customerDocuments;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -99,6 +100,9 @@ public class UnitOfWork : IUnitOfWork
     // Customer repositories
     public ICustomerAttributeRepository CustomerAttributes =>
         _customerAttributes ??= new CustomerAttributeRepository(_context);
+
+    public ICustomerDocumentRepository CustomerDocuments =>
+        _customerDocuments ??= new CustomerDocumentRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

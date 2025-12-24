@@ -10,8 +10,10 @@ using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities;
 using B2BCommerce.Backend.Domain.Enums;
 using B2BCommerce.Backend.Domain.ValueObjects;
+using B2BCommerce.Backend.Infrastructure.Data;
 using B2BCommerce.Backend.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -25,17 +27,20 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         IUnitOfWork unitOfWork,
+        ApplicationDbContext context,
         IConfiguration configuration,
         ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _unitOfWork = unitOfWork;
+        _context = context;
         _configuration = configuration;
         _logger = logger;
     }
@@ -97,139 +102,196 @@ public class AuthService : IAuthService
 
     public async Task<Result<CustomerDto>> RegisterAsync(RegisterCustomerDto request, CancellationToken cancellationToken = default)
     {
-        // Check if email already exists
-        var existingUser = await _userManager.FindByEmailAsync(request.Email);
-        if (existingUser is not null)
+        // Check if email already exists (only check users if password will be created)
+        if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            return Result<CustomerDto>.Failure("Email already registered", "EMAIL_EXISTS");
+            var existingUser = await _userManager.FindByEmailAsync(request.Email);
+            if (existingUser is not null)
+            {
+                return Result<CustomerDto>.Failure("Email already registered", "EMAIL_EXISTS");
+            }
         }
 
         // Check if tax number already exists
-        var existingCustomer = await _unitOfWork.Customers.GetByTaxNumberAsync(request.TaxNumber, cancellationToken);
-        if (existingCustomer is not null)
+        try
         {
-            return Result<CustomerDto>.Failure("Tax number already registered", "TAX_NUMBER_EXISTS");
+            var existingCustomer = await _unitOfWork.Customers.GetByTaxNumberAsync(request.TaxNumber, cancellationToken);
+            if (existingCustomer is not null)
+            {
+                return Result<CustomerDto>.Failure("Tax number already registered", "TAX_NUMBER_EXISTS");
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            // TaxNumber validation failed in value object constructor
+            return Result<CustomerDto>.Failure(ex.Message, "INVALID_TAX_NUMBER");
+        }
+
+        // Check if email already exists for another customer
+        try
+        {
+            var existingCustomerByEmail = await _unitOfWork.Customers.GetByEmailAsync(request.Email, cancellationToken);
+            if (existingCustomerByEmail is not null)
+            {
+                return Result<CustomerDto>.Failure("Email already registered", "EMAIL_EXISTS");
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            // Email validation failed in value object constructor
+            return Result<CustomerDto>.Failure(ex.Message, "INVALID_EMAIL");
         }
 
         try
         {
-            await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            // Use execution strategy to support retrying transactions with Npgsql
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            // Parse customer type
-            var customerType = CustomerType.Standard;
-            if (!string.IsNullOrEmpty(request.Type) && Enum.TryParse<CustomerType>(request.Type, out var parsedType))
+            Customer? customer = null;
+            string? userCreationError = null;
+
+            await strategy.ExecuteAsync(async () =>
             {
-                customerType = parsedType;
+                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+                try
+                {
+                    // Parse customer type
+                    var customerType = CustomerType.Standard;
+                    if (!string.IsNullOrEmpty(request.Type) && Enum.TryParse<CustomerType>(request.Type, out var parsedType))
+                    {
+                        customerType = parsedType;
+                    }
+
+                    // Create customer using factory method
+                    customer = Customer.Create(
+                        companyName: request.CompanyName,
+                        tradeName: request.TradeName,
+                        taxNumber: new TaxNumber(request.TaxNumber),
+                        taxOffice: request.TaxOffice,
+                        email: new Email(request.Email),
+                        phone: new PhoneNumber(request.Phone),
+                        contactPersonName: request.ContactPersonName,
+                        contactPersonTitle: request.ContactPersonTitle,
+                        creditLimit: new Money(request.CreditLimit, request.Currency),
+                        type: customerType,
+                        mersisNo: request.MersisNo,
+                        identityNo: request.IdentityNo,
+                        tradeRegistryNo: request.TradeRegistryNo,
+                        mobilePhone: !string.IsNullOrWhiteSpace(request.MobilePhone) ? new PhoneNumber(request.MobilePhone) : null,
+                        fax: request.Fax,
+                        website: request.Website
+                    );
+
+                    // Only create addresses if address data is provided
+                    var hasBillingAddress = !string.IsNullOrWhiteSpace(request.BillingStreet) &&
+                                            !string.IsNullOrWhiteSpace(request.BillingCity);
+
+                    if (hasBillingAddress)
+                    {
+                        // Create billing address and add to customer
+                        var billingAddress = CustomerAddress.Create(
+                            customerId: customer.Id,
+                            title: "Billing Address",
+                            addressType: CustomerAddressType.Billing,
+                            address: new Address(
+                                request.BillingStreet,
+                                request.BillingCity,
+                                request.BillingState,
+                                request.BillingCountry,
+                                request.BillingPostalCode,
+                                request.BillingDistrict,
+                                request.BillingNeighborhood),
+                            isDefault: true
+                        );
+                        customer.Addresses.Add(billingAddress);
+
+                        // Create shipping address if different from billing
+                        CustomerAddress shippingAddress;
+                        if (request.UseSameAddressForBilling)
+                        {
+                            shippingAddress = CustomerAddress.Create(
+                                customerId: customer.Id,
+                                title: "Shipping Address",
+                                addressType: CustomerAddressType.Shipping,
+                                address: new Address(
+                                    request.BillingStreet,
+                                    request.BillingCity,
+                                    request.BillingState,
+                                    request.BillingCountry,
+                                    request.BillingPostalCode,
+                                    request.BillingDistrict,
+                                    request.BillingNeighborhood),
+                                isDefault: true
+                            );
+                        }
+                        else
+                        {
+                            shippingAddress = CustomerAddress.Create(
+                                customerId: customer.Id,
+                                title: "Shipping Address",
+                                addressType: CustomerAddressType.Shipping,
+                                address: new Address(
+                                    request.ShippingStreet,
+                                    request.ShippingCity,
+                                    request.ShippingState,
+                                    request.ShippingCountry,
+                                    request.ShippingPostalCode,
+                                    request.ShippingDistrict,
+                                    request.ShippingNeighborhood),
+                                isDefault: true
+                            );
+                        }
+                        customer.Addresses.Add(shippingAddress);
+                    }
+
+                    await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    // Only create user account if password is provided
+                    // For dealer applications without password, user account is created after admin approval
+                    if (!string.IsNullOrWhiteSpace(request.Password))
+                    {
+                        var user = new ApplicationUser
+                        {
+                            UserName = request.Email,
+                            Email = request.Email,
+                            FirstName = request.ContactPersonName.Split(' ').FirstOrDefault(),
+                            LastName = request.ContactPersonName.Split(' ').LastOrDefault(),
+                            CustomerId = customer.Id,
+                            IsActive = true
+                        };
+
+                        var createResult = await _userManager.CreateAsync(user, request.Password);
+                        if (!createResult.Succeeded)
+                        {
+                            userCreationError = string.Join(", ", createResult.Errors.Select(e => e.Description));
+                            throw new InvalidOperationException($"User creation failed: {userCreationError}");
+                        }
+                    }
+
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            if (userCreationError is not null)
+            {
+                _logger.LogWarning("User creation failed: {Errors}", userCreationError);
+                return Result<CustomerDto>.Failure($"Failed to create user account: {userCreationError}", "USER_CREATION_FAILED");
             }
-
-            // Create customer using factory method
-            var customer = Customer.Create(
-                companyName: request.CompanyName,
-                tradeName: request.TradeName,
-                taxNumber: new TaxNumber(request.TaxNumber),
-                taxOffice: request.TaxOffice,
-                email: new Email(request.Email),
-                phone: new PhoneNumber(request.Phone),
-                contactPersonName: request.ContactPersonName,
-                contactPersonTitle: request.ContactPersonTitle,
-                creditLimit: new Money(request.CreditLimit, request.Currency),
-                type: customerType,
-                mersisNo: request.MersisNo,
-                identityNo: request.IdentityNo,
-                tradeRegistryNo: request.TradeRegistryNo,
-                mobilePhone: !string.IsNullOrWhiteSpace(request.MobilePhone) ? new PhoneNumber(request.MobilePhone) : null,
-                fax: request.Fax,
-                website: request.Website
-            );
-
-            // Create billing address and add to customer
-            var billingAddress = CustomerAddress.Create(
-                customerId: customer.Id,
-                title: "Billing Address",
-                addressType: CustomerAddressType.Billing,
-                address: new Address(
-                    request.BillingStreet,
-                    request.BillingCity,
-                    request.BillingState,
-                    request.BillingCountry,
-                    request.BillingPostalCode,
-                    request.BillingDistrict,
-                    request.BillingNeighborhood),
-                isDefault: true
-            );
-            customer.Addresses.Add(billingAddress);
-
-            // Create shipping address if different from billing
-            CustomerAddress shippingAddress;
-            if (request.UseSameAddressForBilling)
-            {
-                shippingAddress = CustomerAddress.Create(
-                    customerId: customer.Id,
-                    title: "Shipping Address",
-                    addressType: CustomerAddressType.Shipping,
-                    address: new Address(
-                        request.BillingStreet,
-                        request.BillingCity,
-                        request.BillingState,
-                        request.BillingCountry,
-                        request.BillingPostalCode,
-                        request.BillingDistrict,
-                        request.BillingNeighborhood),
-                    isDefault: true
-                );
-            }
-            else
-            {
-                shippingAddress = CustomerAddress.Create(
-                    customerId: customer.Id,
-                    title: "Shipping Address",
-                    addressType: CustomerAddressType.Shipping,
-                    address: new Address(
-                        request.ShippingStreet,
-                        request.ShippingCity,
-                        request.ShippingState,
-                        request.ShippingCountry,
-                        request.ShippingPostalCode,
-                        request.ShippingDistrict,
-                        request.ShippingNeighborhood),
-                    isDefault: true
-                );
-            }
-            customer.Addresses.Add(shippingAddress);
-
-            await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            // Create user account
-            var user = new ApplicationUser
-            {
-                UserName = request.Email,
-                Email = request.Email,
-                FirstName = request.ContactPersonName.Split(' ').FirstOrDefault(),
-                LastName = request.ContactPersonName.Split(' ').LastOrDefault(),
-                CustomerId = customer.Id,
-                IsActive = true
-            };
-
-            var createResult = await _userManager.CreateAsync(user, request.Password);
-            if (!createResult.Succeeded)
-            {
-                await _unitOfWork.RollbackAsync(cancellationToken);
-                var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
-                _logger.LogWarning("User creation failed: {Errors}", errors);
-                return Result<CustomerDto>.Failure($"Failed to create user account: {errors}", "USER_CREATION_FAILED");
-            }
-
-            await _unitOfWork.CommitAsync(cancellationToken);
 
             _logger.LogInformation("Customer {CompanyName} registered successfully with ID {CustomerId}",
-                customer.CompanyName, customer.Id);
+                customer!.CompanyName, customer.Id);
 
             return Result<CustomerDto>.Success(MapToCustomerDto(customer));
         }
         catch (Exception ex)
         {
-            await _unitOfWork.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error during customer registration for {Email}", request.Email);
             return Result<CustomerDto>.Failure("Registration failed. Please try again.", "REGISTRATION_FAILED");
         }

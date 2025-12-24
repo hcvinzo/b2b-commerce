@@ -4,12 +4,15 @@ using B2BCommerce.Backend.Application.Features.Products.Commands.ActivateProduct
 using B2BCommerce.Backend.Application.Features.Products.Commands.CreateProduct;
 using B2BCommerce.Backend.Application.Features.Products.Commands.DeactivateProduct;
 using B2BCommerce.Backend.Application.Features.Products.Commands.DeleteProduct;
+using B2BCommerce.Backend.Application.Features.Products.Commands.SetProductRelations;
 using B2BCommerce.Backend.Application.Features.Products.Commands.UpdateProduct;
 using B2BCommerce.Backend.Application.Features.Products.Queries.GetAllProducts;
 using B2BCommerce.Backend.Application.Features.Products.Queries.GetProductById;
 using B2BCommerce.Backend.Application.Features.Products.Queries.GetProductBySku;
+using B2BCommerce.Backend.Application.Features.Products.Queries.GetProductRelations;
 using B2BCommerce.Backend.Application.Features.Products.Queries.GetProductsByCategory;
 using B2BCommerce.Backend.Application.Features.Products.Queries.SearchProducts;
+using B2BCommerce.Backend.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -295,5 +298,54 @@ public class ProductsController : ControllerBase
         }
 
         return Ok(new { message = "Product deactivated successfully" });
+    }
+
+    /// <summary>
+    /// Get all relations for a product, grouped by type
+    /// </summary>
+    [HttpGet("{id:guid}/relations")]
+    [ProducesResponseType(typeof(List<ProductRelationsGroupDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetRelations(Guid id, CancellationToken cancellationToken)
+    {
+        var query = new GetProductRelationsQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Set related products for a specific relation type.
+    /// Replaces all existing relations of that type.
+    /// Creates bidirectional relationships automatically.
+    /// </summary>
+    [HttpPut("{id:guid}/relations/{relationType}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetRelations(
+        Guid id,
+        ProductRelationType relationType,
+        [FromBody] List<RelatedProductInputDto> relatedProducts,
+        CancellationToken cancellationToken)
+    {
+        var command = new SetProductRelationsCommand(id, relationType, relatedProducts);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            if (result.ErrorCode == "PRODUCT_NOT_FOUND" || result.ErrorCode == "RELATED_PRODUCT_NOT_FOUND")
+            {
+                return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+            }
+            return BadRequest(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return Ok(new { message = $"Successfully updated {relationType} relations" });
     }
 }

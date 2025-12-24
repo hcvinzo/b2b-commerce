@@ -21,26 +21,26 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Result<Cu
     {
         var registerDto = new RegisterCustomerDto
         {
+            // Required fields
             CompanyName = request.CompanyName,
             TaxNumber = request.TaxNumber,
+            TaxOffice = request.TaxOffice,
             Email = request.Email,
             Phone = request.Phone,
             ContactPersonName = request.ContactPersonName,
             ContactPersonTitle = request.ContactPersonTitle,
-            BillingStreet = request.BillingStreet,
-            BillingCity = request.BillingCity,
-            BillingState = request.BillingState,
-            BillingCountry = request.BillingCountry,
-            BillingPostalCode = request.BillingPostalCode,
-            ShippingStreet = request.ShippingStreet,
-            ShippingCity = request.ShippingCity,
-            ShippingState = request.ShippingState,
-            ShippingCountry = request.ShippingCountry,
-            ShippingPostalCode = request.ShippingPostalCode,
-            CreditLimit = request.CreditLimit,
-            Currency = request.Currency,
-            Type = request.Type,
-            Password = request.Password
+            // Optional company info
+            TradeName = request.TradeName ?? string.Empty,
+            MersisNo = request.MersisNo,
+            IdentityNo = request.IdentityNo,
+            TradeRegistryNo = request.TradeRegistryNo,
+            MobilePhone = request.MobilePhone,
+            Fax = request.Fax,
+            Website = request.Website,
+            // Financial info with defaults
+            CreditLimit = request.CreditLimit ?? 0,
+            Currency = request.Currency ?? "TRY",
+            Type = request.Type
         };
 
         return await _authService.RegisterAsync(registerDto, cancellationToken);

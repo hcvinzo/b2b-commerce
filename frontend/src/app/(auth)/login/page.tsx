@@ -119,10 +119,10 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button type="submit" fullWidth isLoading={isLoading}>
+              <Button type="submit" className="flex-1" isLoading={isLoading}>
                 Giriş Yap
               </Button>
-              <Link href="/register/step-1" className="w-full sm:w-auto">
+              <Link href="/register/step-1" className="sm:w-32">
                 <Button type="button" variant="secondary" fullWidth>
                   Kayıt Ol
                 </Button>

@@ -210,4 +210,15 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .Where(p => p.MainProductId == mainProductId && !p.IsDeleted)
             .ToListAsync(cancellationToken);
     }
+
+    /// <summary>
+    /// Gets a product with all source relations loaded (for relation management)
+    /// </summary>
+    public async Task<Product?> GetWithRelationsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(p => p.SourceRelations)
+                .ThenInclude(r => r.RelatedProduct)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
+    }
 }

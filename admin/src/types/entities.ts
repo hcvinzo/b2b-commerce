@@ -931,3 +931,103 @@ export interface CustomerAttributeItemDto {
   displayOrder: number;
   jsonData: string;
 }
+
+// ============================================
+// Customer Document Types
+// ============================================
+
+export type CustomerDocumentType =
+  | "TaxCertificate"
+  | "SignatureCircular"
+  | "TradeRegistry"
+  | "PartnershipAgreement"
+  | "AuthorizedIdCopy"
+  | "AuthorizedResidenceDocument";
+
+export interface CustomerDocument {
+  id: string;
+  customerId: string;
+  documentType: CustomerDocumentType;
+  documentTypeName: string;
+  fileName: string;
+  fileType: string;
+  contentUrl: string;
+  fileSize: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateCustomerDocumentDto {
+  documentType: CustomerDocumentType;
+  fileName: string;
+  fileType: string;
+  contentUrl: string;
+  fileSize: number;
+}
+
+export interface UpdateCustomerDocumentDto {
+  fileName: string;
+  fileType: string;
+  contentUrl: string;
+  fileSize: number;
+}
+
+export interface FileUploadResponse {
+  url: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+}
+
+// ============================================
+// Product Relation Types
+// ============================================
+
+export type ProductRelationType = "Related" | "CrossSell" | "UpSell" | "Accessories";
+
+export const ProductRelationTypeEnum: ProductRelationType[] = [
+  "Related",
+  "CrossSell",
+  "UpSell",
+  "Accessories",
+];
+
+export const ProductRelationTypeLabels: Record<ProductRelationType, string> = {
+  Related: "Related Products",
+  CrossSell: "Cross-sell",
+  UpSell: "Up-sell",
+  Accessories: "Accessories",
+};
+
+export interface ProductRelation {
+  id: string;
+  relatedProductId: string;
+  relatedProductName: string;
+  relatedProductSku: string;
+  relatedProductImageUrl?: string;
+  relatedProductPrice: number;
+  relatedProductIsActive: boolean;
+  relationType: ProductRelationType;
+  displayOrder: number;
+}
+
+export interface ProductRelationsGroup {
+  relationType: ProductRelationType;
+  relationTypeName: string;
+  relations: ProductRelation[];
+}
+
+export interface RelatedProductInput {
+  productId: string;
+  displayOrder: number;
+}
+
+// Lightweight product for selection dropdowns
+export interface ProductListItem {
+  id: string;
+  sku: string;
+  name: string;
+  mainImageUrl?: string;
+  listPrice: number;
+  isActive: boolean;
+}

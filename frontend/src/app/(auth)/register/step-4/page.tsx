@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,7 +12,26 @@ import { StepIndicator } from '@/components/ui/StepIndicator'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step4Schema, Step4FormData } from '@/lib/validations/registration.schema'
-import { registerDealer } from '@/lib/api'
+import { registerDealer, uploadRegistrationDocument, saveCustomerDocument } from '@/lib/api'
+import type { DealerRegistrationDto, CustomerDocumentType } from '@/types'
+
+// Document type mapping from form fields to API types
+const DOCUMENT_TYPE_MAP: Record<keyof NonNullable<Step4FormData['documents']>, CustomerDocumentType> = {
+  taxCertificate: 'TaxCertificate',
+  signatureCircular: 'SignatureCircular',
+  tradeRegistry: 'TradeRegistry',
+  partnershipAgreement: 'PartnershipAgreement',
+  authorizedIdCopy: 'AuthorizedIdCopy',
+  authorizedResidenceDocument: 'AuthorizedResidenceDocument',
+}
+
+interface UploadedDocument {
+  documentType: CustomerDocumentType
+  url: string
+  fileName: string
+  fileType: string
+  fileSize: number
+}
 
 const GUARANTEE_TYPES = [
   { value: 'cek', label: 'Çek' },
@@ -31,6 +50,7 @@ export default function RegisterStep4Page() {
   const router = useRouter()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null)
   const {
     contactPerson,
     businessInfo,
@@ -44,6 +64,7 @@ export default function RegisterStep4Page() {
     register,
     handleSubmit,
     control,
+    reset: resetForm,
     formState: { errors, isSubmitting },
   } = useForm<Step4FormData>({
     resolver: zodResolver(step4Schema),
@@ -75,32 +96,119 @@ export default function RegisterStep4Page() {
     name: 'collaterals',
   })
 
+  // Clear registration data after success is shown
+  useEffect(() => {
+    if (submitSuccess) {
+      // Delay the reset to ensure success screen is rendered first
+      const timer = setTimeout(() => {
+        reset()
+        resetForm()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [submitSuccess, reset, resetForm])
+
   const onSubmit = async (data: Step4FormData) => {
     setSubmitError(null)
+    setUploadProgress(null)
     setBankingDocuments(data)
 
     try {
-      // Combine all registration data
-      const registrationData = {
-        contactPerson,
-        businessInfo,
-        operationalDetails,
-        bankingDocuments: data,
+      // Step 1: Upload all documents to S3 first
+      const uploadedDocuments: UploadedDocument[] = []
+
+      if (data.documents) {
+        const documentEntries = Object.entries(data.documents) as [keyof typeof DOCUMENT_TYPE_MAP, File | undefined][]
+        const documentsToUpload = documentEntries.filter(([, file]) => file instanceof File)
+
+        if (documentsToUpload.length > 0) {
+          setUploadProgress(`Belgeler yükleniyor... (0/${documentsToUpload.length})`)
+
+          for (let i = 0; i < documentsToUpload.length; i++) {
+            const [docKey, file] = documentsToUpload[i]
+            if (file) {
+              setUploadProgress(`Belgeler yükleniyor... (${i + 1}/${documentsToUpload.length})`)
+              try {
+                const uploadResult = await uploadRegistrationDocument(file)
+                uploadedDocuments.push({
+                  documentType: DOCUMENT_TYPE_MAP[docKey],
+                  url: uploadResult.url,
+                  fileName: uploadResult.fileName,
+                  fileType: uploadResult.contentType,
+                  fileSize: uploadResult.size,
+                })
+              } catch (uploadError) {
+                console.error(`Failed to upload ${docKey}:`, uploadError)
+                throw new Error(`Belge yüklenirken hata oluştu: ${file.name}`)
+              }
+            }
+          }
+        }
+      }
+
+      setUploadProgress('Kayıt işlemi yapılıyor...')
+
+      // Step 2: Map form data to backend DTO and register customer
+      const registrationDto: DealerRegistrationDto = {
+        // Required company info
+        companyName: businessInfo.companyTitle || '',
+        taxNumber: businessInfo.taxNumber || '',
+        taxOffice: businessInfo.taxOffice || '',
+        email: contactPerson.email || '',
+        phone: businessInfo.phone || contactPerson.workPhone || '',
+        contactPersonName: `${contactPerson.firstName || ''} ${contactPerson.lastName || ''}`.trim(),
+        contactPersonTitle: contactPerson.position || '',
+        // Optional company info
+        mobilePhone: contactPerson.mobile || undefined,
+        website: businessInfo.website || undefined,
       }
 
       // Submit to API
-      await registerDealer(registrationData as any)
+      const registrationResult = await registerDealer(registrationDto)
+      const customerId = registrationResult.id
+
+      // Step 3: Associate uploaded documents with the customer
+      if (uploadedDocuments.length > 0 && customerId) {
+        setUploadProgress('Belgeler kaydediliyor...')
+
+        for (const doc of uploadedDocuments) {
+          try {
+            await saveCustomerDocument(
+              customerId,
+              doc.documentType,
+              doc.url,
+              doc.fileName,
+              doc.fileType,
+              doc.fileSize
+            )
+          } catch (docError) {
+            console.error(`Failed to save document ${doc.documentType}:`, docError)
+            // Continue with other documents even if one fails
+          }
+        }
+      }
 
       // Show success message
+      setUploadProgress(null)
       setSubmitSuccess(true)
-
-      // Reset store after showing success
-      setTimeout(() => {
-        reset()
-      }, 5000)
-    } catch (error) {
+      // Note: Store and form reset is handled by useEffect after success screen is rendered
+    } catch (error: any) {
       console.error('Registration error:', error)
-      setSubmitError('Kayıt işlemi başarısız oldu. Lütfen tekrar deneyiniz.')
+      setUploadProgress(null)
+
+      // Handle specific error codes from backend
+      const errorCode = error?.response?.data?.code
+      const errorMessage = error?.response?.data?.message
+
+      if (errorCode === 'EMAIL_EXISTS') {
+        setSubmitError('Bu e-posta adresi zaten kayıtlı. Lütfen farklı bir e-posta adresi kullanınız.')
+      } else if (errorCode === 'TAX_NUMBER_EXISTS') {
+        setSubmitError('Bu vergi numarası zaten kayıtlı. Lütfen vergi numaranızı kontrol ediniz.')
+      } else if (error.message?.includes('Belge yüklenirken')) {
+        setSubmitError(error.message)
+      } else {
+        setSubmitError(errorMessage || 'Kayıt işlemi başarısız oldu. Lütfen tekrar deneyiniz.')
+      }
     }
   }
 
@@ -153,6 +261,12 @@ export default function RegisterStep4Page() {
             </div>
           )}
 
+          {uploadProgress && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <p className="text-sm text-blue-600">{uploadProgress}</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Section - Bank Accounts */}
             <div>
@@ -177,12 +291,19 @@ export default function RegisterStep4Page() {
                           />
                         </td>
                         <td className="py-2 px-2">
-                          <input
-                            type="text"
-                            placeholder="TR00 0000 0000 0000 0000 0000 00"
-                            className="input-field text-sm"
-                            {...register(`bankAccounts.${index}.iban`)}
-                          />
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="TR00 0000 0000 0000 0000 0000 00"
+                              className={`input-field text-sm ${errors.bankAccounts?.[index]?.iban ? 'border-red-500' : ''}`}
+                              {...register(`bankAccounts.${index}.iban`)}
+                            />
+                            {errors.bankAccounts?.[index]?.iban && (
+                              <p className="text-xs text-red-500 mt-1">
+                                {errors.bankAccounts[index]?.iban?.message}
+                              </p>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -241,12 +241,50 @@ export type CategoryFormData = z.infer<typeof categorySchema>;
 - Supports `excludeId` to prevent selecting self as parent
 - Search within dropdown supported
 
-### List Page Pattern (Tables with Row Click Navigation)
+### List Page Pattern (Tables with Card Wrapper)
 
-All list pages should follow the same pattern for row click navigation to detail pages:
+All list pages should wrap content in a Card component with filters, table, and pagination inside:
 
 ```tsx
-// ✅ CORRECT - Row click navigation pattern
+// ✅ CORRECT - List page structure
+<div className="space-y-6">
+  {/* Page Header */}
+  <div className="flex items-center justify-between">
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight">Page Title</h1>
+      <p className="text-muted-foreground">Description</p>
+    </div>
+    <Button>Add New</Button>
+  </div>
+
+  {/* Card with content */}
+  <Card>
+    <CardHeader className="pb-4">
+      <CardTitle>All Items</CardTitle>
+      <CardDescription>Browse and manage items</CardDescription>
+    </CardHeader>
+    <CardContent>
+      {/* Filters */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center mb-6">
+        {/* Search and filter controls */}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>...</Table>
+      </div>
+
+      {/* Pagination */}
+      {data && data.totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">...</div>
+      )}
+    </CardContent>
+  </Card>
+</div>
+```
+
+**Row click navigation pattern**:
+```tsx
 <TableBody>
   {data.items.map((item) => (
     <TableRow
@@ -267,17 +305,18 @@ All list pages should follow the same pattern for row click navigation to detail
 ```
 
 **Key points**:
+- Wrap filters, table, and pagination in `Card` > `CardContent`
 - Add `cursor-pointer` class to `TableRow`
 - Add `onClick` handler to navigate to detail page
 - Add `onClick={(e) => e.stopPropagation()}` to the dropdown menu cell to prevent row click when using dropdown
 - Use `useRouter` from `next/navigation` for navigation
-- Remove any `<Link>` wrappers on clickable text (the entire row is clickable)
 
 **Pages following this pattern**:
+- `/products` - Products list
+- `/customers` - Customers list
+- `/admin-users` - Admin users list
 - `/roles` → `/roles/[id]`
-- `/admin-users` → `/admin-users/[id]`
 - `/api-clients` → `/api-clients/[id]`
-- `/customers` → `/customers/[id]`
 
 ### Detail Page Pattern (Tabbed Interface)
 

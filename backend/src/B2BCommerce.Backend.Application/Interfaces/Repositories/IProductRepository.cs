@@ -95,4 +95,12 @@ public interface IProductRepository : IGenericRepository<Product>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Collection of variant products</returns>
     Task<IEnumerable<Product>> GetVariantsAsync(Guid mainProductId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a product with all source relations loaded (for relation management)
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product with SourceRelations and RelatedProduct navigation loaded</returns>
+    Task<Product?> GetWithRelationsAsync(Guid id, CancellationToken cancellationToken = default);
 }

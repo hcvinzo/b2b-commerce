@@ -21,8 +21,10 @@ public class CustomerRepository : GenericRepository<Customer>, ICustomerReposito
     /// <returns>Customer if found, null otherwise</returns>
     public async Task<Customer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
+        // Create Email value object for comparison (EF Core will use the converter)
+        var emailVO = new Domain.ValueObjects.Email(email);
         return await _dbSet
-            .FirstOrDefaultAsync(c => c.Email.Value == email && !c.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Email == emailVO, cancellationToken);
     }
 
     /// <summary>
@@ -33,8 +35,10 @@ public class CustomerRepository : GenericRepository<Customer>, ICustomerReposito
     /// <returns>Customer if found, null otherwise</returns>
     public async Task<Customer?> GetByTaxNumberAsync(string taxNumber, CancellationToken cancellationToken = default)
     {
+        // Create TaxNumber value object for comparison (EF Core will use the converter)
+        var taxNumberVO = new Domain.ValueObjects.TaxNumber(taxNumber);
         return await _dbSet
-            .FirstOrDefaultAsync(c => c.TaxNumber.Value == taxNumber && !c.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(c => c.TaxNumber == taxNumberVO, cancellationToken);
     }
 
     /// <summary>

@@ -4,6 +4,10 @@ import {
   CreateProductDto,
   UpdateProductDto,
   ProductFilters,
+  ProductRelationsGroup,
+  ProductRelationType,
+  RelatedProductInput,
+  ProductListItem,
 } from "@/types/entities";
 
 const PRODUCTS_BASE = "/products";
@@ -64,4 +68,44 @@ export async function activateProduct(id: string): Promise<void> {
 
 export async function deactivateProduct(id: string): Promise<void> {
   await apiClient.post(`${PRODUCTS_BASE}/${id}/deactivate`);
+}
+
+// Product Relations API
+
+export async function getProductRelations(
+  productId: string
+): Promise<ProductRelationsGroup[]> {
+  const response = await apiClient.get<ProductRelationsGroup[]>(
+    `${PRODUCTS_BASE}/${productId}/relations`
+  );
+  return response.data;
+}
+
+export async function setProductRelations(
+  productId: string,
+  relationType: ProductRelationType,
+  relatedProducts: RelatedProductInput[]
+): Promise<void> {
+  await apiClient.put(
+    `${PRODUCTS_BASE}/${productId}/relations/${relationType}`,
+    relatedProducts
+  );
+}
+
+export async function searchProductsForSelection(
+  query: string,
+  excludeId?: string
+): Promise<ProductListItem[]> {
+  const params = new URLSearchParams();
+  params.append("search", query);
+  params.append("pageSize", "20");
+  params.append("isActive", "true");
+
+  const response = await apiClient.get<PaginatedResponse<ProductListItem>>(
+    `${PRODUCTS_BASE}?${params.toString()}`
+  );
+
+  // Filter out the excluded product (current product being edited)
+  const items = response.data.items;
+  return excludeId ? items.filter((p) => p.id !== excludeId) : items;
 }

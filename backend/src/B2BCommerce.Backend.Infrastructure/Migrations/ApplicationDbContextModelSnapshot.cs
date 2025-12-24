@@ -746,6 +746,77 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.ToTable("CustomerAttributes", (string)null);
                 });
 
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("DocumentType");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("CustomerId", "DocumentType");
+
+                    b.ToTable("CustomerDocuments", (string)null);
+                });
+
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.Integration.ApiClient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1657,6 +1728,69 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.ToTable("ProductCategories", (string)null);
                 });
 
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.ProductRelation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("RelatedProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RelationType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SourceProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayOrder");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("RelatedProductId", "RelationType");
+
+                    b.HasIndex("SourceProductId", "RelationType");
+
+                    b.HasIndex("SourceProductId", "RelatedProductId", "RelationType")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("ProductRelations", (string)null);
+                });
+
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.ProductType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2362,6 +2496,17 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerDocument", b =>
+                {
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.Integration.ApiKey", b =>
                 {
                     b.HasOne("B2BCommerce.Backend.Domain.Entities.Integration.ApiClient", "ApiClient")
@@ -3006,6 +3151,25 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.ProductRelation", b =>
+                {
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.Product", "RelatedProduct")
+                        .WithMany("TargetRelations")
+                        .HasForeignKey("RelatedProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.Product", "SourceProduct")
+                        .WithMany("SourceRelations")
+                        .HasForeignKey("SourceProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RelatedProduct");
+
+                    b.Navigation("SourceProduct");
+                });
+
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.ProductTypeAttribute", b =>
                 {
                     b.HasOne("B2BCommerce.Backend.Domain.Entities.AttributeDefinition", "AttributeDefinition")
@@ -3193,6 +3357,10 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.Navigation("AttributeValues");
 
                     b.Navigation("ProductCategories");
+
+                    b.Navigation("SourceRelations");
+
+                    b.Navigation("TargetRelations");
 
                     b.Navigation("Variants");
                 });

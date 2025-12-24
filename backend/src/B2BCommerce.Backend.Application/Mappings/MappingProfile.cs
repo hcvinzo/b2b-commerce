@@ -62,6 +62,11 @@ public class MappingProfile : Profile
         CreateMap<CustomerAttribute, CustomerAttributeDto>()
             .ForMember(dest => dest.AttributeTypeName, opt => opt.MapFrom(src => src.AttributeType.ToString()));
 
+        // CustomerDocument mappings
+        CreateMap<CustomerDocument, CustomerDocumentDto>()
+            .ForMember(dest => dest.DocumentType, opt => opt.MapFrom(src => src.DocumentType.ToString()))
+            .ForMember(dest => dest.DocumentTypeName, opt => opt.MapFrom(src => src.GetDocumentTypeName()));
+
         // Order mappings
         CreateMap<Order, OrderDto>()
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))

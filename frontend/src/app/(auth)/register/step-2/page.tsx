@@ -81,13 +81,26 @@ export default function RegisterStep2Page() {
                     {...register('taxNumber')}
                     error={errors.taxNumber?.message}
                   />
-                  <Input
-                    type="number"
-                    label="Kuruluş Yılı"
-                    placeholder="Yıl"
-                    {...register('foundedYear', { valueAsNumber: true })}
-                    error={errors.foundedYear?.message}
-                  />
+                  <div className="space-y-1">
+                    <label className="input-label">Kuruluş Yılı</label>
+                    <select
+                      className="input-field"
+                      {...register('foundedYear', { valueAsNumber: true })}
+                    >
+                      <option value="">Yıl Seçiniz</option>
+                      {Array.from(
+                        { length: new Date().getFullYear() - 1900 + 1 },
+                        (_, i) => new Date().getFullYear() - i
+                      ).map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.foundedYear?.message && (
+                      <p className="input-error">{errors.foundedYear.message}</p>
+                    )}
+                  </div>
                 </div>
 
                 <h3 className="form-section-title mt-8">İletişim</h3>
@@ -101,10 +114,10 @@ export default function RegisterStep2Page() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Input
-                    label="Şehir"
-                    placeholder="Şehir"
-                    {...register('city')}
-                    error={errors.city?.message}
+                    label="Ülke"
+                    placeholder="Ülke"
+                    {...register('country')}
+                    error={errors.country?.message}
                   />
                   <Input
                     type="tel"
@@ -148,13 +161,20 @@ export default function RegisterStep2Page() {
                           />
                         </td>
                         <td className="py-2 px-2">
-                          <input
-                            type="text"
-                            placeholder="T.C. Kimlik No"
-                            className="input-field text-sm"
-                            maxLength={11}
-                            {...register(`authorizedPersons.${index}.tcNumber`)}
-                          />
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="T.C. Kimlik No"
+                              className={`input-field text-sm ${errors.authorizedPersons?.[index]?.tcNumber ? 'border-red-500' : ''}`}
+                              maxLength={11}
+                              {...register(`authorizedPersons.${index}.tcNumber`)}
+                            />
+                            {errors.authorizedPersons?.[index]?.tcNumber && (
+                              <p className="text-xs text-red-500 mt-1">
+                                {errors.authorizedPersons[index]?.tcNumber?.message}
+                              </p>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2 px-2">
                           <input
@@ -171,8 +191,11 @@ export default function RegisterStep2Page() {
                   </tbody>
                 </table>
               </div>
-              {errors.authorizedPersons && (
+              {errors.authorizedPersons?.message && (
                 <p className="input-error mt-2">{errors.authorizedPersons.message}</p>
+              )}
+              {errors.authorizedPersons?.root?.message && (
+                <p className="input-error mt-2">{errors.authorizedPersons.root.message}</p>
               )}
             </div>
           </div>

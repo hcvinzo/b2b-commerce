@@ -15,7 +15,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductForm } from "@/components/forms/product-form";
+import { RelatedProductsEditor } from "@/components/products/related-products-editor";
 import { useProduct, useUpdateProduct } from "@/hooks/use-products";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { ProductFormData } from "@/lib/validations/product";
@@ -159,139 +161,152 @@ export default function ProductDetailPage() {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Main Info */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Product Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Name</p>
-                <p className="font-medium">{product.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Categories</p>
-                <div className="flex flex-wrap gap-1">
-                  {product.categories?.length > 0 ? (
-                    product.categories
-                      .sort((a, b) => (a.isPrimary ? -1 : 1) - (b.isPrimary ? -1 : 1))
-                      .map((cat) => (
-                        <Badge
-                          key={cat.categoryId}
-                          variant={cat.isPrimary ? "default" : "secondary"}
-                        >
-                          {cat.categoryName}
-                          {cat.isPrimary && " (Primary)"}
-                        </Badge>
-                      ))
-                  ) : (
-                    <p className="font-medium">{product.categoryName}</p>
+      <Tabs defaultValue="details" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="relations">Related Products</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Main Info */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Product Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium">{product.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Categories</p>
+                    <div className="flex flex-wrap gap-1">
+                      {product.categories?.length > 0 ? (
+                        product.categories
+                          .sort((a, b) => (a.isPrimary ? -1 : 1) - (b.isPrimary ? -1 : 1))
+                          .map((cat) => (
+                            <Badge
+                              key={cat.categoryId}
+                              variant={cat.isPrimary ? "default" : "secondary"}
+                            >
+                              {cat.categoryName}
+                              {cat.isPrimary && " (Primary)"}
+                            </Badge>
+                          ))
+                      ) : (
+                        <p className="font-medium">{product.categoryName}</p>
+                      )}
+                    </div>
+                  </div>
+                  {product.brandName && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Brand</p>
+                      <p className="font-medium">{product.brandName}</p>
+                    </div>
                   )}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant={product.isActive ? "default" : "secondary"}>
+                      {product.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Featured</p>
+                    <Badge variant={product.isFeatured ? "default" : "outline"}>
+                      {product.isFeatured ? "Yes" : "No"}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-              {product.brandName && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Brand</p>
-                  <p className="font-medium">{product.brandName}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge variant={product.isActive ? "default" : "secondary"}>
-                  {product.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Featured</p>
-                <Badge variant={product.isFeatured ? "default" : "outline"}>
-                  {product.isFeatured ? "Yes" : "No"}
-                </Badge>
-              </div>
+
+                {product.description && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Description</p>
+                      <p className="text-sm">{product.description}</p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Pricing & Stock */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pricing</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">List Price</p>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(product.listPrice)}
+                    </p>
+                  </div>
+                  {product.dealerPrice && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Dealer Price</p>
+                      <p className="text-xl font-semibold">
+                        {formatCurrency(product.dealerPrice)}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Inventory</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Stock Quantity</p>
+                    <p className="text-2xl font-bold">{product.stockQuantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Min Order Qty</p>
+                    <p className="font-medium">{product.minOrderQuantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Unit</p>
+                    <p className="font-medium">{product.unitOfMeasure}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Metadata</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created</span>
+                    <span>{formatDateTime(product.createdAt)}</span>
+                  </div>
+                  {product.updatedAt && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Updated</span>
+                      <span>{formatDateTime(product.updatedAt)}</span>
+                    </div>
+                  )}
+                  {product.externalId && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">External ID</span>
+                      <span className="font-mono text-xs">{product.externalId}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
+          </div>
+        </TabsContent>
 
-            {product.description && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Description</p>
-                  <p className="text-sm">{product.description}</p>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pricing & Stock */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">List Price</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(product.listPrice)}
-                </p>
-              </div>
-              {product.dealerPrice && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Dealer Price</p>
-                  <p className="text-xl font-semibold">
-                    {formatCurrency(product.dealerPrice)}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Inventory</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Stock Quantity</p>
-                <p className="text-2xl font-bold">{product.stockQuantity}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Min Order Qty</p>
-                <p className="font-medium">{product.minOrderQuantity}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Unit</p>
-                <p className="font-medium">{product.unitOfMeasure}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Metadata</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span>{formatDateTime(product.createdAt)}</span>
-              </div>
-              {product.updatedAt && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Updated</span>
-                  <span>{formatDateTime(product.updatedAt)}</span>
-                </div>
-              )}
-              {product.externalId && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">External ID</span>
-                  <span className="font-mono text-xs">{product.externalId}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+        <TabsContent value="relations">
+          <RelatedProductsEditor productId={id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

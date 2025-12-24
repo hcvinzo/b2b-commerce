@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
     public DbSet<CustomerAttribute> CustomerAttributes => Set<CustomerAttribute>();
+    public DbSet<CustomerDocument> CustomerDocuments => Set<CustomerDocument>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>();
@@ -49,6 +50,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ProductTypeAttribute> ProductTypeAttributes => Set<ProductTypeAttribute>();
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
+    public DbSet<ProductRelation> ProductRelations => Set<ProductRelation>();
 
     // Integration API entities
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();

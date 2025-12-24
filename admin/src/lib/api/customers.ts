@@ -6,6 +6,9 @@ import {
   CustomerAttribute,
   CustomerAttributeType,
   UpsertCustomerAttributesDto,
+  CustomerDocument,
+  CreateCustomerDocumentDto,
+  FileUploadResponse,
 } from "@/types/entities";
 
 const CUSTOMERS_BASE = "/customers";
@@ -95,4 +98,58 @@ export async function deleteCustomerAttribute(
   attributeId: string
 ): Promise<void> {
   await apiClient.delete(`${CUSTOMERS_BASE}/${customerId}/attributes/${attributeId}`);
+}
+
+// Customer Documents API
+export async function getCustomerDocuments(
+  customerId: string
+): Promise<CustomerDocument[]> {
+  const response = await apiClient.get<CustomerDocument[]>(
+    `${CUSTOMERS_BASE}/${customerId}/documents`
+  );
+  return response.data;
+}
+
+export async function getCustomerDocument(
+  customerId: string,
+  documentId: string
+): Promise<CustomerDocument> {
+  const response = await apiClient.get<CustomerDocument>(
+    `${CUSTOMERS_BASE}/${customerId}/documents/${documentId}`
+  );
+  return response.data;
+}
+
+export async function createCustomerDocument(
+  customerId: string,
+  data: CreateCustomerDocumentDto
+): Promise<CustomerDocument> {
+  const response = await apiClient.post<CustomerDocument>(
+    `${CUSTOMERS_BASE}/${customerId}/documents`,
+    data
+  );
+  return response.data;
+}
+
+export async function deleteCustomerDocument(
+  customerId: string,
+  documentId: string
+): Promise<void> {
+  await apiClient.delete(`${CUSTOMERS_BASE}/${customerId}/documents/${documentId}`);
+}
+
+export async function uploadDocument(file: File): Promise<FileUploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiClient.post<FileUploadResponse>(
+    "/files/upload/document",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response.data;
 }

@@ -27,7 +27,8 @@
       "Bash(npm install:*)",
       "Bash(ls:*)",
       "Bash(cat:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(npx tsc --noEmit)"
     ]
   },
   "enableAllProjectMcpServers": true,

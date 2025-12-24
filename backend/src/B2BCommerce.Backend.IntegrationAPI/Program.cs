@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using B2BCommerce.Backend.Application;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Infrastructure;
@@ -23,7 +24,11 @@ try
     builder.Host.UseSerilog();
 
     // Add services to the container
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 
     // Add HttpContextAccessor and CurrentUserService for audit fields
     builder.Services.AddHttpContextAccessor();
