@@ -103,6 +103,10 @@ public class Product : ExternalEntity, IAggregateRoot
     /// </summary>
     public IReadOnlyCollection<ProductRelation> TargetRelations => _targetRelations.AsReadOnly();
 
+    // Product collections (for manual collections)
+    private readonly List<ProductCollection> _productCollections = new();
+    public IReadOnlyCollection<ProductCollection> ProductCollections => _productCollections.AsReadOnly();
+
     private Product() // For EF Core
     {
         Name = string.Empty;

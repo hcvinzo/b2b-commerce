@@ -52,6 +52,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
     public DbSet<ProductRelation> ProductRelations => Set<ProductRelation>();
 
+    // Product Collections entities
+    public DbSet<Collection> Collections => Set<Collection>();
+    public DbSet<ProductCollection> ProductCollections => Set<ProductCollection>();
+    public DbSet<CollectionFilter> CollectionFilters => Set<CollectionFilter>();
+
     // Integration API entities
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();

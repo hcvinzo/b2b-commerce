@@ -1031,3 +1031,130 @@ export interface ProductListItem {
   listPrice: number;
   isActive: boolean;
 }
+
+// ============================================
+// Collection Types (Product Groupings)
+// ============================================
+
+// Collection Type enum (matching backend)
+export type CollectionType = "Manual" | "Dynamic";
+
+export const CollectionTypeEnum = {
+  Manual: 1,
+  Dynamic: 2,
+} as const;
+
+export const CollectionTypeLabels: Record<CollectionType, string> = {
+  Manual: "Manual",
+  Dynamic: "Dynamic",
+};
+
+// Collection filter (for dynamic collections)
+export interface CollectionFilter {
+  categoryIds?: string[];
+  brandIds?: string[];
+  productTypeIds?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+// Collection (detailed view)
+export interface Collection extends ExternalEntity {
+  name: string;
+  slug: string;
+  description?: string;
+  imageUrl?: string;
+  type: CollectionType;
+  displayOrder: number;
+  isActive: boolean;
+  isFeatured: boolean;
+  startDate?: string;
+  endDate?: string;
+  isCurrentlyActive: boolean;
+  productCount: number;
+  filter?: CollectionFilter;
+}
+
+// Collection (list view)
+export interface CollectionListItem {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl?: string;
+  type: CollectionType;
+  isActive: boolean;
+  isFeatured: boolean;
+  productCount: number;
+  startDate?: string;
+  endDate?: string;
+  isCurrentlyActive: boolean;
+  createdAt: string;
+}
+
+// Product in collection (for manual collections)
+export interface ProductInCollection {
+  productId: string;
+  productName: string;
+  productSku: string;
+  productImageUrl?: string;
+  productPrice: number;
+  productIsActive: boolean;
+  displayOrder: number;
+  isFeatured: boolean;
+}
+
+// DTOs for Collection operations
+export interface CreateCollectionDto {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  type: CollectionType;
+  displayOrder?: number;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UpdateCollectionDto {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  displayOrder?: number;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  startDate?: string;
+  endDate?: string;
+}
+
+// Set products for manual collection
+export interface SetCollectionProductsDto {
+  products: ProductInCollectionInput[];
+}
+
+export interface ProductInCollectionInput {
+  productId: string;
+  displayOrder: number;
+  isFeatured: boolean;
+}
+
+// Set filters for dynamic collection
+export interface SetCollectionFiltersDto {
+  categoryIds?: string[];
+  brandIds?: string[];
+  productTypeIds?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+// Filters for collection list
+export interface CollectionFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  type?: CollectionType;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}

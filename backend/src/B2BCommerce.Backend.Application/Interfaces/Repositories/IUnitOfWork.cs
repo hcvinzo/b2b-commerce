@@ -96,6 +96,11 @@ public interface IUnitOfWork : IDisposable
     ICustomerDocumentRepository CustomerDocuments { get; }
 
     /// <summary>
+    /// Gets the collection repository
+    /// </summary>
+    ICollectionRepository Collections { get; }
+
+    /// <summary>
     /// Saves all changes made in this unit of work to the database
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>

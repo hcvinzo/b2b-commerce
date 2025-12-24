@@ -16,6 +16,7 @@ import {
   Tag,
   Key,
   Shield,
+  Library,
   type LucideIcon,
 } from "lucide-react";
 
@@ -87,6 +88,15 @@ export const navigation: NavGroup[] = [
         title: "Brands",
         url: "/brands",
         icon: Tag,
+      },
+      {
+        title: "Collections",
+        url: "/collections",
+        icon: Library,
+        items: [
+          { title: "All Collections", url: "/collections" },
+          { title: "Add Collection", url: "/collections/new" },
+        ],
       },
     ],
   },
