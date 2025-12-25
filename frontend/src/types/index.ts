@@ -48,6 +48,7 @@ export interface OperationalDetails {
   businessStructure: string
   revenueYear?: number
   targetRevenue?: number
+  revenueCurrency?: 'TRY' | 'USD' | 'EUR'
   customerBase: {
     retailer: number
     corporate: number
@@ -116,6 +117,8 @@ export interface DealerRegistrationDto {
   creditLimit?: number
   currency?: string
   type?: string
+  // Customer attributes (collected during registration)
+  attributes?: UpsertCustomerAttributesDto[]
 }
 
 // Registration response from backend
@@ -180,4 +183,23 @@ export interface DocumentUploadState {
   fileSize: number | null
   isUploading: boolean
   error: string | null
+}
+
+// Customer Attribute Types (for registration and admin)
+export type CustomerAttributeType =
+  | 'ShareholderOrDirector'
+  | 'BusinessPartner'
+  | 'ProductCategory'
+  | 'BankAccount'
+  | 'Collateral'
+  | 'PaymentPreference'
+
+export interface UpsertCustomerAttributesDto {
+  attributeType: CustomerAttributeType
+  items: CustomerAttributeItemDto[]
+}
+
+export interface CustomerAttributeItemDto {
+  displayOrder: number
+  jsonData: string
 }

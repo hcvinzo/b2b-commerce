@@ -3,9 +3,27 @@
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
+import { Loader2 } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { StepIndicator } from '@/components/ui/StepIndicator'
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step2Schema, Step2FormData } from '@/lib/validations/registration.schema'
@@ -14,15 +32,17 @@ export default function RegisterStep2Page() {
   const router = useRouter()
   const { businessInfo, setBusinessInfo, setCurrentStep } = useRegistrationStore()
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<Step2FormData>({
+  const form = useForm<Step2FormData>({
     resolver: zodResolver(step2Schema),
     defaultValues: {
-      ...businessInfo,
+      companyTitle: businessInfo.companyTitle || '',
+      taxOffice: businessInfo.taxOffice || '',
+      taxNumber: businessInfo.taxNumber || '',
+      foundedYear: businessInfo.foundedYear,
+      address: businessInfo.address || '',
+      country: businessInfo.country || '',
+      phone: businessInfo.phone || '+90',
+      website: businessInfo.website || '',
       authorizedPersons: businessInfo.authorizedPersons || [
         { fullName: '', tcNumber: '', sharePercentage: 0 },
         { fullName: '', tcNumber: '', sharePercentage: 0 },
@@ -31,11 +51,11 @@ export default function RegisterStep2Page() {
         { fullName: '', tcNumber: '', sharePercentage: 0 },
         { fullName: '', tcNumber: '', sharePercentage: 0 },
       ],
-    } as Step2FormData,
+    },
   })
 
   const { fields } = useFieldArray({
-    control,
+    control: form.control,
     name: 'authorizedPersons',
   })
 
@@ -53,166 +73,227 @@ export default function RegisterStep2Page() {
       </div>
 
       {/* Form Card */}
-      <Card className="p-8">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Section - Business Info */}
-            <div>
-              <h2 className="form-section-title">İşletme Bilgileri</h2>
+      <Card>
+        <CardContent className="p-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Section - Business Info */}
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-4">İşletme Bilgileri</h2>
 
-              <div className="space-y-4">
-                <Input
-                  label="Ünvan"
-                  placeholder="Şirket Ünvanı"
-                  {...register('companyTitle')}
-                  error={errors.companyTitle?.message}
-                />
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="companyTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ünvan</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Şirket Ünvanı" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Input
-                    label="Vergi Dairesi"
-                    placeholder="Vergi Dairesi"
-                    {...register('taxOffice')}
-                    error={errors.taxOffice?.message}
-                  />
-                  <Input
-                    label="Vergi Numarası"
-                    placeholder="Vergi Numarası"
-                    {...register('taxNumber')}
-                    error={errors.taxNumber?.message}
-                  />
-                  <div className="space-y-1">
-                    <label className="input-label">Kuruluş Yılı</label>
-                    <select
-                      className="input-field"
-                      {...register('foundedYear', { valueAsNumber: true })}
-                    >
-                      <option value="">Yıl Seçiniz</option>
-                      {Array.from(
-                        { length: new Date().getFullYear() - 1900 + 1 },
-                        (_, i) => new Date().getFullYear() - i
-                      ).map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.foundedYear?.message && (
-                      <p className="input-error">{errors.foundedYear.message}</p>
-                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="taxOffice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vergi Dairesi</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Vergi Dairesi" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="taxNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vergi Numarası</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Vergi Numarası" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="foundedYear"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Kuruluş Yılı</FormLabel>
+                            <Select
+                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              defaultValue={field.value?.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Yıl Seçiniz" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Array.from(
+                                  { length: new Date().getFullYear() - 1900 + 1 },
+                                  (_, i) => new Date().getFullYear() - i
+                                ).map((year) => (
+                                  <SelectItem key={year} value={year.toString()}>
+                                    {year}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <h3 className="text-lg font-semibold text-foreground mt-8 mb-4">İletişim</h3>
+
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Adres</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Adres" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Ülke</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ülke" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefon</FormLabel>
+                            <FormControl>
+                              <Input type="tel" placeholder="+90 XXX XXX XX XX" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="website"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>İnternet Sayfası</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <h3 className="form-section-title mt-8">İletişim</h3>
+                {/* Right Section - Authorized Persons */}
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Yetkililer & Ortaklar</h2>
 
-                <Input
-                  label="Adres"
-                  placeholder="Adres"
-                  {...register('address')}
-                  error={errors.address?.message}
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Input
-                    label="Ülke"
-                    placeholder="Ülke"
-                    {...register('country')}
-                    error={errors.country?.message}
-                  />
-                  <Input
-                    type="tel"
-                    label="Telefon"
-                    placeholder="Telefon"
-                    {...register('phone')}
-                    error={errors.phone?.message}
-                  />
-                  <Input
-                    label="İnternet Sayfası"
-                    placeholder="https://"
-                    {...register('website')}
-                    error={errors.website?.message}
-                  />
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Adı Soyadı</th>
+                          <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">T.C. Kimlik No</th>
+                          <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Pay Oranı (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fields.map((field, index) => (
+                          <tr key={field.id} className="border-b border-border/50">
+                            <td className="py-2 px-2">
+                              <Input
+                                placeholder="Adı Soyadı"
+                                className="text-sm"
+                                {...form.register(`authorizedPersons.${index}.fullName`)}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <div>
+                                <Input
+                                  placeholder="T.C. Kimlik No"
+                                  className="text-sm"
+                                  maxLength={11}
+                                  {...form.register(`authorizedPersons.${index}.tcNumber`)}
+                                />
+                                {form.formState.errors.authorizedPersons?.[index]?.tcNumber && (
+                                  <p className="text-xs text-destructive mt-1">
+                                    {form.formState.errors.authorizedPersons[index]?.tcNumber?.message}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2 px-2">
+                              <Input
+                                type="number"
+                                placeholder="%"
+                                className="text-sm w-20"
+                                min={0}
+                                max={100}
+                                {...form.register(`authorizedPersons.${index}.sharePercentage`, { valueAsNumber: true })}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {form.formState.errors.authorizedPersons?.message && (
+                    <p className="text-destructive text-sm mt-2">{form.formState.errors.authorizedPersons.message}</p>
+                  )}
+                  {form.formState.errors.authorizedPersons?.root?.message && (
+                    <p className="text-destructive text-sm mt-2">{form.formState.errors.authorizedPersons.root.message}</p>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Right Section - Authorized Persons */}
-            <div>
-              <h2 className="form-section-title">Yetkililer & Ortaklar</h2>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Adı Soyadı</th>
-                      <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">T.C. Kimlik No</th>
-                      <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Pay Oranı (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fields.map((field, index) => (
-                      <tr key={field.id} className="border-b border-gray-100">
-                        <td className="py-2 px-2">
-                          <input
-                            type="text"
-                            placeholder="Adı Soyadı"
-                            className="input-field text-sm"
-                            {...register(`authorizedPersons.${index}.fullName`)}
-                          />
-                        </td>
-                        <td className="py-2 px-2">
-                          <div>
-                            <input
-                              type="text"
-                              placeholder="T.C. Kimlik No"
-                              className={`input-field text-sm ${errors.authorizedPersons?.[index]?.tcNumber ? 'border-red-500' : ''}`}
-                              maxLength={11}
-                              {...register(`authorizedPersons.${index}.tcNumber`)}
-                            />
-                            {errors.authorizedPersons?.[index]?.tcNumber && (
-                              <p className="text-xs text-red-500 mt-1">
-                                {errors.authorizedPersons[index]?.tcNumber?.message}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-2 px-2">
-                          <input
-                            type="number"
-                            placeholder="%"
-                            className="input-field text-sm w-20"
-                            min={0}
-                            max={100}
-                            {...register(`authorizedPersons.${index}.sharePercentage`, { valueAsNumber: true })}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex justify-between mt-8 pt-6 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/register/step-1')}
+                >
+                  Geri
+                </Button>
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+                  Kaydet & Devam Et
+                </Button>
               </div>
-              {errors.authorizedPersons?.message && (
-                <p className="input-error mt-2">{errors.authorizedPersons.message}</p>
-              )}
-              {errors.authorizedPersons?.root?.message && (
-                <p className="input-error mt-2">{errors.authorizedPersons.root.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => router.push('/register/step-1')}
-            >
-              Geri
-            </Button>
-            <Button type="submit" isLoading={isSubmitting}>
-              Kaydet & Devam Et
-            </Button>
-          </div>
-        </form>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
     </div>
   )

@@ -30,19 +30,22 @@ public class AuthService : IAuthService
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
+    private readonly ICustomerAttributeService _customerAttributeService;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         IUnitOfWork unitOfWork,
         ApplicationDbContext context,
         IConfiguration configuration,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        ICustomerAttributeService customerAttributeService)
     {
         _userManager = userManager;
         _unitOfWork = unitOfWork;
         _context = context;
         _configuration = configuration;
         _logger = logger;
+        _customerAttributeService = customerAttributeService;
     }
 
     public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
@@ -283,6 +286,27 @@ public class AuthService : IAuthService
             {
                 _logger.LogWarning("User creation failed: {Errors}", userCreationError);
                 return Result<CustomerDto>.Failure($"Failed to create user account: {userCreationError}", "USER_CREATION_FAILED");
+            }
+
+            // Save customer attributes (non-critical, done after main transaction)
+            if (request.Attributes is not null && request.Attributes.Count > 0)
+            {
+                foreach (var attributeGroup in request.Attributes)
+                {
+                    try
+                    {
+                        await _customerAttributeService.UpsertByTypeAsync(
+                            customer!.Id,
+                            attributeGroup,
+                            cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but don't fail registration for attribute errors
+                        _logger.LogWarning(ex, "Failed to save {AttributeType} attributes for customer {CustomerId}",
+                            attributeGroup.AttributeType, customer!.Id);
+                    }
+                }
             }
 
             _logger.LogInformation("Customer {CompanyName} registered successfully with ID {CustomerId}",

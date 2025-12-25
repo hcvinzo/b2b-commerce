@@ -59,7 +59,7 @@ export function FileUpload({ label, accept = '.pdf,.jpg,.jpeg,.png', onChange, e
         <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
-            <span className="text-sm text-gray-700 truncate max-w-[200px]">{file.name}</span>
+            <span className="text-sm text-gray-700 truncate max-w-[180px]">{file.name}</span>
           </div>
           <button
             type="button"

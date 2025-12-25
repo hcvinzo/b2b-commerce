@@ -3,10 +3,20 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
+import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Footer } from '@/components/layout/Footer'
 import { newsletterSchema, NewsletterFormData } from '@/lib/validations/newsletter.schema'
 import { subscribeNewsletter } from '@/lib/api'
@@ -15,12 +25,7 @@ export default function ComingSoonPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<NewsletterFormData>({
+  const form = useForm<NewsletterFormData>({
     resolver: zodResolver(newsletterSchema),
   })
 
@@ -31,7 +36,7 @@ export default function ComingSoonPage() {
     try {
       const response = await subscribeNewsletter(data.email)
       setMessage({ type: 'success', text: response.message })
-      reset()
+      form.reset()
     } catch (err) {
       setMessage({
         type: 'error',
@@ -94,19 +99,28 @@ export default function ComingSoonPage() {
           )}
 
           {/* Newsletter Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              type="email"
-              label="E-Posta Adresiniz"
-              placeholder="ornek@sirket.com"
-              {...register('email')}
-              error={errors.email?.message}
-            />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>E-Posta Adresiniz</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="ornek@sirket.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Button type="submit" fullWidth isLoading={isLoading}>
-              Beni Haberdar Et
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="animate-spin" />}
+                Beni Haberdar Et
+              </Button>
+            </form>
+          </Form>
 
           {/* Additional Info */}
           <div className="mt-8 pt-6 border-t border-gray-200">

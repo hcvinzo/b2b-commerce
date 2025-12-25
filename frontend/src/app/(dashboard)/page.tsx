@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -37,7 +37,7 @@ export default function DashboardPage() {
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <Button variant="secondary" onClick={handleLogout}>
+        <Button variant="outline" onClick={handleLogout}>
           Çıkış Yap
         </Button>
       </div>

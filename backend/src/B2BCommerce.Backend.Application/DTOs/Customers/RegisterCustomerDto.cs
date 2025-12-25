@@ -203,4 +203,11 @@ public class RegisterCustomerDto
     /// Customer type (optional, defaults to Standard)
     /// </summary>
     public string? Type { get; set; }
+
+    // Customer Attributes (optional, collected during registration)
+
+    /// <summary>
+    /// Customer attributes to save during registration (grouped by type)
+    /// </summary>
+    public List<UpsertCustomerAttributesByTypeDto>? Attributes { get; set; }
 }

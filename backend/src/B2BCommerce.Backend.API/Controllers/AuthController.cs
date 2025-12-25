@@ -68,7 +68,8 @@ public class AuthController : ControllerBase
             request.Website,
             request.CreditLimit,
             request.Currency,
-            request.Type);
+            request.Type,
+            request.Attributes);
 
         var result = await _mediator.Send(command, cancellationToken);
 

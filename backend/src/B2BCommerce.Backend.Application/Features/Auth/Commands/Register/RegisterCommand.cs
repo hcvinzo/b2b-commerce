@@ -29,5 +29,7 @@ public record RegisterCommand(
     // Optional financial info (defaults will be applied)
     decimal? CreditLimit,
     string? Currency,
-    string? Type
+    string? Type,
+    // Optional customer attributes (collected during registration)
+    List<UpsertCustomerAttributesByTypeDto>? Attributes = null
 ) : ICommand<Result<CustomerDto>>;

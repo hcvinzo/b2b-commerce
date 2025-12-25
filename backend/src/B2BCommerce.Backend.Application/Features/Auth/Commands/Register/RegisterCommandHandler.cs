@@ -40,7 +40,9 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Result<Cu
             // Financial info with defaults
             CreditLimit = request.CreditLimit ?? 0,
             Currency = request.Currency ?? "TRY",
-            Type = request.Type
+            Type = request.Type,
+            // Customer attributes
+            Attributes = request.Attributes
         };
 
         return await _authService.RegisterAsync(registerDto, cancellationToken);

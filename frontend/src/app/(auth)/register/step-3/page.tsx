@@ -3,11 +3,28 @@
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Checkbox } from '@/components/ui/Checkbox'
-import { Card } from '@/components/ui/Card'
+import { Loader2 } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { StepIndicator } from '@/components/ui/StepIndicator'
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step3Schema, Step3FormData } from '@/lib/validations/registration.schema'
@@ -36,19 +53,14 @@ export default function RegisterStep3Page() {
   const router = useRouter()
   const { operationalDetails, setOperationalDetails, setCurrentStep } = useRegistrationStore()
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<Step3FormData>({
+  const form = useForm<Step3FormData>({
     resolver: zodResolver(step3Schema),
     defaultValues: {
       employeeCount: operationalDetails.employeeCount || '',
       businessStructure: operationalDetails.businessStructure || '',
       revenueYear: operationalDetails.revenueYear,
       targetRevenue: operationalDetails.targetRevenue,
+      revenueCurrency: operationalDetails.revenueCurrency || 'TRY',
       customerBase: operationalDetails.customerBase || {
         retailer: 0,
         corporate: 0,
@@ -67,12 +79,9 @@ export default function RegisterStep3Page() {
   })
 
   const { fields: partnerFields } = useFieldArray({
-    control,
+    control: form.control,
     name: 'currentPartners',
   })
-
-  const selectedCategories = watch('productCategories')
-  const selectedConditions = watch('requestedConditions')
 
   const onSubmit = async (data: Step3FormData) => {
     setOperationalDetails(data)
@@ -88,232 +97,389 @@ export default function RegisterStep3Page() {
       </div>
 
       {/* Form Card */}
-      <Card className="p-8">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Section */}
-            <div className="space-y-6">
-              {/* Personnel & Structure */}
-              <div>
-                <h2 className="form-section-title">İşletme Yapısı</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Select
-                    label="Personel Sayısı"
-                    {...register('employeeCount')}
-                    error={errors.employeeCount?.message}
-                  >
-                    <option value="">Seçiniz</option>
-                    <option value="1-9">1-9</option>
-                    <option value="10-19">10-19</option>
-                    <option value="20-29">20-29</option>
-                    <option value="30-39">30-39</option>
-                    <option value="40-49">40-49</option>
-                    <option value="50+">50+</option>
-                  </Select>
-                  <Select
-                    label="İşletme Yapısı"
-                    {...register('businessStructure')}
-                    error={errors.businessStructure?.message}
-                  >
-                    <option value="">Seçiniz</option>
-                    <option value="ofis">Ofis/Büro</option>
-                    <option value="magaza">Mağaza</option>
-                    <option value="home_ofis">Home Ofis</option>
-                  </Select>
-                </div>
-              </div>
+      <Card>
+        <CardContent className="p-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Section */}
+                <div className="space-y-6">
+                  {/* Personnel & Structure */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">İşletme Yapısı</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="employeeCount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Personel Sayısı</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Seçiniz" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="1-9">1-9</SelectItem>
+                                <SelectItem value="10-19">10-19</SelectItem>
+                                <SelectItem value="20-29">20-29</SelectItem>
+                                <SelectItem value="30-39">30-39</SelectItem>
+                                <SelectItem value="40-49">40-49</SelectItem>
+                                <SelectItem value="50+">50+</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="businessStructure"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>İşletme Yapısı</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Seçiniz" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="ofis">Ofis/Büro</SelectItem>
+                                <SelectItem value="magaza">Mağaza</SelectItem>
+                                <SelectItem value="home_ofis">Home Ofis</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-              {/* Revenue Info */}
-              <div>
-                <h3 className="form-section-title">Ciro Bilgisi</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    type="number"
-                    label="Geçen Yıl Cirosu"
-                    placeholder="TL"
-                    {...register('revenueYear', { valueAsNumber: true })}
-                    error={errors.revenueYear?.message}
-                  />
-                  <Input
-                    type="number"
-                    label="Bu Yıl Hedeflenen"
-                    placeholder="TL"
-                    {...register('targetRevenue', { valueAsNumber: true })}
-                    error={errors.targetRevenue?.message}
-                  />
-                </div>
-              </div>
+                  {/* Revenue Info */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Ciro Bilgisi</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="revenueYear"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Geçen Yıl Cirosu</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Tutar"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="targetRevenue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bu Yıl Hedeflenen</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Tutar"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="revenueCurrency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Para Birimi</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Seçiniz" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="TRY">TRY</SelectItem>
+                                <SelectItem value="USD">USD</SelectItem>
+                                <SelectItem value="EUR">EUR</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-              {/* Customer Base */}
-              <div>
-                <h3 className="form-section-title">Müşteri Kitlesi (%)</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <Input
-                    type="number"
-                    label="Devlet & Kamu"
-                    placeholder="%"
-                    min={0}
-                    max={100}
-                    {...register('customerBase.retailer', { valueAsNumber: true })}
-                  />
-                  <Input
-                    type="number"
-                    label="Kurumsal"
-                    placeholder="%"
-                    min={0}
-                    max={100}
-                    {...register('customerBase.corporate', { valueAsNumber: true })}
-                  />
-                  <Input
-                    type="number"
-                    label="Bayi"
-                    placeholder="%"
-                    min={0}
-                    max={100}
-                    {...register('customerBase.construction', { valueAsNumber: true })}
-                  />
-                  <Input
-                    type="number"
-                    label="Perakende"
-                    placeholder="%"
-                    min={0}
-                    max={100}
-                    {...register('customerBase.retail', { valueAsNumber: true })}
-                  />
-                </div>
-                {errors.customerBase?.message && (
-                  <p className="input-error mt-2">{errors.customerBase.message}</p>
-                )}
-                {errors.customerBase?.root?.message && (
-                  <p className="input-error mt-2">{errors.customerBase.root.message}</p>
-                )}
-              </div>
+                  {/* Customer Base */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Müşteri Kitlesi (%)</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="customerBase.retailer"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Devlet & Kamu</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="%"
+                                min={0}
+                                max={100}
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="customerBase.corporate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Kurumsal</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="%"
+                                min={0}
+                                max={100}
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="customerBase.construction"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bayi</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="%"
+                                min={0}
+                                max={100}
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="customerBase.retail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Perakende</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="%"
+                                min={0}
+                                max={100}
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    {form.formState.errors.customerBase?.message && (
+                      <p className="text-destructive text-sm mt-2">{form.formState.errors.customerBase.message}</p>
+                    )}
+                    {form.formState.errors.customerBase?.root?.message && (
+                      <p className="text-destructive text-sm mt-2">{form.formState.errors.customerBase.root.message}</p>
+                    )}
+                  </div>
 
-              {/* Product Categories */}
-              <div>
-                <h3 className="form-section-title">Satışını Gerçekleştirdiğiniz Ürün Kategorileri</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {PRODUCT_CATEGORIES.map((category) => (
-                    <Controller
-                      key={category.value}
+                  {/* Product Categories */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Satışını Gerçekleştirdiğiniz Ürün Kategorileri</h3>
+                    <FormField
+                      control={form.control}
                       name="productCategories"
-                      control={control}
-                      render={({ field }) => (
-                        <Checkbox
-                          label={category.label}
-                          checked={field.value?.includes(category.value)}
-                          onChange={(e) => {
-                            const newValue = e.target.checked
-                              ? [...(field.value || []), category.value]
-                              : field.value?.filter((v: string) => v !== category.value) || []
-                            field.onChange(newValue)
-                          }}
-                        />
+                      render={() => (
+                        <FormItem>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {PRODUCT_CATEGORIES.map((category) => (
+                              <FormField
+                                key={category.value}
+                                control={form.control}
+                                name="productCategories"
+                                render={({ field }) => {
+                                  const isChecked = field.value?.includes(category.value)
+                                  const checkboxId = `category-${category.value}`
+                                  return (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                      <FormControl>
+                                        <Checkbox
+                                          id={checkboxId}
+                                          checked={isChecked}
+                                          onCheckedChange={(checked) => {
+                                            const newValue = checked
+                                              ? [...(field.value || []), category.value]
+                                              : field.value?.filter((v: string) => v !== category.value) || []
+                                            field.onChange(newValue)
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <Label htmlFor={checkboxId} className="text-sm font-normal cursor-pointer">
+                                        {category.label}
+                                      </Label>
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
-                  ))}
+                  </div>
                 </div>
-                {errors.productCategories && (
-                  <p className="input-error mt-2">{errors.productCategories.message}</p>
-                )}
-              </div>
-            </div>
 
-            {/* Right Section */}
-            <div className="space-y-6">
-              {/* Current Partners */}
-              <div>
-                <h2 className="form-section-title">Çalışmakta Olduğunuz Şirketler & Çalışma Koşulları</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Şirket Adı</th>
-                        <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Çalışma Koşulu</th>
-                        <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Limit (USD)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {partnerFields.map((field, index) => (
-                        <tr key={field.id} className="border-b border-gray-100">
-                          <td className="py-2 px-2">
-                            <input
-                              type="text"
-                              placeholder="Şirket Adı"
-                              className="input-field text-sm"
-                              {...register(`currentPartners.${index}.companyName`)}
-                            />
-                          </td>
-                          <td className="py-2 px-2">
-                            <select
-                              className="input-field text-sm"
-                              {...register(`currentPartners.${index}.workingCondition`)}
-                            >
-                              <option value="">Seçiniz</option>
-                              <option value="nakit_kredi">Nakit/Kredi Kartı</option>
-                              <option value="acik_hesap">Açık Hesap</option>
-                              <option value="cek">Çek</option>
-                            </select>
-                          </td>
-                          <td className="py-2 px-2">
-                            <input
-                              type="number"
-                              placeholder="USD"
-                              className="input-field text-sm w-28"
-                              {...register(`currentPartners.${index}.creditLimit`, { valueAsNumber: true })}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                {/* Right Section */}
+                <div className="space-y-6">
+                  {/* Current Partners */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Çalışmakta Olduğunuz Şirketler & Çalışma Koşulları</h2>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Şirket Adı</th>
+                            <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Çalışma Koşulu</th>
+                            <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Limit (USD)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {partnerFields.map((field, index) => (
+                            <tr key={field.id} className="border-b border-border/50">
+                              <td className="py-2 px-2">
+                                <Input
+                                  placeholder="Şirket Adı"
+                                  className="text-sm"
+                                  {...form.register(`currentPartners.${index}.companyName`)}
+                                />
+                              </td>
+                              <td className="py-2 px-2">
+                                <Controller
+                                  control={form.control}
+                                  name={`currentPartners.${index}.workingCondition`}
+                                  render={({ field }) => (
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <SelectTrigger className="w-full text-sm">
+                                        <SelectValue placeholder="Seçiniz" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="nakit_kredi">Nakit/Kredi Kartı</SelectItem>
+                                        <SelectItem value="acik_hesap">Açık Hesap</SelectItem>
+                                        <SelectItem value="cek">Çek</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              </td>
+                              <td className="py-2 px-2">
+                                <Input
+                                  type="number"
+                                  placeholder="USD"
+                                  className="text-sm w-28"
+                                  {...form.register(`currentPartners.${index}.creditLimit`, { valueAsNumber: true })}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-              {/* Requested Working Conditions */}
-              <div>
-                <h3 className="form-section-title">Talep Ettiğiniz Çalışma Koşulları</h3>
-                <div className="space-y-3">
-                  {WORKING_CONDITIONS.map((condition) => (
-                    <Controller
-                      key={condition.value}
+                  {/* Requested Working Conditions */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Talep Ettiğiniz Çalışma Koşulları</h3>
+                    <FormField
+                      control={form.control}
                       name="requestedConditions"
-                      control={control}
-                      render={({ field }) => (
-                        <Checkbox
-                          label={condition.label}
-                          checked={field.value?.includes(condition.value)}
-                          onChange={(e) => {
-                            const newValue = e.target.checked
-                              ? [...(field.value || []), condition.value]
-                              : field.value?.filter((v: string) => v !== condition.value) || []
-                            field.onChange(newValue)
-                          }}
-                        />
+                      render={() => (
+                        <FormItem>
+                          <div className="space-y-3">
+                            {WORKING_CONDITIONS.map((condition) => (
+                              <FormField
+                                key={condition.value}
+                                control={form.control}
+                                name="requestedConditions"
+                                render={({ field }) => {
+                                  const isChecked = field.value?.includes(condition.value)
+                                  const checkboxId = `condition-${condition.value}`
+                                  return (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                      <FormControl>
+                                        <Checkbox
+                                          id={checkboxId}
+                                          checked={isChecked}
+                                          onCheckedChange={(checked) => {
+                                            const newValue = checked
+                                              ? [...(field.value || []), condition.value]
+                                              : field.value?.filter((v: string) => v !== condition.value) || []
+                                            field.onChange(newValue)
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <Label htmlFor={checkboxId} className="text-sm font-normal cursor-pointer">
+                                        {condition.label}
+                                      </Label>
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
-                  ))}
+                  </div>
                 </div>
-                {errors.requestedConditions && (
-                  <p className="input-error mt-2">{errors.requestedConditions.message}</p>
-                )}
               </div>
-            </div>
-          </div>
 
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => router.push('/register/step-2')}
-            >
-              Geri
-            </Button>
-            <Button type="submit" isLoading={isSubmitting}>
-              Kaydet & Devam Et
-            </Button>
-          </div>
-        </form>
+              <div className="flex justify-between mt-8 pt-6 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/register/step-2')}
+                >
+                  Geri
+                </Button>
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+                  Kaydet & Devam Et
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
     </div>
   )

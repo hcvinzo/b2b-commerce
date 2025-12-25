@@ -1,7 +1,6 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Check } from 'lucide-react'
 
 interface StepIndicatorProps {
   currentStep: number
@@ -10,38 +9,32 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ currentStep, totalSteps = 4 }: StepIndicatorProps) {
   return (
-    <div className="flex items-center justify-center gap-0">
-      {Array.from({ length: totalSteps }, (_, index) => {
-        const step = index + 1
-        const isActive = step === currentStep
-        const isCompleted = step < currentStep
+    <div className="relative flex items-center justify-center py-8">
+      {/* Background line */}
+      <div className="absolute left-0 right-0 h-0.5 bg-gray-200" />
 
-        return (
-          <div key={step} className="flex items-center">
-            {/* Step Circle */}
+      {/* Steps */}
+      <div className="relative flex items-center justify-center gap-16">
+        {Array.from({ length: totalSteps }, (_, index) => {
+          const step = index + 1
+          const isActive = step === currentStep
+          const isCompleted = step < currentStep
+
+          return (
             <div
+              key={step}
               className={cn(
-                'w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-colors',
-                isActive && 'bg-primary border-primary text-white',
-                isCompleted && 'bg-primary border-primary text-white',
-                !isActive && !isCompleted && 'bg-white border-gray-200 text-gray-500'
+                'w-8 h-8 rounded-sm flex items-center justify-center text-base font-semibold transition-colors',
+                isCompleted && 'bg-primary-500 text-white',
+                isActive && 'bg-white border-2 border-primary-500 text-primary-500',
+                !isActive && !isCompleted && 'bg-gray-200 text-white'
               )}
             >
-              {isCompleted ? <Check className="w-5 h-5" /> : step}
+              {step}
             </div>
-
-            {/* Connection Line */}
-            {step < totalSteps && (
-              <div
-                className={cn(
-                  'w-16 h-0.5',
-                  isCompleted ? 'bg-primary' : 'bg-gray-200'
-                )}
-              />
-            )}
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }

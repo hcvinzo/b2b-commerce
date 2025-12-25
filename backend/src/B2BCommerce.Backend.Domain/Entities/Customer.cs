@@ -125,7 +125,7 @@ public class Customer : BaseEntity, IAggregateRoot
             PreferredCurrency = creditLimit.Currency,
             PreferredLanguage = "tr",
             IsApproved = false,
-            IsActive = true,
+            IsActive = false, // New customers are passive until approved
             Orders = new List<Order>(),
             Addresses = new List<CustomerAddress>(),
             Attributes = new List<CustomerAttribute>()
@@ -171,7 +171,7 @@ public class Customer : BaseEntity, IAggregateRoot
         PreferredCurrency = creditLimit.Currency;
         PreferredLanguage = "tr";
         IsApproved = false;
-        IsActive = true;
+        IsActive = false; // New customers are passive until approved
         Orders = new List<Order>();
         Addresses = new List<CustomerAddress>();
         Attributes = new List<CustomerAttribute>();
@@ -183,6 +183,7 @@ public class Customer : BaseEntity, IAggregateRoot
             throw new ArgumentException("Approver information is required", nameof(approvedBy));
 
         IsApproved = true;
+        IsActive = true; // Customer becomes active when approved
         ApprovedAt = DateTime.UtcNow;
         ApprovedBy = approvedBy;
     }

@@ -5,10 +5,20 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
+import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Footer } from '@/components/layout/Footer'
 import { loginSchema, LoginFormData } from '@/lib/validations/login.schema'
 import { loginUser } from '@/lib/api'
@@ -18,11 +28,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+  const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
 
@@ -85,50 +91,72 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Input
-              label="İş Ortağı Kodu"
-              placeholder="İş Ortağı Kodu"
-              {...register('businessPartnerCode')}
-              error={errors.businessPartnerCode?.message}
-            />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="businessPartnerCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>İş Ortağı Kodu</FormLabel>
+                    <FormControl>
+                      <Input placeholder="İş Ortağı Kodu" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Input
-              type="email"
-              label="E-Posta"
-              placeholder="E-Posta"
-              {...register('email')}
-              error={errors.email?.message}
-            />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>E-Posta</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="E-Posta" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Input
-              type="password"
-              label="Şifre"
-              placeholder="Şifre"
-              {...register('password')}
-              error={errors.password?.message}
-            />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Şifre</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Şifre" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="text-right">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-primary hover:text-primary-600 transition-colors"
-              >
-                Şifrenizi mi unuttunuz?
-              </Link>
-            </div>
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-primary hover:text-primary-600 transition-colors"
+                >
+                  Şifrenizi mi unuttunuz?
+                </Link>
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button type="submit" className="flex-1" isLoading={isLoading}>
-                Giriş Yap
-              </Button>
-              <Link href="/register/step-1" className="sm:w-32">
-                <Button type="button" variant="secondary" fullWidth>
-                  Kayıt Ol
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button type="submit" className="flex-1" disabled={isLoading}>
+                  {isLoading && <Loader2 className="animate-spin" />}
+                  Giriş Yap
                 </Button>
-              </Link>
-            </div>
-          </form>
+                <Link href="/register/step-1" className="sm:w-32">
+                  <Button type="button" variant="outline" className="w-full">
+                    Kayıt Ol
+                  </Button>
+                </Link>
+              </div>
+            </form>
+          </Form>
         </div>
       </Card>
 
