@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace B2BCommerce.Backend.Infrastructure.Data.Repositories;
@@ -90,5 +91,43 @@ public class AttributeDefinitionRepository : GenericRepository<AttributeDefiniti
     public async Task AddAttributeValueAsync(AttributeValue value, CancellationToken cancellationToken = default)
     {
         await _context.Set<AttributeValue>().AddAsync(value, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets attribute definitions by entity type (Product or Customer)
+    /// </summary>
+    public async Task<IEnumerable<AttributeDefinition>> GetByEntityTypeAsync(AttributeEntityType entityType, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(a => a.EntityType == entityType && !a.IsDeleted)
+            .OrderBy(a => a.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets attribute definitions by entity type with predefined values loaded
+    /// </summary>
+    public async Task<IEnumerable<AttributeDefinition>> GetByEntityTypeWithValuesAsync(AttributeEntityType entityType, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(a => a.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder))
+            .Where(a => a.EntityType == entityType && !a.IsDeleted)
+            .OrderBy(a => a.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets child attributes for a composite parent attribute
+    /// </summary>
+    public async Task<IEnumerable<AttributeDefinition>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(a => a.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder))
+            .Where(a => a.ParentAttributeId == parentId && !a.IsDeleted)
+            .OrderBy(a => a.DisplayOrder)
+            .ToListAsync(cancellationToken);
     }
 }

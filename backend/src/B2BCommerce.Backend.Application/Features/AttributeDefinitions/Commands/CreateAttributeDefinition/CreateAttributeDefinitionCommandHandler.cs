@@ -4,6 +4,7 @@ using B2BCommerce.Backend.Application.Common.CQRS;
 using B2BCommerce.Backend.Application.DTOs.Attributes;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.CreateAttributeDefinition;
 
@@ -30,16 +31,33 @@ public class CreateAttributeDefinitionCommandHandler : ICommandHandler<CreateAtt
             return Result<AttributeDefinitionDto>.Failure($"An attribute definition with code '{request.Code}' already exists.");
         }
 
+        // Validate parent attribute if provided
+        if (request.ParentAttributeId.HasValue)
+        {
+            var parentAttribute = await _unitOfWork.AttributeDefinitions.GetByIdAsync(request.ParentAttributeId.Value, cancellationToken);
+            if (parentAttribute is null)
+            {
+                return Result<AttributeDefinitionDto>.Failure("Parent attribute not found.", "PARENT_NOT_FOUND");
+            }
+            if (parentAttribute.Type != AttributeType.Composite)
+            {
+                return Result<AttributeDefinitionDto>.Failure("Parent attribute must be a Composite type.", "PARENT_NOT_COMPOSITE");
+            }
+        }
+
         // Create the attribute definition
         var attributeDefinition = AttributeDefinition.Create(
             request.Code,
             request.Name,
             request.Type,
+            request.EntityType,
             request.Unit,
             request.IsFilterable,
             request.IsRequired,
             request.IsVisibleOnProductPage,
-            request.DisplayOrder);
+            request.DisplayOrder,
+            request.ParentAttributeId,
+            request.IsList);
 
         // Add predefined values if provided
         if (request.PredefinedValues != null)

@@ -461,13 +461,12 @@ public class DatabaseSeeder
             return;
         }
 
-        // Check if customer entity exists using raw SQL to avoid value object conversion issues
+        // Check if customer entity exists
         var existingCustomer = await _context.Customers
-            .FromSqlRaw("SELECT * FROM \"Customers\" WHERE \"Email\" = {0}", customerEmail)
             .AsNoTracking()
             .FirstOrDefaultAsync();
 
-        if (existingCustomer != null)
+        if (existingCustomer is not null)
         {
             _logger.LogInformation("Sample customer entity already exists");
             return;
@@ -475,42 +474,50 @@ public class DatabaseSeeder
 
         // Create customer entity using factory method
         var customer = Customer.Create(
-            companyName: "Acme Corporation",
-            tradeName: "Acme",
-            taxNumber: new TaxNumber("1234567890"),
+            title: "Acme Corporation",
             taxOffice: "Manhattan",
-            email: new Email(customerEmail),
-            phone: new PhoneNumber("+1-555-123-4567"),
-            contactPersonName: "John Smith",
-            contactPersonTitle: "Procurement Manager",
-            creditLimit: new Money(50000m, "USD"),
-            type: CustomerType.Premium
+            taxNo: "1234567890",
+            establishmentYear: 2010,
+            website: "https://acme.example.com"
         );
+
+        // Approve the customer
+        customer.Approve();
+
+        _context.Customers.Add(customer);
+        await _context.SaveChangesAsync();
+
+        // Create primary contact for the customer
+        var contact = CustomerContact.Create(
+            customerId: customer.Id,
+            firstName: "John",
+            lastName: "Smith",
+            email: customerEmail,
+            position: "Procurement Manager",
+            phone: "+1-555-123-4567",
+            isPrimary: true
+        );
+        _context.Set<CustomerContact>().Add(contact);
 
         // Create addresses for the customer
         var billingAddress = CustomerAddress.Create(
             customerId: customer.Id,
             title: "Billing Address",
             addressType: CustomerAddressType.Billing,
-            address: new Address("123 Business Ave", "New York", "NY", "USA", "10001"),
+            address: "123 Business Ave, New York, NY 10001, USA",
             isDefault: true
         );
-        customer.Addresses.Add(billingAddress);
+        _context.Set<CustomerAddress>().Add(billingAddress);
 
         var shippingAddress = CustomerAddress.Create(
             customerId: customer.Id,
             title: "Shipping Address",
             addressType: CustomerAddressType.Shipping,
-            address: new Address("456 Warehouse Blvd", "Newark", "NJ", "USA", "07102"),
+            address: "456 Warehouse Blvd, Newark, NJ 07102, USA",
             isDefault: true
         );
-        customer.Addresses.Add(shippingAddress);
+        _context.Set<CustomerAddress>().Add(shippingAddress);
 
-        // Approve the customer
-        customer.Approve("System");
-        customer.UpdatePriceTier(PriceTier.Tier2);
-
-        _context.Customers.Add(customer);
         await _context.SaveChangesAsync();
 
         // Create user account linked to customer
@@ -528,9 +535,14 @@ public class DatabaseSeeder
         var result = await _userManager.CreateAsync(customerUser, customerPassword);
         if (result.Succeeded)
         {
+            // Link user to customer
+            customer.SetUserId(customerUser.Id);
+            _context.Customers.Update(customer);
+            await _context.SaveChangesAsync();
+
             await _userManager.AddToRoleAsync(customerUser, "Customer");
             _logger.LogInformation("Created sample customer: {Email} (Company: {Company})",
-                customerEmail, customer.CompanyName);
+                customerEmail, customer.Title);
         }
         else
         {

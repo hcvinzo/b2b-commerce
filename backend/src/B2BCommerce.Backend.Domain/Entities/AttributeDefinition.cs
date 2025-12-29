@@ -5,13 +5,13 @@ using B2BCommerce.Backend.Domain.Exceptions;
 namespace B2BCommerce.Backend.Domain.Entities;
 
 /// <summary>
-/// Defines a product attribute template (e.g., "Screen Size", "Memory Capacity").
+/// Defines an attribute template for products or customers (e.g., "Screen Size", "Credit Limit").
 /// Inherits from ExternalEntity to support external system synchronization.
 /// </summary>
 public class AttributeDefinition : ExternalEntity, IAggregateRoot
 {
     /// <summary>
-    /// Unique code for the attribute (e.g., "screen_size", "memory_capacity")
+    /// Unique code for the attribute (e.g., "screen_size", "credit_limit")
     /// </summary>
     public string Code { get; private set; }
 
@@ -26,22 +26,27 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     public AttributeType Type { get; private set; }
 
     /// <summary>
-    /// Unit of measurement (e.g., "GB", "MB/s", "mm")
+    /// Which entity type this attribute belongs to (Product or Customer)
+    /// </summary>
+    public AttributeEntityType EntityType { get; private set; }
+
+    /// <summary>
+    /// Unit of measurement (e.g., "GB", "MB/s", "mm", "TRY")
     /// </summary>
     public string? Unit { get; private set; }
 
     /// <summary>
-    /// Whether this attribute should appear in product filters
+    /// Whether this attribute should appear in filters (for products)
     /// </summary>
     public bool IsFilterable { get; private set; }
 
     /// <summary>
-    /// Default required status (can be overridden per ProductType)
+    /// Default required status
     /// </summary>
     public bool IsRequired { get; private set; }
 
     /// <summary>
-    /// Whether to display on product detail page
+    /// Whether to display on product detail page (for products)
     /// </summary>
     public bool IsVisibleOnProductPage { get; private set; }
 
@@ -50,9 +55,24 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// </summary>
     public int DisplayOrder { get; private set; }
 
+    /// <summary>
+    /// FK to parent attribute for composite type children
+    /// </summary>
+    public Guid? ParentAttributeId { get; private set; }
+
+    /// <summary>
+    /// Whether entity can have multiple values for this attribute (e.g., multiple bank accounts)
+    /// </summary>
+    public bool IsList { get; private set; }
+
     // Navigation properties
     private readonly List<AttributeValue> _predefinedValues = new();
     public IReadOnlyCollection<AttributeValue> PredefinedValues => _predefinedValues.AsReadOnly();
+
+    public AttributeDefinition? ParentAttribute { get; private set; }
+
+    private readonly List<AttributeDefinition> _childAttributes = new();
+    public IReadOnlyCollection<AttributeDefinition> ChildAttributes => _childAttributes.AsReadOnly();
 
     private AttributeDefinition() // For EF Core
     {
@@ -67,11 +87,14 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         string code,
         string name,
         AttributeType type,
+        AttributeEntityType entityType = AttributeEntityType.Product,
         string? unit = null,
         bool isFilterable = true,
         bool isRequired = false,
         bool isVisibleOnProductPage = true,
-        int displayOrder = 0)
+        int displayOrder = 0,
+        Guid? parentAttributeId = null,
+        bool isList = false)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -91,11 +114,14 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
             Code = code.Trim().ToLowerInvariant(),
             Name = name.Trim(),
             Type = type,
+            EntityType = entityType,
             Unit = unit?.Trim(),
             IsFilterable = isFilterable,
             IsRequired = isRequired,
             IsVisibleOnProductPage = isVisibleOnProductPage,
-            DisplayOrder = displayOrder
+            DisplayOrder = displayOrder,
+            ParentAttributeId = parentAttributeId,
+            IsList = isList
         };
 
         // Auto-populate ExternalId for Integration API compatibility
@@ -113,22 +139,28 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// <param name="code">Attribute code (required, unique)</param>
     /// <param name="name">Display name in Turkish (required)</param>
     /// <param name="type">Data type for this attribute</param>
+    /// <param name="entityType">Which entity type this attribute belongs to</param>
     /// <param name="unit">Unit of measurement (optional)</param>
     /// <param name="isFilterable">Whether this attribute should appear in product filters</param>
     /// <param name="isRequired">Default required status</param>
     /// <param name="isVisibleOnProductPage">Whether to display on product detail page</param>
     /// <param name="displayOrder">Display order in UI</param>
+    /// <param name="parentAttributeId">Parent attribute ID for composite children</param>
+    /// <param name="isList">Whether entity can have multiple values</param>
     /// <param name="externalCode">External system code (optional)</param>
     public static AttributeDefinition CreateFromExternal(
         string externalId,
         string code,
         string name,
         AttributeType type,
+        AttributeEntityType entityType = AttributeEntityType.Product,
         string? unit = null,
         bool isFilterable = true,
         bool isRequired = false,
         bool isVisibleOnProductPage = true,
         int displayOrder = 0,
+        Guid? parentAttributeId = null,
+        bool isList = false,
         string? externalCode = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -136,7 +168,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
             throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        var attr = Create(code, name, type, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
+        var attr = Create(code, name, type, entityType, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder, parentAttributeId, isList);
 
         // Use base class helper for consistent initialization
         InitializeFromExternal(attr, externalId, externalCode);
@@ -153,7 +185,8 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         bool isFilterable,
         bool isRequired,
         bool isVisibleOnProductPage,
-        int displayOrder)
+        int displayOrder,
+        bool isList = false)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -166,6 +199,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         IsRequired = isRequired;
         IsVisibleOnProductPage = isVisibleOnProductPage;
         DisplayOrder = displayOrder;
+        IsList = isList;
     }
 
     /// <summary>
@@ -179,16 +213,25 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
         bool isRequired,
         bool isVisibleOnProductPage,
         int displayOrder,
+        bool isList = false,
         string? externalCode = null)
     {
-        Update(name, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder);
+        Update(name, unit, isFilterable, isRequired, isVisibleOnProductPage, displayOrder, isList);
 
-        if (externalCode != null)
+        if (externalCode is not null)
         {
             SetExternalIdentifiers(externalCode, ExternalId);
         }
 
         MarkAsSynced();
+    }
+
+    /// <summary>
+    /// Sets the parent attribute for composite type children
+    /// </summary>
+    public void SetParentAttribute(Guid? parentAttributeId)
+    {
+        ParentAttributeId = parentAttributeId;
     }
 
     /// <summary>
@@ -272,7 +315,7 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
     /// <summary>
     /// Validates that an attribute value is valid for this definition
     /// </summary>
-    public bool IsValidValue(string? textValue, decimal? numericValue, Guid? selectedValueId, bool? booleanValue, DateTime? dateValue, List<Guid>? multiSelectValueIds)
+    public bool IsValidValue(string? textValue, decimal? numericValue, Guid? selectedValueId, bool? booleanValue, DateTime? dateValue, List<Guid>? multiSelectValueIds, string? jsonValue = null)
     {
         return Type switch
         {
@@ -282,7 +325,13 @@ public class AttributeDefinition : ExternalEntity, IAggregateRoot
             AttributeType.MultiSelect => multiSelectValueIds?.Count > 0 && multiSelectValueIds.All(id => _predefinedValues.Any(v => v.Id == id)),
             AttributeType.Boolean => booleanValue.HasValue,
             AttributeType.Date => dateValue.HasValue,
+            AttributeType.Composite => !string.IsNullOrEmpty(jsonValue),
             _ => false
         };
     }
+
+    /// <summary>
+    /// Checks if this attribute is a composite type with child attributes
+    /// </summary>
+    public bool IsCompositeType() => Type == AttributeType.Composite;
 }

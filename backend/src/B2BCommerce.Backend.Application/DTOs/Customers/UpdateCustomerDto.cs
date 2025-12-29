@@ -5,74 +5,28 @@ namespace B2BCommerce.Backend.Application.DTOs.Customers;
 /// </summary>
 public class UpdateCustomerDto
 {
-    // Company Information
-
     /// <summary>
-    /// Company name (Firma Ünvanı)
+    /// Company title/name (Ünvan)
     /// </summary>
-    public string CompanyName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Trade name / Short company name (Firma Kısa Adı)
-    /// </summary>
-    public string TradeName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
 
     /// <summary>
     /// Tax office (Vergi Dairesi)
     /// </summary>
-    public string TaxOffice { get; set; } = string.Empty;
+    public string? TaxOffice { get; set; }
 
     /// <summary>
-    /// MERSIS number (Mersis No)
+    /// Tax number (Vergi Numarası)
     /// </summary>
-    public string? MersisNo { get; set; }
+    public string? TaxNo { get; set; }
 
     /// <summary>
-    /// Identity number (TC Kimlik No / Kimlik Numarası)
+    /// Year of establishment (Kuruluş Yılı)
     /// </summary>
-    public string? IdentityNo { get; set; }
-
-    /// <summary>
-    /// Trade registry number (Ticaret Sicil No)
-    /// </summary>
-    public string? TradeRegistryNo { get; set; }
-
-    // Contact Information
-
-    /// <summary>
-    /// Phone number (Telefon)
-    /// </summary>
-    public string Phone { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Mobile phone number (Cep Telefonu)
-    /// </summary>
-    public string? MobilePhone { get; set; }
-
-    /// <summary>
-    /// Fax number (Faks)
-    /// </summary>
-    public string? Fax { get; set; }
+    public int? EstablishmentYear { get; set; }
 
     /// <summary>
     /// Website URL (Web Sitesi)
     /// </summary>
     public string? Website { get; set; }
-
-    /// <summary>
-    /// Contact person name (Yetkili Adı Soyadı)
-    /// </summary>
-    public string ContactPersonName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Contact person title (Yetkili Ünvanı)
-    /// </summary>
-    public string ContactPersonTitle { get; set; } = string.Empty;
-
-    // Preferences
-
-    /// <summary>
-    /// Preferred language
-    /// </summary>
-    public string PreferredLanguage { get; set; } = string.Empty;
 }

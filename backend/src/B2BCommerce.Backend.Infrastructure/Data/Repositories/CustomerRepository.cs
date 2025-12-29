@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace B2BCommerce.Backend.Infrastructure.Data.Repositories;
@@ -13,43 +14,51 @@ public class CustomerRepository : GenericRepository<Customer>, ICustomerReposito
     {
     }
 
-    /// <summary>
-    /// Gets a customer by email address
-    /// </summary>
-    /// <param name="email">Email address</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Customer if found, null otherwise</returns>
-    public async Task<Customer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<Customer?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
     {
-        // Create Email value object for comparison (EF Core will use the converter)
-        var emailVO = new Domain.ValueObjects.Email(email);
         return await _dbSet
-            .FirstOrDefaultAsync(c => c.Email == emailVO, cancellationToken);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.ExternalId == externalId, cancellationToken);
     }
 
-    /// <summary>
-    /// Gets a customer by tax number
-    /// </summary>
-    /// <param name="taxNumber">Tax number</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Customer if found, null otherwise</returns>
-    public async Task<Customer?> GetByTaxNumberAsync(string taxNumber, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
     {
-        // Create TaxNumber value object for comparison (EF Core will use the converter)
-        var taxNumberVO = new Domain.ValueObjects.TaxNumber(taxNumber);
-        return await _dbSet
-            .FirstOrDefaultAsync(c => c.TaxNumber == taxNumberVO, cancellationToken);
+        return await _dbSet.AnyAsync(c => c.ExternalId == externalId, cancellationToken);
     }
 
-    /// <summary>
-    /// Gets all customers that are not yet approved
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Collection of unapproved customers</returns>
-    public async Task<IEnumerable<Customer>> GetUnapprovedCustomersAsync(CancellationToken cancellationToken = default)
+    public async Task<Customer?> GetByTaxNoAsync(string taxNo, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Where(c => !c.IsApproved && c.IsActive && !c.IsDeleted)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.TaxNo == taxNo, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByTaxNoAsync(string taxNo, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AnyAsync(c => c.TaxNo == taxNo, cancellationToken);
+    }
+
+    public async Task<IEnumerable<Customer>> GetByStatusAsync(CustomerStatus status, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(c => c.Status == status)
+            .OrderBy(c => c.Title)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Customer?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
+    }
+
+    public async Task<IEnumerable<Customer>> GetPendingCustomersAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(c => c.Status == CustomerStatus.Pending || c.Status == CustomerStatus.Applied)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
     }

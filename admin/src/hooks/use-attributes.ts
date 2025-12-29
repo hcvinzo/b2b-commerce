@@ -8,8 +8,11 @@ import {
   deleteAttribute,
   addAttributeValue,
   removeAttributeValue,
+  getChildAttributes,
+  GetAttributesParams,
 } from "@/lib/api/attributes";
 import {
+  AttributeEntityType,
   CreateAttributeDefinitionDto,
   UpdateAttributeDefinitionDto,
   CreateAttributeValueDto,
@@ -19,15 +22,18 @@ import {
 export const attributeKeys = {
   all: ["attributes"] as const,
   lists: () => [...attributeKeys.all, "list"] as const,
+  listByEntityType: (entityType?: AttributeEntityType) =>
+    [...attributeKeys.lists(), "entityType", entityType] as const,
   details: () => [...attributeKeys.all, "detail"] as const,
   detail: (id: string) => [...attributeKeys.details(), id] as const,
+  children: (parentId: string) => [...attributeKeys.all, "children", parentId] as const,
 };
 
 // Query: Get all attributes (without values for performance)
-export function useAttributes() {
+export function useAttributes(entityType?: AttributeEntityType) {
   return useQuery({
-    queryKey: attributeKeys.lists(),
-    queryFn: () => getAttributes(false),
+    queryKey: attributeKeys.listByEntityType(entityType),
+    queryFn: () => getAttributes({ includeValues: false, entityType }),
   });
 }
 
@@ -155,5 +161,14 @@ export function useRemoveAttributeValue() {
         description: error.message,
       });
     },
+  });
+}
+
+// Query: Get child attributes for a composite parent
+export function useChildAttributes(parentId: string | null) {
+  return useQuery({
+    queryKey: attributeKeys.children(parentId ?? ""),
+    queryFn: () => getChildAttributes(parentId!),
+    enabled: !!parentId,
   });
 }

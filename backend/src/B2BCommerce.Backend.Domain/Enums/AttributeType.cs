@@ -33,5 +33,10 @@ public enum AttributeType
     /// <summary>
     /// Date value
     /// </summary>
-    Date = 6
+    Date = 6,
+
+    /// <summary>
+    /// Composite type with nested attributes (stored as JSON structure)
+    /// </summary>
+    Composite = 7
 }

@@ -19,16 +19,10 @@ public class CustomerAttributeConfiguration : IEntityTypeConfiguration<CustomerA
         builder.Property(ca => ca.CustomerId)
             .IsRequired();
 
-        builder.Property(ca => ca.AttributeType)
-            .IsRequired()
-            .HasConversion<string>()
-            .HasMaxLength(50);
+        builder.Property(ca => ca.AttributeDefinitionId)
+            .IsRequired();
 
-        builder.Property(ca => ca.DisplayOrder)
-            .IsRequired()
-            .HasDefaultValue(0);
-
-        builder.Property(ca => ca.JsonData)
+        builder.Property(ca => ca.Value)
             .IsRequired()
             .HasColumnType("jsonb");
 
@@ -59,12 +53,17 @@ public class CustomerAttributeConfiguration : IEntityTypeConfiguration<CustomerA
             .HasForeignKey(ca => ca.CustomerId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(ca => ca.AttributeDefinition)
+            .WithMany()
+            .HasForeignKey(ca => ca.AttributeDefinitionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Indexes
         builder.HasIndex(ca => ca.CustomerId);
 
-        builder.HasIndex(ca => ca.AttributeType);
+        builder.HasIndex(ca => ca.AttributeDefinitionId);
 
-        builder.HasIndex(ca => new { ca.CustomerId, ca.AttributeType });
+        builder.HasIndex(ca => new { ca.CustomerId, ca.AttributeDefinitionId });
 
         builder.HasIndex(ca => ca.IsDeleted);
     }

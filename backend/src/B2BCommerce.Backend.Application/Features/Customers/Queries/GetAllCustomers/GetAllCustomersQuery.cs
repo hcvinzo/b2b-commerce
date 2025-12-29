@@ -1,6 +1,7 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.Common.CQRS;
 using B2BCommerce.Backend.Application.DTOs.Customers;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Features.Customers.Queries.GetAllCustomers;
 
@@ -12,6 +13,6 @@ public record GetAllCustomersQuery(
     int PageSize = 10,
     string? Search = null,
     bool? IsActive = null,
-    bool? IsApproved = null,
+    CustomerStatus? Status = null,
     string? SortBy = null,
     string? SortDirection = null) : IQuery<Result<PagedResult<CustomerDto>>>;

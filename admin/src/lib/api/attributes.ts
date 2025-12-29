@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 import {
   AttributeDefinition,
+  AttributeEntityType,
   CreateAttributeDefinitionDto,
   UpdateAttributeDefinitionDto,
   CreateAttributeValueDto,
@@ -8,10 +9,26 @@ import {
 
 const ATTRIBUTES_BASE = "/attributedefinitions";
 
+export interface GetAttributesParams {
+  includeValues?: boolean;
+  entityType?: AttributeEntityType;
+}
+
+// Map integer entity type to string for API (backend uses JsonStringEnumConverter)
+const ENTITY_TYPE_TO_STRING: Record<AttributeEntityType, string> = {
+  1: "Product",
+  2: "Customer",
+};
+
 // Get all attribute definitions (without values by default for performance)
-export async function getAttributes(includeValues = false): Promise<AttributeDefinition[]> {
+export async function getAttributes(params: GetAttributesParams = {}): Promise<AttributeDefinition[]> {
+  const { includeValues = false, entityType } = params;
   const response = await apiClient.get<AttributeDefinition[]>(ATTRIBUTES_BASE, {
-    params: { includeValues },
+    params: {
+      includeValues,
+      // Send entityType as string name for proper enum binding in ASP.NET Core
+      entityType: entityType ? ENTITY_TYPE_TO_STRING[entityType] : undefined,
+    },
   });
   return response.data;
 }
@@ -78,4 +95,12 @@ export async function removeAttributeValue(
   valueId: string
 ): Promise<void> {
   await apiClient.delete(`${ATTRIBUTES_BASE}/${attributeId}/values/${valueId}`);
+}
+
+// Get child attributes for a composite parent attribute
+export async function getChildAttributes(parentId: string): Promise<AttributeDefinition[]> {
+  const response = await apiClient.get<AttributeDefinition[]>(
+    `${ATTRIBUTES_BASE}/${parentId}/children`
+  );
+  return response.data;
 }

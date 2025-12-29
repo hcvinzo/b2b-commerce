@@ -44,7 +44,6 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// Register a new customer account (dealer application)
-    /// No password or addresses required - password set after admin approval
     /// </summary>
     [HttpPost("register")]
     [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status201Created)]
@@ -52,23 +51,31 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterCustomerDto request, CancellationToken cancellationToken)
     {
         var command = new RegisterCommand(
-            request.CompanyName,
-            request.TaxNumber,
+            // Company info
+            request.Title,
             request.TaxOffice,
-            request.Email,
-            request.Phone,
-            request.ContactPersonName,
-            request.ContactPersonTitle,
-            request.TradeName,
-            request.MersisNo,
-            request.IdentityNo,
-            request.TradeRegistryNo,
-            request.MobilePhone,
-            request.Fax,
+            request.TaxNo,
+            request.EstablishmentYear,
             request.Website,
-            request.CreditLimit,
-            request.Currency,
-            request.Type,
+            // Contact info
+            request.ContactFirstName,
+            request.ContactLastName,
+            request.ContactEmail,
+            request.ContactPosition,
+            request.ContactPhone,
+            request.ContactGsm,
+            // Address info
+            request.AddressTitle,
+            request.Address,
+            request.GeoLocationId,
+            request.PostalCode,
+            // User account info
+            request.Email,
+            request.Password,
+            request.PasswordConfirmation,
+            request.AcceptTerms,
+            request.AcceptKvkk,
+            // Optional attributes
             request.Attributes);
 
         var result = await _mediator.Send(command, cancellationToken);

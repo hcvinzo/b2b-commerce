@@ -28,6 +28,21 @@ public class AttributeDefinitionDto
     public AttributeType Type { get; set; }
 
     /// <summary>
+    /// Which entity type this attribute belongs to (Product or Customer)
+    /// </summary>
+    public AttributeEntityType EntityType { get; set; }
+
+    /// <summary>
+    /// FK to parent attribute for composite type children
+    /// </summary>
+    public Guid? ParentAttributeId { get; set; }
+
+    /// <summary>
+    /// Whether entity can have multiple values for this attribute
+    /// </summary>
+    public bool IsList { get; set; }
+
+    /// <summary>
     /// Unit of measurement (e.g., "GB", "MB/s")
     /// </summary>
     public string? Unit { get; set; }

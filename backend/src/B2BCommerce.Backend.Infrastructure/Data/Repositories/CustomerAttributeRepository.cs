@@ -1,6 +1,5 @@
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Domain.Entities;
-using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace B2BCommerce.Backend.Infrastructure.Data.Repositories;
@@ -20,37 +19,50 @@ public class CustomerAttributeRepository : GenericRepository<CustomerAttribute>,
         CancellationToken cancellationToken = default)
     {
         return await _dbSet
+            .AsNoTracking()
+            .Include(ca => ca.AttributeDefinition)
             .Where(ca => ca.CustomerId == customerId)
-            .OrderBy(ca => ca.AttributeType)
-            .ThenBy(ca => ca.DisplayOrder)
+            .OrderBy(ca => ca.AttributeDefinition.DisplayOrder)
             .ToListAsync(cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<CustomerAttribute>> GetByCustomerIdAndTypeAsync(
+    public async Task<CustomerAttribute?> GetByCustomerIdAndDefinitionIdAsync(
         Guid customerId,
-        CustomerAttributeType attributeType,
+        Guid attributeDefinitionId,
         CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Where(ca => ca.CustomerId == customerId && ca.AttributeType == attributeType)
-            .OrderBy(ca => ca.DisplayOrder)
-            .ToListAsync(cancellationToken);
+            .AsNoTracking()
+            .Include(ca => ca.AttributeDefinition)
+            .FirstOrDefaultAsync(ca => ca.CustomerId == customerId && ca.AttributeDefinitionId == attributeDefinitionId, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task DeleteByCustomerIdAndTypeAsync(
+    public async Task<CustomerAttribute?> GetByCustomerIdAndDefinitionCodeAsync(
         Guid customerId,
-        CustomerAttributeType attributeType,
+        string definitionCode,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(ca => ca.AttributeDefinition)
+            .FirstOrDefaultAsync(ca => ca.CustomerId == customerId && ca.AttributeDefinition.Code == definitionCode, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteByCustomerIdAndDefinitionIdAsync(
+        Guid customerId,
+        Guid attributeDefinitionId,
         CancellationToken cancellationToken = default)
     {
         var attributes = await _dbSet
-            .Where(ca => ca.CustomerId == customerId && ca.AttributeType == attributeType)
+            .Where(ca => ca.CustomerId == customerId && ca.AttributeDefinitionId == attributeDefinitionId)
             .ToListAsync(cancellationToken);
 
         foreach (var attribute in attributes)
         {
-            attribute.MarkAsDeleted();
+            _dbSet.Remove(attribute);
         }
     }
 }

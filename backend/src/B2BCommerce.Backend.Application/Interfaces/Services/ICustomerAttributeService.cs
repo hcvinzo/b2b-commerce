@@ -1,6 +1,5 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.DTOs.Customers;
-using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Interfaces.Services;
 
@@ -17,11 +16,11 @@ public interface ICustomerAttributeService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get attributes for a customer by type
+    /// Get attributes for a customer by attribute definition
     /// </summary>
-    Task<Result<IEnumerable<CustomerAttributeDto>>> GetByCustomerIdAndTypeAsync(
+    Task<Result<IEnumerable<CustomerAttributeDto>>> GetByCustomerIdAndDefinitionIdAsync(
         Guid customerId,
-        CustomerAttributeType attributeType,
+        Guid attributeDefinitionId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -55,10 +54,10 @@ public interface ICustomerAttributeService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Upsert attributes by type (replaces all existing attributes of the specified type)
+    /// Upsert attributes by definition (replaces all existing attributes of the specified definition)
     /// </summary>
-    Task<Result<IEnumerable<CustomerAttributeDto>>> UpsertByTypeAsync(
+    Task<Result<IEnumerable<CustomerAttributeDto>>> UpsertByDefinitionAsync(
         Guid customerId,
-        UpsertCustomerAttributesByTypeDto dto,
+        UpsertCustomerAttributesByDefinitionDto dto,
         CancellationToken cancellationToken = default);
 }

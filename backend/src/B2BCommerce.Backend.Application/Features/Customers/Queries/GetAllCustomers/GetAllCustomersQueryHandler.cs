@@ -24,7 +24,7 @@ public class GetAllCustomersQueryHandler : IQueryHandler<GetAllCustomersQuery, R
             request.PageSize,
             request.Search,
             request.IsActive,
-            request.IsApproved,
+            request.Status,
             request.SortBy,
             request.SortDirection,
             cancellationToken);

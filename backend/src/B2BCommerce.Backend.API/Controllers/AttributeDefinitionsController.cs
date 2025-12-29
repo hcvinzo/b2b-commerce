@@ -7,7 +7,9 @@ using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.Rem
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.UpdateAttributeDefinition;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitionById;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitions;
+using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetChildAttributes;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetFilterableAttributes;
+using B2BCommerce.Backend.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,13 +35,17 @@ public class AttributeDefinitionsController : ControllerBase
     /// Get all attribute definitions
     /// </summary>
     /// <param name="includeValues">If true, includes predefined values in the response (default: false)</param>
+    /// <param name="entityType">Filter by entity type (1=Product, 2=Customer)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<AttributeDefinitionDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] bool includeValues = false, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] bool includeValues = false,
+        [FromQuery] AttributeEntityType? entityType = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetAttributeDefinitionsQuery(includeValues);
+        var query = new GetAttributeDefinitionsQuery(includeValues, entityType);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)
@@ -90,6 +96,31 @@ public class AttributeDefinitionsController : ControllerBase
     }
 
     /// <summary>
+    /// Get child attributes for a composite parent attribute
+    /// </summary>
+    [HttpGet("{id:guid}/children")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IEnumerable<AttributeDefinitionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetChildren(Guid id, CancellationToken cancellationToken)
+    {
+        var query = new GetChildAttributesQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            if (result.ErrorCode == "PARENT_NOT_FOUND")
+            {
+                return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+            }
+            return BadRequest(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
     /// Create a new attribute definition
     /// </summary>
     [HttpPost]
@@ -108,7 +139,10 @@ public class AttributeDefinitionsController : ControllerBase
             request.IsRequired,
             request.IsVisibleOnProductPage,
             request.DisplayOrder,
-            request.PredefinedValues);
+            request.EntityType,
+            request.IsList,
+            request.PredefinedValues,
+            request.ParentAttributeId);
 
         var result = await _mediator.Send(command, cancellationToken);
 

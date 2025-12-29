@@ -19,50 +19,38 @@ public class CustomerAddressConfiguration : IEntityTypeConfiguration<CustomerAdd
         builder.Property(ca => ca.CustomerId)
             .IsRequired();
 
-        builder.Property(ca => ca.Title)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(ca => ca.AddressType)
             .IsRequired()
             .HasConversion<string>()
             .HasMaxLength(20);
 
-        // Address value object as owned type
-        builder.OwnsOne(ca => ca.Address, address =>
-        {
-            address.Property(a => a.Street)
-                .HasColumnName("Street")
-                .IsRequired()
-                .HasMaxLength(500);
+        builder.Property(ca => ca.Title)
+            .IsRequired()
+            .HasMaxLength(100);
 
-            address.Property(a => a.District)
-                .HasColumnName("District")
-                .HasMaxLength(100);
+        builder.Property(ca => ca.FullName)
+            .HasMaxLength(200);
 
-            address.Property(a => a.Neighborhood)
-                .HasColumnName("Neighborhood")
-                .HasMaxLength(100);
+        builder.Property(ca => ca.Address)
+            .IsRequired()
+            .HasMaxLength(500);
 
-            address.Property(a => a.City)
-                .HasColumnName("City")
-                .IsRequired()
-                .HasMaxLength(100);
+        builder.Property(ca => ca.GeoLocationId);
 
-            address.Property(a => a.State)
-                .HasColumnName("State")
-                .HasMaxLength(100);
+        builder.Property(ca => ca.PostalCode)
+            .HasMaxLength(20);
 
-            address.Property(a => a.Country)
-                .HasColumnName("Country")
-                .IsRequired()
-                .HasMaxLength(100);
+        builder.Property(ca => ca.Phone)
+            .HasMaxLength(20);
 
-            address.Property(a => a.PostalCode)
-                .HasColumnName("PostalCode")
-                .IsRequired()
-                .HasMaxLength(20);
-        });
+        builder.Property(ca => ca.PhoneExt)
+            .HasMaxLength(10);
+
+        builder.Property(ca => ca.Gsm)
+            .HasMaxLength(20);
+
+        builder.Property(ca => ca.TaxNo)
+            .HasMaxLength(20);
 
         builder.Property(ca => ca.IsDefault)
             .IsRequired()
@@ -99,10 +87,17 @@ public class CustomerAddressConfiguration : IEntityTypeConfiguration<CustomerAdd
             .HasForeignKey(ca => ca.CustomerId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(ca => ca.GeoLocation)
+            .WithMany()
+            .HasForeignKey(ca => ca.GeoLocationId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Indexes
         builder.HasIndex(ca => ca.CustomerId);
 
         builder.HasIndex(ca => ca.AddressType);
+
+        builder.HasIndex(ca => ca.GeoLocationId);
 
         builder.HasIndex(ca => ca.IsDefault);
 

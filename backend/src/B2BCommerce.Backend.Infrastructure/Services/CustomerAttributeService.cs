@@ -3,7 +3,6 @@ using B2BCommerce.Backend.Application.DTOs.Customers;
 using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities;
-using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace B2BCommerce.Backend.Infrastructure.Services;
@@ -36,9 +35,9 @@ public class CustomerAttributeService : ICustomerAttributeService
         return Result<IEnumerable<CustomerAttributeDto>>.Success(attributes.Select(MapToDto));
     }
 
-    public async Task<Result<IEnumerable<CustomerAttributeDto>>> GetByCustomerIdAndTypeAsync(
+    public async Task<Result<IEnumerable<CustomerAttributeDto>>> GetByCustomerIdAndDefinitionIdAsync(
         Guid customerId,
-        CustomerAttributeType attributeType,
+        Guid attributeDefinitionId,
         CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(customerId, cancellationToken);
@@ -47,9 +46,15 @@ public class CustomerAttributeService : ICustomerAttributeService
             return Result<IEnumerable<CustomerAttributeDto>>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        var attributes = await _unitOfWork.CustomerAttributes.GetByCustomerIdAndTypeAsync(
-            customerId, attributeType, cancellationToken);
-        return Result<IEnumerable<CustomerAttributeDto>>.Success(attributes.Select(MapToDto));
+        var attribute = await _unitOfWork.CustomerAttributes.GetByCustomerIdAndDefinitionIdAsync(
+            customerId, attributeDefinitionId, cancellationToken);
+
+        if (attribute is null)
+        {
+            return Result<IEnumerable<CustomerAttributeDto>>.Success(Enumerable.Empty<CustomerAttributeDto>());
+        }
+
+        return Result<IEnumerable<CustomerAttributeDto>>.Success(new[] { MapToDto(attribute) });
     }
 
     public async Task<Result<CustomerAttributeDto>> GetByIdAsync(
@@ -76,18 +81,20 @@ public class CustomerAttributeService : ICustomerAttributeService
             return Result<CustomerAttributeDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        var attribute = CustomerAttribute.Create(
-            customerId,
-            dto.AttributeType,
-            dto.JsonData,
-            dto.DisplayOrder);
+        var attributeDefinition = await _unitOfWork.AttributeDefinitions.GetByIdAsync(dto.AttributeDefinitionId, cancellationToken);
+        if (attributeDefinition is null)
+        {
+            return Result<CustomerAttributeDto>.Failure("Attribute definition not found", "ATTRIBUTE_DEFINITION_NOT_FOUND");
+        }
+
+        var attribute = CustomerAttribute.Create(customerId, dto.AttributeDefinitionId, dto.Value);
 
         await _unitOfWork.CustomerAttributes.AddAsync(attribute, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Created customer attribute {AttributeId} of type {AttributeType} for customer {CustomerId}",
-            attribute.Id, dto.AttributeType, customerId);
+            "Created customer attribute {AttributeId} with definition {AttributeDefinitionId} for customer {CustomerId}",
+            attribute.Id, dto.AttributeDefinitionId, customerId);
 
         return Result<CustomerAttributeDto>.Success(MapToDto(attribute));
     }
@@ -103,8 +110,7 @@ public class CustomerAttributeService : ICustomerAttributeService
             return Result<CustomerAttributeDto>.Failure("Customer attribute not found", "ATTRIBUTE_NOT_FOUND");
         }
 
-        attribute.UpdateData(dto.JsonData);
-        attribute.UpdateDisplayOrder(dto.DisplayOrder);
+        attribute.UpdateValue(dto.Value);
 
         _unitOfWork.CustomerAttributes.Update(attribute);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -124,7 +130,7 @@ public class CustomerAttributeService : ICustomerAttributeService
             return Result.Failure("Customer attribute not found", "ATTRIBUTE_NOT_FOUND");
         }
 
-        attribute.MarkAsDeleted();
+        _unitOfWork.CustomerAttributes.Remove(attribute);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Deleted customer attribute {AttributeId}", id);
@@ -132,9 +138,9 @@ public class CustomerAttributeService : ICustomerAttributeService
         return Result.Success();
     }
 
-    public async Task<Result<IEnumerable<CustomerAttributeDto>>> UpsertByTypeAsync(
+    public async Task<Result<IEnumerable<CustomerAttributeDto>>> UpsertByDefinitionAsync(
         Guid customerId,
-        UpsertCustomerAttributesByTypeDto dto,
+        UpsertCustomerAttributesByDefinitionDto dto,
         CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(customerId, cancellationToken);
@@ -143,70 +149,30 @@ public class CustomerAttributeService : ICustomerAttributeService
             return Result<IEnumerable<CustomerAttributeDto>>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        // Get existing attributes of this type
-        var existingAttributes = (await _unitOfWork.CustomerAttributes.GetByCustomerIdAndTypeAsync(
-            customerId, dto.AttributeType, cancellationToken)).ToList();
-
-        // Track which existing IDs are in the request
-        var requestItemIds = dto.Items
-            .Where(i => i.Id.HasValue)
-            .Select(i => i.Id!.Value)
-            .ToHashSet();
-
-        // Delete attributes that are no longer in the request
-        foreach (var existing in existingAttributes)
+        var attributeDefinition = await _unitOfWork.AttributeDefinitions.GetByIdAsync(dto.AttributeDefinitionId, cancellationToken);
+        if (attributeDefinition is null)
         {
-            if (!requestItemIds.Contains(existing.Id))
-            {
-                existing.MarkAsDeleted();
-            }
+            return Result<IEnumerable<CustomerAttributeDto>>.Failure("Attribute definition not found", "ATTRIBUTE_DEFINITION_NOT_FOUND");
         }
 
-        // Process items: update existing or create new
+        // Delete existing attribute for this definition (replace semantics)
+        await _unitOfWork.CustomerAttributes.DeleteByCustomerIdAndDefinitionIdAsync(
+            customerId, dto.AttributeDefinitionId, cancellationToken);
+
+        // Process items: create new attributes
         var resultAttributes = new List<CustomerAttribute>();
         foreach (var item in dto.Items)
         {
-            if (item.Id.HasValue)
-            {
-                // Update existing
-                var existing = existingAttributes.FirstOrDefault(a => a.Id == item.Id.Value);
-                if (existing is not null)
-                {
-                    existing.UpdateData(item.JsonData);
-                    existing.UpdateDisplayOrder(item.DisplayOrder);
-                    _unitOfWork.CustomerAttributes.Update(existing);
-                    resultAttributes.Add(existing);
-                }
-                else
-                {
-                    // ID provided but not found - create new with that ID is not supported, create as new
-                    var attribute = CustomerAttribute.Create(
-                        customerId,
-                        dto.AttributeType,
-                        item.JsonData,
-                        item.DisplayOrder);
-                    await _unitOfWork.CustomerAttributes.AddAsync(attribute, cancellationToken);
-                    resultAttributes.Add(attribute);
-                }
-            }
-            else
-            {
-                // Create new
-                var attribute = CustomerAttribute.Create(
-                    customerId,
-                    dto.AttributeType,
-                    item.JsonData,
-                    item.DisplayOrder);
-                await _unitOfWork.CustomerAttributes.AddAsync(attribute, cancellationToken);
-                resultAttributes.Add(attribute);
-            }
+            var attribute = CustomerAttribute.Create(customerId, dto.AttributeDefinitionId, item.Value);
+            await _unitOfWork.CustomerAttributes.AddAsync(attribute, cancellationToken);
+            resultAttributes.Add(attribute);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Upserted {Count} customer attributes of type {AttributeType} for customer {CustomerId}",
-            resultAttributes.Count, dto.AttributeType, customerId);
+            "Upserted {Count} customer attributes for definition {AttributeDefinitionId} for customer {CustomerId}",
+            resultAttributes.Count, dto.AttributeDefinitionId, customerId);
 
         return Result<IEnumerable<CustomerAttributeDto>>.Success(resultAttributes.Select(MapToDto));
     }
@@ -217,10 +183,10 @@ public class CustomerAttributeService : ICustomerAttributeService
         {
             Id = attribute.Id,
             CustomerId = attribute.CustomerId,
-            AttributeType = attribute.AttributeType,
-            AttributeTypeName = attribute.AttributeType.ToString(),
-            DisplayOrder = attribute.DisplayOrder,
-            JsonData = attribute.JsonData,
+            AttributeDefinitionId = attribute.AttributeDefinitionId,
+            AttributeCode = attribute.AttributeDefinition?.Code ?? string.Empty,
+            AttributeName = attribute.AttributeDefinition?.Name ?? string.Empty,
+            Value = attribute.Value,
             CreatedAt = attribute.CreatedAt,
             UpdatedAt = attribute.UpdatedAt
         };

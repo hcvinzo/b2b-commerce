@@ -48,6 +48,21 @@ public class CreateAttributeDefinitionDto
     public int DisplayOrder { get; set; }
 
     /// <summary>
+    /// Which entity type this attribute belongs to (Product or Customer)
+    /// </summary>
+    public AttributeEntityType EntityType { get; set; } = AttributeEntityType.Product;
+
+    /// <summary>
+    /// Whether entity can have multiple values for this attribute
+    /// </summary>
+    public bool IsList { get; set; }
+
+    /// <summary>
+    /// Parent attribute ID for child attributes of Composite type
+    /// </summary>
+    public Guid? ParentAttributeId { get; set; }
+
+    /// <summary>
     /// Initial predefined values for Select/MultiSelect types
     /// </summary>
     public List<CreateAttributeValueDto>? PredefinedValues { get; set; }

@@ -17,4 +17,7 @@ public record CreateAttributeDefinitionCommand(
     bool IsRequired,
     bool IsVisibleOnProductPage,
     int DisplayOrder,
-    List<CreateAttributeValueDto>? PredefinedValues) : ICommand<Result<AttributeDefinitionDto>>;
+    AttributeEntityType EntityType,
+    bool IsList,
+    List<CreateAttributeValueDto>? PredefinedValues,
+    Guid? ParentAttributeId = null) : ICommand<Result<AttributeDefinitionDto>>;

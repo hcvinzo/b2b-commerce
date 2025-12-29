@@ -1,5 +1,3 @@
-using B2BCommerce.Backend.Domain.Enums;
-
 namespace B2BCommerce.Backend.Application.DTOs.Customers;
 
 /// <summary>
@@ -18,24 +16,24 @@ public class CustomerAttributeDto
     public Guid CustomerId { get; set; }
 
     /// <summary>
-    /// Attribute type
+    /// Attribute definition identifier
     /// </summary>
-    public CustomerAttributeType AttributeType { get; set; }
+    public Guid AttributeDefinitionId { get; set; }
 
     /// <summary>
-    /// Attribute type name for display
+    /// Attribute definition code
     /// </summary>
-    public string AttributeTypeName { get; set; } = string.Empty;
+    public string AttributeCode { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display order within the type
+    /// Attribute definition name for display
     /// </summary>
-    public int DisplayOrder { get; set; }
+    public string AttributeName { get; set; } = string.Empty;
 
     /// <summary>
-    /// JSON data containing the attribute value
+    /// JSON value containing the attribute data
     /// </summary>
-    public string JsonData { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 
     /// <summary>
     /// Date created
@@ -54,19 +52,14 @@ public class CustomerAttributeDto
 public class CreateCustomerAttributeDto
 {
     /// <summary>
-    /// Attribute type
+    /// Attribute definition identifier
     /// </summary>
-    public CustomerAttributeType AttributeType { get; set; }
+    public Guid AttributeDefinitionId { get; set; }
 
     /// <summary>
-    /// Display order within the type
+    /// JSON value containing the attribute data
     /// </summary>
-    public int DisplayOrder { get; set; }
-
-    /// <summary>
-    /// JSON data containing the attribute value
-    /// </summary>
-    public string JsonData { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -75,28 +68,23 @@ public class CreateCustomerAttributeDto
 public class UpdateCustomerAttributeDto
 {
     /// <summary>
-    /// Display order within the type
+    /// JSON value containing the attribute data
     /// </summary>
-    public int DisplayOrder { get; set; }
-
-    /// <summary>
-    /// JSON data containing the attribute value
-    /// </summary>
-    public string JsonData { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 }
 
 /// <summary>
-/// DTO for bulk upserting customer attributes by type
+/// DTO for bulk upserting customer attributes by definition
 /// </summary>
-public class UpsertCustomerAttributesByTypeDto
+public class UpsertCustomerAttributesByDefinitionDto
 {
     /// <summary>
-    /// Attribute type
+    /// Attribute definition identifier
     /// </summary>
-    public CustomerAttributeType AttributeType { get; set; }
+    public Guid AttributeDefinitionId { get; set; }
 
     /// <summary>
-    /// List of attributes to upsert (replaces all existing attributes of this type)
+    /// List of attributes to upsert (replaces all existing attributes of this definition)
     /// </summary>
     public List<CustomerAttributeItemDto> Items { get; set; } = new();
 }
@@ -112,12 +100,7 @@ public class CustomerAttributeItemDto
     public Guid? Id { get; set; }
 
     /// <summary>
-    /// Display order
+    /// JSON value containing the attribute data
     /// </summary>
-    public int DisplayOrder { get; set; }
-
-    /// <summary>
-    /// JSON data
-    /// </summary>
-    public string JsonData { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 }

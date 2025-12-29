@@ -5,14 +5,11 @@ using B2BCommerce.Backend.Application.Features.Customers.Commands.ActivateCustom
 using B2BCommerce.Backend.Application.Features.Customers.Commands.ApproveCustomer;
 using B2BCommerce.Backend.Application.Features.Customers.Commands.DeactivateCustomer;
 using B2BCommerce.Backend.Application.Features.Customers.Commands.DeleteCustomer;
-using B2BCommerce.Backend.Application.Features.Customers.Commands.UpdateCreditLimit;
 using B2BCommerce.Backend.Application.Features.Customers.Commands.UpdateCustomer;
 using B2BCommerce.Backend.Application.Features.CustomerAttributes.Commands.DeleteCustomerAttribute;
 using B2BCommerce.Backend.Application.Features.CustomerAttributes.Commands.UpsertCustomerAttributes;
 using B2BCommerce.Backend.Application.Features.CustomerAttributes.Queries.GetCustomerAttributes;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetAllCustomers;
-using B2BCommerce.Backend.Application.Features.Customers.Queries.GetAvailableCredit;
-using B2BCommerce.Backend.Application.Features.Customers.Queries.GetCustomerByEmail;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetCustomerById;
 using B2BCommerce.Backend.Application.Features.Customers.Queries.GetUnapprovedCustomers;
 using B2BCommerce.Backend.Domain.Enums;
@@ -44,12 +41,12 @@ public class CustomersController : ControllerBase
         [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null,
         [FromQuery] bool? isActive = null,
-        [FromQuery] bool? isApproved = null,
+        [FromQuery] CustomerStatus? status = null,
         [FromQuery] string? sortBy = null,
         [FromQuery] string? sortDirection = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAllCustomersQuery(pageNumber, pageSize, search, isActive, isApproved, sortBy, sortDirection);
+        var query = new GetAllCustomersQuery(pageNumber, pageSize, search, isActive, status, sortBy, sortDirection);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)
@@ -69,25 +66,6 @@ public class CustomersController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var query = new GetCustomerByIdQuery(id);
-        var result = await _mediator.Send(query, cancellationToken);
-
-        if (!result.IsSuccess)
-        {
-            return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
-        }
-
-        return Ok(result.Data);
-    }
-
-    /// <summary>
-    /// Get customer by email
-    /// </summary>
-    [HttpGet("email/{email}")]
-    [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetByEmail(string email, CancellationToken cancellationToken)
-    {
-        var query = new GetCustomerByEmailQuery(email);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)
@@ -129,7 +107,7 @@ public class CustomersController : ControllerBase
     /// </summary>
     [HttpGet("pending-approval")]
     [ProducesResponseType(typeof(IEnumerable<CustomerDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetUnapproved(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPending(CancellationToken cancellationToken)
     {
         var query = new GetUnapprovedCustomersQuery();
         var result = await _mediator.Send(query, cancellationToken);
@@ -143,25 +121,6 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Get customer's available credit
-    /// </summary>
-    [HttpGet("{id:guid}/available-credit")]
-    [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAvailableCredit(Guid id, CancellationToken cancellationToken)
-    {
-        var query = new GetAvailableCreditQuery(id);
-        var result = await _mediator.Send(query, cancellationToken);
-
-        if (!result.IsSuccess)
-        {
-            return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
-        }
-
-        return Ok(new { availableCredit = result.Data });
-    }
-
-    /// <summary>
     /// Update customer information
     /// </summary>
     [HttpPut("{id:guid}")]
@@ -172,19 +131,11 @@ public class CustomersController : ControllerBase
     {
         var command = new UpdateCustomerCommand(
             id,
-            request.CompanyName,
-            request.TradeName,
+            request.Title,
             request.TaxOffice,
-            request.MersisNo,
-            request.IdentityNo,
-            request.TradeRegistryNo,
-            request.Phone,
-            request.MobilePhone,
-            request.Fax,
-            request.Website,
-            request.ContactPersonName,
-            request.ContactPersonTitle,
-            request.PreferredLanguage);
+            request.TaxNo,
+            request.EstablishmentYear,
+            request.Website);
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -212,41 +163,12 @@ public class CustomersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
-        var approvedBy = User.FindFirst(ClaimTypes.Email)?.Value ?? "System";
-
-        var command = new ApproveCustomerCommand(id, approvedBy);
+        var command = new ApproveCustomerCommand(id);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
         {
             return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
-        }
-
-        return Ok(result.Data);
-    }
-
-    /// <summary>
-    /// Update customer credit limit
-    /// </summary>
-    [HttpPut("{id:guid}/credit-limit")]
-    [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateCreditLimit(
-        Guid id,
-        [FromBody] UpdateCreditLimitRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new UpdateCreditLimitCommand(id, request.NewCreditLimit);
-        var result = await _mediator.Send(command, cancellationToken);
-
-        if (!result.IsSuccess)
-        {
-            if (result.ErrorCode == "CUSTOMER_NOT_FOUND")
-            {
-                return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
-            }
-            return BadRequest(new { message = result.ErrorMessage, code = result.ErrorCode });
         }
 
         return Ok(result.Data);
@@ -312,17 +234,17 @@ public class CustomersController : ControllerBase
     #region Customer Attributes
 
     /// <summary>
-    /// Get all attributes for a customer, optionally filtered by type
+    /// Get all attributes for a customer, optionally filtered by attribute definition
     /// </summary>
     [HttpGet("{id:guid}/attributes")]
     [ProducesResponseType(typeof(IEnumerable<CustomerAttributeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAttributes(
         Guid id,
-        [FromQuery] CustomerAttributeType? type = null,
+        [FromQuery] Guid? attributeDefinitionId = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetCustomerAttributesQuery(id, type);
+        var query = new GetCustomerAttributesQuery(id, attributeDefinitionId);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)
@@ -334,7 +256,7 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Upsert customer attributes by type (replaces all existing attributes of the specified type)
+    /// Upsert customer attributes by definition (replaces all existing attributes for the specified definition)
     /// </summary>
     [HttpPut("{id:guid}/attributes")]
     [ProducesResponseType(typeof(IEnumerable<CustomerAttributeDto>), StatusCodes.Status200OK)]
@@ -342,10 +264,10 @@ public class CustomersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpsertAttributes(
         Guid id,
-        [FromBody] UpsertCustomerAttributesByTypeDto request,
+        [FromBody] UpsertCustomerAttributesByDefinitionDto request,
         CancellationToken cancellationToken)
     {
-        var command = new UpsertCustomerAttributesCommand(id, request.AttributeType, request.Items);
+        var command = new UpsertCustomerAttributesCommand(id, request.AttributeDefinitionId, request.Items);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (!result.IsSuccess)
@@ -387,12 +309,4 @@ public class CustomersController : ControllerBase
     }
 
     #endregion
-}
-
-/// <summary>
-/// Request model for updating credit limit
-/// </summary>
-public class UpdateCreditLimitRequest
-{
-    public decimal NewCreditLimit { get; set; }
 }

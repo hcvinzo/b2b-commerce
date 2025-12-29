@@ -21,11 +21,11 @@ public class GetCustomerAttributesQueryHandler : IQueryHandler<GetCustomerAttrib
         GetCustomerAttributesQuery request,
         CancellationToken cancellationToken)
     {
-        if (request.AttributeType.HasValue)
+        if (request.AttributeDefinitionId.HasValue)
         {
-            return await _customerAttributeService.GetByCustomerIdAndTypeAsync(
+            return await _customerAttributeService.GetByCustomerIdAndDefinitionIdAsync(
                 request.CustomerId,
-                request.AttributeType.Value,
+                request.AttributeDefinitionId.Value,
                 cancellationToken);
         }
 

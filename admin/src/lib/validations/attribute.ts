@@ -1,8 +1,12 @@
 import { z } from "zod";
 
-// Backend sends integer enum values: 1=Text, 2=Number, 3=Select, 4=MultiSelect, 5=Boolean, 6=Date
-export const AttributeTypeValues = [1, 2, 3, 4, 5, 6] as const;
+// Backend sends integer enum values: 1=Text, 2=Number, 3=Select, 4=MultiSelect, 5=Boolean, 6=Date, 7=Composite
+export const AttributeTypeValues = [1, 2, 3, 4, 5, 6, 7] as const;
 export type AttributeTypeValue = (typeof AttributeTypeValues)[number];
+
+// Backend sends integer enum values: 1=Product, 2=Customer
+export const AttributeEntityTypeValues = [1, 2] as const;
+export type AttributeEntityTypeValue = (typeof AttributeEntityTypeValues)[number];
 
 // Attribute definition schema for creating new attributes
 export const attributeSchema = z.object({
@@ -25,9 +29,14 @@ export const attributeSchema = z.object({
     z.literal(4),
     z.literal(5),
     z.literal(6),
+    z.literal(7),
   ], {
     message: "Please select an attribute type",
   }),
+  entityType: z.union([z.literal(1), z.literal(2)], {
+    message: "Please select an entity type",
+  }),
+  isList: z.boolean(),
   unit: z
     .string()
     .max(20, "Unit cannot exceed 20 characters")
@@ -41,7 +50,7 @@ export const attributeSchema = z.object({
 
 export type AttributeFormData = z.infer<typeof attributeSchema>;
 
-// Attribute definition schema for editing (code and type are not validated since they can't be changed)
+// Attribute definition schema for editing (code, type, entityType are not validated since they can't be changed)
 export const attributeEditSchema = z.object({
   code: z.string(), // No validation - field is disabled when editing
   name: z
@@ -55,7 +64,10 @@ export const attributeEditSchema = z.object({
     z.literal(4),
     z.literal(5),
     z.literal(6),
+    z.literal(7),
   ]), // No error message needed - field is disabled when editing
+  entityType: z.union([z.literal(1), z.literal(2)]), // No error message - field is disabled when editing
+  isList: z.boolean(),
   unit: z
     .string()
     .max(20, "Unit cannot exceed 20 characters")

@@ -1,4 +1,5 @@
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -15,150 +16,44 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         // Global soft delete filter
         builder.HasQueryFilter(c => !c.IsDeleted);
 
-        // Properties
-        builder.Property(c => c.CompanyName)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        builder.Property(c => c.TradeName)
-            .IsRequired()
+        // ExternalEntity properties
+        builder.Property(c => c.ExternalId)
             .HasMaxLength(100);
 
-        // TaxNumber value object - simple wrapper
-        builder.Property(c => c.TaxNumber)
-            .HasConversion(
-                v => v.Value,
-                v => new Domain.ValueObjects.TaxNumber(v))
-            .HasColumnName("TaxNumber")
+        builder.Property(c => c.ExternalCode)
+            .HasMaxLength(100);
+
+        // Properties
+        builder.Property(c => c.Title)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(300);
 
         builder.Property(c => c.TaxOffice)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(c => c.MersisNo)
-            .HasMaxLength(20);
-
-        builder.Property(c => c.IdentityNo)
-            .HasColumnName("IdentityNo")
-            .HasMaxLength(11);
-
-        builder.Property(c => c.TradeRegistryNo)
-            .HasMaxLength(50);
-
-        // Email value object - simple wrapper
-        builder.Property(c => c.Email)
-            .HasConversion(
-                v => v.Value,
-                v => new Domain.ValueObjects.Email(v))
-            .HasColumnName("Email")
-            .IsRequired()
             .HasMaxLength(200);
 
-        // PhoneNumber value object - simple wrapper
-        builder.Property(c => c.Phone)
-            .HasConversion(
-                v => v.Value,
-                v => new Domain.ValueObjects.PhoneNumber(v))
-            .HasColumnName("Phone")
-            .IsRequired()
+        builder.Property(c => c.TaxNo)
             .HasMaxLength(20);
 
-        // MobilePhone value object - nullable
-        builder.Property(c => c.MobilePhone)
-            .HasConversion(
-                v => v != null ? v.Value : null,
-                v => v != null ? new Domain.ValueObjects.PhoneNumber(v) : null)
-            .HasColumnName("MobilePhone")
-            .HasMaxLength(20);
-
-        builder.Property(c => c.Fax)
-            .HasMaxLength(20);
+        builder.Property(c => c.EstablishmentYear);
 
         builder.Property(c => c.Website)
-            .HasMaxLength(200);
+            .HasMaxLength(500);
 
-        // Enum properties
-        builder.Property(c => c.Type)
-            .IsRequired()
+        builder.Property(c => c.Status)
             .HasConversion<string>()
-            .HasMaxLength(50);
+            .HasMaxLength(20)
+            .HasDefaultValue(CustomerStatus.Pending);
 
-        builder.Property(c => c.PriceTier)
-            .IsRequired()
-            .HasConversion<string>()
-            .HasMaxLength(50);
+        builder.Property(c => c.UserId);
 
-        // Money value objects - Credit Limit
-        builder.OwnsOne(c => c.CreditLimit, money =>
-        {
-            money.Property(m => m.Amount)
-                .HasColumnName("CreditLimitAmount")
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
-
-            money.Property(m => m.Currency)
-                .HasColumnName("CreditLimitCurrency")
-                .HasMaxLength(3)
-                .IsRequired();
-        });
-
-        // Money value objects - Used Credit
-        builder.OwnsOne(c => c.UsedCredit, money =>
-        {
-            money.Property(m => m.Amount)
-                .HasColumnName("UsedCreditAmount")
-                .HasColumnType("decimal(18,2)")
-                .IsRequired();
-
-            money.Property(m => m.Currency)
-                .HasColumnName("UsedCreditCurrency")
-                .HasMaxLength(3)
-                .IsRequired();
-        });
-
-        // Approval properties
-        builder.Property(c => c.IsApproved)
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.Property(c => c.ApprovedAt);
-
-        builder.Property(c => c.ApprovedBy)
-            .HasMaxLength(100);
-
-        // Contact information
-        builder.Property(c => c.ContactPersonName)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        builder.Property(c => c.ContactPersonTitle)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        // Addresses relationship - handled by CustomerAddressConfiguration
-        builder.HasMany(c => c.Addresses)
-            .WithOne(a => a.Customer)
-            .HasForeignKey(a => a.CustomerId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Settings
-        builder.Property(c => c.PreferredCurrency)
-            .IsRequired()
-            .HasMaxLength(3)
-            .HasDefaultValue("TRY");
-
-        builder.Property(c => c.PreferredLanguage)
-            .IsRequired()
-            .HasMaxLength(10)
-            .HasDefaultValue("tr");
+        builder.Property(c => c.DocumentUrls)
+            .HasColumnType("jsonb");
 
         builder.Property(c => c.IsActive)
             .IsRequired()
-            .HasDefaultValue(true);
+            .HasDefaultValue(false);
 
-        // Audit properties
+        // Audit properties (inherited from BaseEntity, explicitly configured)
         builder.Property(c => c.CreatedAt)
             .IsRequired();
 
@@ -179,20 +74,38 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.DeletedBy)
             .HasMaxLength(100);
 
+        // Relationships
+        builder.HasMany(c => c.Contacts)
+            .WithOne(ct => ct.Customer)
+            .HasForeignKey(ct => ct.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(c => c.Addresses)
+            .WithOne(a => a.Customer)
+            .HasForeignKey(a => a.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(c => c.Attributes)
+            .WithOne(a => a.Customer)
+            .HasForeignKey(a => a.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Indexes
-        builder.HasIndex(c => c.Email)
+        builder.HasIndex(c => c.ExternalId)
             .IsUnique()
-            .HasFilter("\"IsDeleted\" = false");
+            .HasFilter("\"ExternalId\" IS NOT NULL AND \"IsDeleted\" = false");
 
-        builder.HasIndex(c => c.TaxNumber)
+        builder.HasIndex(c => c.TaxNo)
             .IsUnique()
-            .HasFilter("\"IsDeleted\" = false");
+            .HasFilter("\"TaxNo\" IS NOT NULL AND \"IsDeleted\" = false");
 
-        builder.HasIndex(c => c.CompanyName);
+        builder.HasIndex(c => c.Title);
+
+        builder.HasIndex(c => c.Status);
+
+        builder.HasIndex(c => c.UserId);
 
         builder.HasIndex(c => c.IsActive);
-
-        builder.HasIndex(c => c.IsApproved);
 
         builder.HasIndex(c => c.IsDeleted);
     }

@@ -80,24 +80,40 @@ import {
 } from "@/lib/validations/product-type";
 import { cn } from "@/lib/utils";
 
-// Maps integer type to display label
-const TYPE_LABELS: Record<AttributeType, string> = {
+// Maps type to display label (supports both string and number keys from backend)
+const TYPE_LABELS: Record<string | number, string> = {
   1: "Text",
   2: "Number",
   3: "Select",
   4: "MultiSelect",
   5: "Boolean",
   6: "Date",
+  7: "Composite",
+  Text: "Text",
+  Number: "Number",
+  Select: "Select",
+  MultiSelect: "MultiSelect",
+  Boolean: "Boolean",
+  Date: "Date",
+  Composite: "Composite",
 };
 
-// Maps integer type to badge color
-const TYPE_BADGE_COLORS: Record<AttributeType, string> = {
+// Maps type to badge color (supports both string and number keys from backend)
+const TYPE_BADGE_COLORS: Record<string | number, string> = {
   1: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
   2: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
   3: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
   4: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300",
   5: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
   6: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
+  7: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300",
+  Text: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  Number: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  Select: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  MultiSelect: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300",
+  Boolean: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  Date: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300",
+  Composite: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300",
 };
 
 // Product Type list item component

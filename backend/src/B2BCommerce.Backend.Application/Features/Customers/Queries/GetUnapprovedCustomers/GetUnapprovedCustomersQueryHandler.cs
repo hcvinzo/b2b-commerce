@@ -19,6 +19,6 @@ public class GetUnapprovedCustomersQueryHandler : IQueryHandler<GetUnapprovedCus
 
     public async Task<Result<IEnumerable<CustomerDto>>> Handle(GetUnapprovedCustomersQuery request, CancellationToken cancellationToken)
     {
-        return await _customerService.GetUnapprovedCustomersAsync(cancellationToken);
+        return await _customerService.GetPendingCustomersAsync(cancellationToken);
     }
 }

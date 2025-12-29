@@ -21,44 +21,54 @@ public class CustomerAddressDto
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
+    /// Full name of the person at this address
+    /// </summary>
+    public string? FullName { get; set; }
+
+    /// <summary>
     /// Address type (Billing, Shipping, Contact)
     /// </summary>
     public string AddressType { get; set; } = string.Empty;
 
     /// <summary>
-    /// Street address
+    /// Full address text
     /// </summary>
-    public string Street { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
 
     /// <summary>
-    /// District (İlçe)
+    /// GeoLocation reference ID
     /// </summary>
-    public string? District { get; set; }
+    public Guid? GeoLocationId { get; set; }
 
     /// <summary>
-    /// Neighborhood (Mahalle)
+    /// GeoLocation path name (e.g., "Türkiye/İstanbul/Kadıköy")
     /// </summary>
-    public string? Neighborhood { get; set; }
-
-    /// <summary>
-    /// City (İl)
-    /// </summary>
-    public string City { get; set; } = string.Empty;
-
-    /// <summary>
-    /// State/Province (Bölge)
-    /// </summary>
-    public string? State { get; set; }
-
-    /// <summary>
-    /// Country (Ülke)
-    /// </summary>
-    public string Country { get; set; } = string.Empty;
+    public string? GeoLocationPathName { get; set; }
 
     /// <summary>
     /// Postal code (Posta Kodu)
     /// </summary>
-    public string PostalCode { get; set; } = string.Empty;
+    public string? PostalCode { get; set; }
+
+    /// <summary>
+    /// Business phone number
+    /// </summary>
+    public string? Phone { get; set; }
+
+    /// <summary>
+    /// Phone extension
+    /// </summary>
+    public string? PhoneExt { get; set; }
+
+    /// <summary>
+    /// Mobile phone number
+    /// </summary>
+    public string? Gsm { get; set; }
+
+    /// <summary>
+    /// Tax number for this address
+    /// </summary>
+    public string? TaxNo { get; set; }
 
     /// <summary>
     /// Whether this is the default address for the customer

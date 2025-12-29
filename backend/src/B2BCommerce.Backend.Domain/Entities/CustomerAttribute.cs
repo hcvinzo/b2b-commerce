@@ -1,70 +1,88 @@
 using B2BCommerce.Backend.Domain.Common;
-using B2BCommerce.Backend.Domain.Enums;
+using B2BCommerce.Backend.Domain.Exceptions;
 
 namespace B2BCommerce.Backend.Domain.Entities;
 
 /// <summary>
-/// Stores additional customer information in a flexible EAV pattern with typed JSON data.
-/// Used for B2B-specific information like shareholders, business partners, bank accounts, etc.
+/// Stores customer attribute values in a flexible EAV pattern.
+/// Links to AttributeDefinition for schema and stores values as JSON.
 /// </summary>
 public class CustomerAttribute : BaseEntity
 {
+    /// <summary>
+    /// FK to the customer
+    /// </summary>
     public Guid CustomerId { get; private set; }
-    public Customer Customer { get; private set; } = null!;
-    public CustomerAttributeType AttributeType { get; private set; }
-    public int DisplayOrder { get; private set; }
-    public string JsonData { get; private set; } = string.Empty;
 
-    private CustomerAttribute()
+    /// <summary>
+    /// FK to the attribute definition
+    /// </summary>
+    public Guid AttributeDefinitionId { get; private set; }
+
+    /// <summary>
+    /// JSON value for the attribute.
+    /// Format depends on AttributeDefinition.Type:
+    /// - Text: { "value": "string" }
+    /// - Number: { "value": 123.45 }
+    /// - Select: { "selectedValueId": "guid", "displayText": "text" }
+    /// - MultiSelect: { "selectedValueIds": ["guid1", "guid2"], "displayTexts": ["text1", "text2"] }
+    /// - Boolean: { "value": true }
+    /// - Date: { "value": "2024-01-15" }
+    /// - Composite: { "field1": "value1", "field2": 123 }
+    /// For IsList=true attributes, value is an array: [{ ... }, { ... }]
+    /// </summary>
+    public string Value { get; private set; }
+
+    // Navigation properties
+    public Customer Customer { get; private set; } = null!;
+    public AttributeDefinition AttributeDefinition { get; private set; } = null!;
+
+    private CustomerAttribute() // For EF Core
     {
+        Value = string.Empty;
     }
 
     /// <summary>
-    /// Creates a new customer attribute
+    /// Creates a new CustomerAttribute instance
     /// </summary>
     public static CustomerAttribute Create(
         Guid customerId,
-        CustomerAttributeType attributeType,
-        string jsonData,
-        int displayOrder = 0)
+        Guid attributeDefinitionId,
+        string value)
     {
         if (customerId == Guid.Empty)
         {
-            throw new ArgumentException("Customer ID cannot be empty", nameof(customerId));
+            throw new DomainException("CustomerId is required");
         }
 
-        if (string.IsNullOrWhiteSpace(jsonData))
+        if (attributeDefinitionId == Guid.Empty)
         {
-            throw new ArgumentException("JSON data cannot be empty", nameof(jsonData));
+            throw new DomainException("AttributeDefinitionId is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new DomainException("Value is required");
         }
 
         return new CustomerAttribute
         {
             CustomerId = customerId,
-            AttributeType = attributeType,
-            JsonData = jsonData,
-            DisplayOrder = displayOrder
+            AttributeDefinitionId = attributeDefinitionId,
+            Value = value
         };
     }
 
     /// <summary>
-    /// Updates the JSON data
+    /// Updates the attribute value
     /// </summary>
-    public void UpdateData(string jsonData)
+    public void UpdateValue(string value)
     {
-        if (string.IsNullOrWhiteSpace(jsonData))
+        if (string.IsNullOrWhiteSpace(value))
         {
-            throw new ArgumentException("JSON data cannot be empty", nameof(jsonData));
+            throw new DomainException("Value is required");
         }
 
-        JsonData = jsonData;
-    }
-
-    /// <summary>
-    /// Updates the display order
-    /// </summary>
-    public void UpdateDisplayOrder(int displayOrder)
-    {
-        DisplayOrder = displayOrder;
+        Value = value;
     }
 }

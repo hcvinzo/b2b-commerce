@@ -91,14 +91,29 @@ public interface IUnitOfWork : IDisposable
     ICustomerAttributeRepository CustomerAttributes { get; }
 
     /// <summary>
-    /// Gets the customer document repository
+    /// Gets the customer contact repository
     /// </summary>
-    ICustomerDocumentRepository CustomerDocuments { get; }
+    ICustomerContactRepository CustomerContacts { get; }
+
+    /// <summary>
+    /// Gets the geo location type repository
+    /// </summary>
+    IGeoLocationTypeRepository GeoLocationTypes { get; }
+
+    /// <summary>
+    /// Gets the geo location repository
+    /// </summary>
+    IGeoLocationRepository GeoLocations { get; }
 
     /// <summary>
     /// Gets the collection repository
     /// </summary>
     ICollectionRepository Collections { get; }
+
+    /// <summary>
+    /// Gets the customer address repository
+    /// </summary>
+    ICustomerAddressRepository CustomerAddresses { get; }
 
     /// <summary>
     /// Saves all changes made in this unit of work to the database

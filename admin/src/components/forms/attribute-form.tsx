@@ -28,8 +28,9 @@ import {
   attributeEditSchema,
   type AttributeFormData,
   type AttributeTypeValue,
+  type AttributeEntityTypeValue,
 } from "@/lib/validations/attribute";
-import { AttributeTypeEnum } from "@/types/entities";
+import { AttributeTypeEnum, AttributeEntityTypeEnum, AttributeEntityType } from "@/types/entities";
 
 // Maps integer type to display label
 const ATTRIBUTE_TYPES: { value: AttributeTypeValue; label: string }[] = [
@@ -39,19 +40,35 @@ const ATTRIBUTE_TYPES: { value: AttributeTypeValue; label: string }[] = [
   { value: 4, label: "Multi-Select" },
   { value: 5, label: "Boolean (Yes/No)" },
   { value: 6, label: "Date" },
+  { value: 7, label: "Composite" },
+];
+
+// Maps integer entity type to display label
+const ENTITY_TYPES: { value: AttributeEntityTypeValue; label: string }[] = [
+  { value: 1, label: "Product" },
+  { value: 2, label: "Customer" },
 ];
 
 interface AttributeFormProps {
   defaultValues?: Partial<AttributeFormData>;
   isEditing?: boolean;
+  /** Pre-set entity type (used when adding attribute from within a specific entity type tab) */
+  presetEntityType?: AttributeEntityType;
+  /** When true, this form is for creating a child attribute of a composite parent */
+  isChildAttribute?: boolean;
   onSubmit: (data: AttributeFormData) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
 }
 
+// Child attributes cannot be Composite type (no nested composites)
+const CHILD_ATTRIBUTE_TYPES = ATTRIBUTE_TYPES.filter(t => t.value !== 7);
+
 export function AttributeForm({
   defaultValues,
   isEditing = false,
+  presetEntityType,
+  isChildAttribute = false,
   onSubmit,
   onCancel,
   isLoading,
@@ -62,6 +79,8 @@ export function AttributeForm({
       code: "",
       name: "",
       type: AttributeTypeEnum.Text, // 1
+      entityType: presetEntityType ?? AttributeEntityTypeEnum.Product, // 1
+      isList: false,
       unit: "",
       isFilterable: false,
       isRequired: false,
@@ -72,7 +91,10 @@ export function AttributeForm({
   });
 
   const watchedType = form.watch("type");
+  const watchedEntityType = form.watch("entityType");
   const showUnitField = watchedType === AttributeTypeEnum.Number; // 2
+  // Only show isVisibleOnProductPage toggle for Product attributes
+  const showProductPageVisibility = watchedEntityType === AttributeEntityTypeEnum.Product;
 
   // Auto-generate code from name
   const handleNameChange = (name: string) => {
@@ -133,6 +155,43 @@ export function AttributeForm({
             )}
           />
 
+          {/* Hide entity type for child attributes - they inherit from parent */}
+          {!isChildAttribute && (
+            <FormField
+              control={form.control}
+              name="entityType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Entity Type *</FormLabel>
+                  <Select
+                    onValueChange={(val) => field.onChange(parseInt(val, 10))}
+                    value={String(field.value)}
+                    disabled={isEditing || !!presetEntityType}
+                  >
+                    <FormControl>
+                      <SelectTrigger className={isEditing || presetEntityType ? "bg-muted" : ""}>
+                        <SelectValue placeholder="Select entity type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ENTITY_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={String(type.value)}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {isEditing
+                      ? "Entity type cannot be changed after creation"
+                      : "Product attributes are for product specs, Customer attributes for dealer info"}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="type"
@@ -150,7 +209,7 @@ export function AttributeForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {ATTRIBUTE_TYPES.map((type) => (
+                    {(isChildAttribute ? CHILD_ATTRIBUTE_TYPES : ATTRIBUTE_TYPES).map((type) => (
                       <SelectItem key={type.value} value={String(type.value)}>
                         {type.label}
                       </SelectItem>
@@ -160,7 +219,9 @@ export function AttributeForm({
                 <FormDescription>
                   {isEditing
                     ? "Type cannot be changed after creation"
-                    : "Select/Multi-Select types support predefined values"}
+                    : isChildAttribute
+                      ? "Child attributes cannot be Composite type"
+                      : "Select/Multi-Select types support predefined values"}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -235,7 +296,7 @@ export function AttributeForm({
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">Required</FormLabel>
                   <FormDescription>
-                    Make this attribute required on products
+                    Make this attribute required
                   </FormDescription>
                 </div>
                 <FormControl>
@@ -250,15 +311,13 @@ export function AttributeForm({
 
           <FormField
             control={form.control}
-            name="isVisibleOnProductPage"
+            name="isList"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">
-                    Visible on Product Page
-                  </FormLabel>
+                  <FormLabel className="text-base">Allow Multiple Values</FormLabel>
                   <FormDescription>
-                    Display this attribute on the product detail page
+                    Entity can have multiple values for this attribute
                   </FormDescription>
                 </div>
                 <FormControl>
@@ -270,6 +329,31 @@ export function AttributeForm({
               </FormItem>
             )}
           />
+
+          {showProductPageVisibility && (
+            <FormField
+              control={form.control}
+              name="isVisibleOnProductPage"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      Visible on Product Page
+                    </FormLabel>
+                    <FormDescription>
+                      Display this attribute on the product detail page
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         <div className="flex justify-end gap-4">

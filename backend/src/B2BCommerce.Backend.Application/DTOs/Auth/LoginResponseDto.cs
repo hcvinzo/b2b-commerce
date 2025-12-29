@@ -26,17 +26,22 @@ public class LoginResponseDto
     public Guid CustomerId { get; set; }
 
     /// <summary>
-    /// Customer email
+    /// User email
     /// </summary>
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
-    /// Company name
+    /// Customer title/company name (Ünvan)
     /// </summary>
-    public string CompanyName { get; set; } = string.Empty;
+    public string CustomerTitle { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether customer is approved
+    /// Customer status
     /// </summary>
-    public bool IsApproved { get; set; }
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether customer is active and approved
+    /// </summary>
+    public bool IsActive { get; set; }
 }

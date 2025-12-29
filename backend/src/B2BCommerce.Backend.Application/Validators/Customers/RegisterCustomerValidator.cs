@@ -7,28 +7,25 @@ public class RegisterCustomerValidator : AbstractValidator<RegisterCustomerDto>
 {
     public RegisterCustomerValidator()
     {
-        RuleFor(x => x.CompanyName)
-            .NotEmpty().WithMessage("Company name is required")
-            .MaximumLength(200).WithMessage("Company name cannot exceed 200 characters");
-
-        RuleFor(x => x.TaxNumber)
-            .NotEmpty().WithMessage("Tax number is required")
-            .Length(10, 20).WithMessage("Tax number must be between 10 and 20 characters");
+        RuleFor(x => x.Title)
+            .NotEmpty().WithMessage("Company title is required")
+            .MaximumLength(300).WithMessage("Company title cannot exceed 300 characters");
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")
             .EmailAddress().WithMessage("Invalid email format");
 
-        RuleFor(x => x.Phone)
-            .NotEmpty().WithMessage("Phone number is required")
-            .Matches(@"^[\d\s\-\+\(\)]{10,15}$").WithMessage("Invalid phone number format");
+        RuleFor(x => x.ContactFirstName)
+            .NotEmpty().WithMessage("Contact first name is required")
+            .MaximumLength(100).WithMessage("Contact first name cannot exceed 100 characters");
 
-        RuleFor(x => x.ContactPersonName)
-            .NotEmpty().WithMessage("Contact person name is required")
-            .MaximumLength(100).WithMessage("Contact person name cannot exceed 100 characters");
+        RuleFor(x => x.ContactLastName)
+            .NotEmpty().WithMessage("Contact last name is required")
+            .MaximumLength(100).WithMessage("Contact last name cannot exceed 100 characters");
 
-        RuleFor(x => x.ContactPersonTitle)
-            .MaximumLength(100).WithMessage("Contact person title cannot exceed 100 characters");
+        RuleFor(x => x.ContactEmail)
+            .NotEmpty().WithMessage("Contact email is required")
+            .EmailAddress().WithMessage("Invalid contact email format");
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Password is required")
@@ -37,25 +34,31 @@ public class RegisterCustomerValidator : AbstractValidator<RegisterCustomerDto>
             .Matches("[a-z]").WithMessage("Password must contain at least one lowercase letter")
             .Matches("[0-9]").WithMessage("Password must contain at least one digit");
 
-        // Billing address
-        RuleFor(x => x.BillingStreet).NotEmpty().WithMessage("Billing street is required");
-        RuleFor(x => x.BillingCity).NotEmpty().WithMessage("Billing city is required");
-        RuleFor(x => x.BillingState).NotEmpty().WithMessage("Billing state is required");
-        RuleFor(x => x.BillingCountry).NotEmpty().WithMessage("Billing country is required");
-        RuleFor(x => x.BillingPostalCode).NotEmpty().WithMessage("Billing postal code is required");
+        RuleFor(x => x.PasswordConfirmation)
+            .Equal(x => x.Password).WithMessage("Password confirmation must match password");
 
-        // Shipping address
-        RuleFor(x => x.ShippingStreet).NotEmpty().WithMessage("Shipping street is required");
-        RuleFor(x => x.ShippingCity).NotEmpty().WithMessage("Shipping city is required");
-        RuleFor(x => x.ShippingState).NotEmpty().WithMessage("Shipping state is required");
-        RuleFor(x => x.ShippingCountry).NotEmpty().WithMessage("Shipping country is required");
-        RuleFor(x => x.ShippingPostalCode).NotEmpty().WithMessage("Shipping postal code is required");
+        RuleFor(x => x.AcceptTerms)
+            .Equal(true).WithMessage("You must accept the terms and conditions");
 
-        RuleFor(x => x.CreditLimit)
-            .GreaterThanOrEqualTo(0).WithMessage("Credit limit must be non-negative");
+        RuleFor(x => x.AcceptKvkk)
+            .Equal(true).WithMessage("You must accept the KVKK consent");
 
-        RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage("Currency is required")
-            .Length(3).WithMessage("Currency must be a 3-letter ISO code");
+        // Optional validations
+        RuleFor(x => x.TaxNo)
+            .MaximumLength(20).WithMessage("Tax number cannot exceed 20 characters")
+            .When(x => !string.IsNullOrEmpty(x.TaxNo));
+
+        RuleFor(x => x.TaxOffice)
+            .MaximumLength(200).WithMessage("Tax office cannot exceed 200 characters")
+            .When(x => !string.IsNullOrEmpty(x.TaxOffice));
+
+        RuleFor(x => x.Website)
+            .MaximumLength(500).WithMessage("Website URL cannot exceed 500 characters")
+            .When(x => !string.IsNullOrEmpty(x.Website));
+
+        RuleFor(x => x.EstablishmentYear)
+            .InclusiveBetween(1800, DateTime.Now.Year)
+            .WithMessage($"Establishment year must be between 1800 and {DateTime.Now.Year}")
+            .When(x => x.EstablishmentYear.HasValue);
     }
 }

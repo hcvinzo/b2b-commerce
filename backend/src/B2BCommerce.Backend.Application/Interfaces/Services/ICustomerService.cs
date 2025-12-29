@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.DTOs.Customers;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Interfaces.Services;
 
@@ -14,9 +15,9 @@ public interface ICustomerService
     Task<Result<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get customer by email
+    /// Get customer by tax number
     /// </summary>
-    Task<Result<CustomerDto>> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<Result<CustomerDto>> GetByTaxNoAsync(string taxNo, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get all customers with pagination, search, and filtering
@@ -26,7 +27,7 @@ public interface ICustomerService
         int pageSize,
         string? search = null,
         bool? isActive = null,
-        bool? isApproved = null,
+        CustomerStatus? status = null,
         string? sortBy = null,
         string? sortDirection = null,
         CancellationToken cancellationToken = default);
@@ -34,7 +35,7 @@ public interface ICustomerService
     /// <summary>
     /// Get customers pending approval
     /// </summary>
-    Task<Result<IEnumerable<CustomerDto>>> GetUnapprovedCustomersAsync(CancellationToken cancellationToken = default);
+    Task<Result<IEnumerable<CustomerDto>>> GetPendingCustomersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Update customer information
@@ -42,24 +43,24 @@ public interface ICustomerService
     Task<Result<CustomerDto>> UpdateAsync(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Approve a customer account
+    /// Approve a customer account (set status to Active)
     /// </summary>
-    Task<Result<CustomerDto>> ApproveAsync(Guid id, string approvedBy, CancellationToken cancellationToken = default);
+    Task<Result<CustomerDto>> ApproveAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Update customer credit limit
+    /// Reject a customer application
     /// </summary>
-    Task<Result<CustomerDto>> UpdateCreditLimitAsync(Guid id, decimal newCreditLimit, CancellationToken cancellationToken = default);
+    Task<Result<CustomerDto>> RejectAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get customer's available credit
+    /// Suspend a customer account
     /// </summary>
-    Task<Result<decimal>> GetAvailableCreditAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Result<CustomerDto>> SuspendAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Check if customer's credit is near limit
+    /// Set customer status
     /// </summary>
-    Task<Result<bool>> IsCreditNearLimitAsync(Guid id, decimal thresholdPercentage = 90, CancellationToken cancellationToken = default);
+    Task<Result<CustomerDto>> SetStatusAsync(Guid id, CustomerStatus status, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Activate a customer account

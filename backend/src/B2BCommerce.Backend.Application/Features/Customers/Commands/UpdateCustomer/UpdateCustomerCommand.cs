@@ -9,16 +9,8 @@ namespace B2BCommerce.Backend.Application.Features.Customers.Commands.UpdateCust
 /// </summary>
 public record UpdateCustomerCommand(
     Guid Id,
-    string CompanyName,
-    string TradeName,
-    string TaxOffice,
-    string? MersisNo,
-    string? IdentityNo,
-    string? TradeRegistryNo,
-    string Phone,
-    string? MobilePhone,
-    string? Fax,
-    string? Website,
-    string ContactPersonName,
-    string ContactPersonTitle,
-    string PreferredLanguage) : ICommand<Result<CustomerDto>>;
+    string Title,
+    string? TaxOffice,
+    string? TaxNo,
+    int? EstablishmentYear,
+    string? Website) : ICommand<Result<CustomerDto>>;

@@ -19,6 +19,6 @@ public class ApproveCustomerCommandHandler : ICommandHandler<ApproveCustomerComm
 
     public async Task<Result<CustomerDto>> Handle(ApproveCustomerCommand request, CancellationToken cancellationToken)
     {
-        return await _customerService.ApproveAsync(request.Id, request.ApprovedBy, cancellationToken);
+        return await _customerService.ApproveAsync(request.Id, cancellationToken);
     }
 }

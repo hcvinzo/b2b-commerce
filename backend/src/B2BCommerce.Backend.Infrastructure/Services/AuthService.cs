@@ -9,7 +9,6 @@ using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities;
 using B2BCommerce.Backend.Domain.Enums;
-using B2BCommerce.Backend.Domain.ValueObjects;
 using B2BCommerce.Backend.Infrastructure.Data;
 using B2BCommerce.Backend.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -98,8 +97,9 @@ public class AuthService : IAuthService
             ExpiresAt = DateTime.UtcNow.AddMinutes(_configuration.GetValue<int>("Jwt:ExpirationMinutes", 15)),
             CustomerId = customer?.Id ?? Guid.Empty,
             Email = user.Email!,
-            CompanyName = customer?.CompanyName ?? string.Empty,
-            IsApproved = customer?.IsApproved ?? true
+            CustomerTitle = customer?.Title ?? string.Empty,
+            Status = customer?.Status.ToString() ?? string.Empty,
+            IsActive = customer?.IsActive ?? true
         });
     }
 
@@ -115,34 +115,14 @@ public class AuthService : IAuthService
             }
         }
 
-        // Check if tax number already exists
-        try
+        // Check if tax number already exists (if provided)
+        if (!string.IsNullOrWhiteSpace(request.TaxNo))
         {
-            var existingCustomer = await _unitOfWork.Customers.GetByTaxNumberAsync(request.TaxNumber, cancellationToken);
+            var existingCustomer = await _unitOfWork.Customers.GetByTaxNoAsync(request.TaxNo, cancellationToken);
             if (existingCustomer is not null)
             {
                 return Result<CustomerDto>.Failure("Tax number already registered", "TAX_NUMBER_EXISTS");
             }
-        }
-        catch (ArgumentException ex)
-        {
-            // TaxNumber validation failed in value object constructor
-            return Result<CustomerDto>.Failure(ex.Message, "INVALID_TAX_NUMBER");
-        }
-
-        // Check if email already exists for another customer
-        try
-        {
-            var existingCustomerByEmail = await _unitOfWork.Customers.GetByEmailAsync(request.Email, cancellationToken);
-            if (existingCustomerByEmail is not null)
-            {
-                return Result<CustomerDto>.Failure("Email already registered", "EMAIL_EXISTS");
-            }
-        }
-        catch (ArgumentException ex)
-        {
-            // Email validation failed in value object constructor
-            return Result<CustomerDto>.Failure(ex.Message, "INVALID_EMAIL");
         }
 
         try
@@ -159,97 +139,54 @@ public class AuthService : IAuthService
 
                 try
                 {
-                    // Parse customer type
-                    var customerType = CustomerType.Standard;
-                    if (!string.IsNullOrEmpty(request.Type) && Enum.TryParse<CustomerType>(request.Type, out var parsedType))
-                    {
-                        customerType = parsedType;
-                    }
-
                     // Create customer using factory method
                     customer = Customer.Create(
-                        companyName: request.CompanyName,
-                        tradeName: request.TradeName,
-                        taxNumber: new TaxNumber(request.TaxNumber),
+                        title: request.Title,
                         taxOffice: request.TaxOffice,
-                        email: new Email(request.Email),
-                        phone: new PhoneNumber(request.Phone),
-                        contactPersonName: request.ContactPersonName,
-                        contactPersonTitle: request.ContactPersonTitle,
-                        creditLimit: new Money(request.CreditLimit, request.Currency),
-                        type: customerType,
-                        mersisNo: request.MersisNo,
-                        identityNo: request.IdentityNo,
-                        tradeRegistryNo: request.TradeRegistryNo,
-                        mobilePhone: !string.IsNullOrWhiteSpace(request.MobilePhone) ? new PhoneNumber(request.MobilePhone) : null,
-                        fax: request.Fax,
+                        taxNo: request.TaxNo,
+                        establishmentYear: request.EstablishmentYear,
                         website: request.Website
                     );
 
-                    // Only create addresses if address data is provided
-                    var hasBillingAddress = !string.IsNullOrWhiteSpace(request.BillingStreet) &&
-                                            !string.IsNullOrWhiteSpace(request.BillingCity);
-
-                    if (hasBillingAddress)
-                    {
-                        // Create billing address and add to customer
-                        var billingAddress = CustomerAddress.Create(
-                            customerId: customer.Id,
-                            title: "Billing Address",
-                            addressType: CustomerAddressType.Billing,
-                            address: new Address(
-                                request.BillingStreet,
-                                request.BillingCity,
-                                request.BillingState,
-                                request.BillingCountry,
-                                request.BillingPostalCode,
-                                request.BillingDistrict,
-                                request.BillingNeighborhood),
-                            isDefault: true
-                        );
-                        customer.Addresses.Add(billingAddress);
-
-                        // Create shipping address if different from billing
-                        CustomerAddress shippingAddress;
-                        if (request.UseSameAddressForBilling)
-                        {
-                            shippingAddress = CustomerAddress.Create(
-                                customerId: customer.Id,
-                                title: "Shipping Address",
-                                addressType: CustomerAddressType.Shipping,
-                                address: new Address(
-                                    request.BillingStreet,
-                                    request.BillingCity,
-                                    request.BillingState,
-                                    request.BillingCountry,
-                                    request.BillingPostalCode,
-                                    request.BillingDistrict,
-                                    request.BillingNeighborhood),
-                                isDefault: true
-                            );
-                        }
-                        else
-                        {
-                            shippingAddress = CustomerAddress.Create(
-                                customerId: customer.Id,
-                                title: "Shipping Address",
-                                addressType: CustomerAddressType.Shipping,
-                                address: new Address(
-                                    request.ShippingStreet,
-                                    request.ShippingCity,
-                                    request.ShippingState,
-                                    request.ShippingCountry,
-                                    request.ShippingPostalCode,
-                                    request.ShippingDistrict,
-                                    request.ShippingNeighborhood),
-                                isDefault: true
-                            );
-                        }
-                        customer.Addresses.Add(shippingAddress);
-                    }
-
                     await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    // Create primary contact if contact info is provided
+                    if (!string.IsNullOrWhiteSpace(request.ContactFirstName) &&
+                        !string.IsNullOrWhiteSpace(request.ContactLastName))
+                    {
+                        var contact = CustomerContact.Create(
+                            customerId: customer.Id,
+                            firstName: request.ContactFirstName,
+                            lastName: request.ContactLastName,
+                            email: request.ContactEmail,
+                            position: request.ContactPosition,
+                            phone: request.ContactPhone,
+                            gsm: request.ContactGsm,
+                            isPrimary: true
+                        );
+
+                        await _unitOfWork.CustomerContacts.AddAsync(contact, cancellationToken);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+
+                    // Create address if address info is provided
+                    if (!string.IsNullOrWhiteSpace(request.AddressTitle) &&
+                        !string.IsNullOrWhiteSpace(request.Address))
+                    {
+                        var address = CustomerAddress.Create(
+                            customerId: customer.Id,
+                            title: request.AddressTitle,
+                            addressType: CustomerAddressType.Billing,
+                            address: request.Address,
+                            geoLocationId: request.GeoLocationId,
+                            postalCode: request.PostalCode,
+                            isDefault: true
+                        );
+
+                        await _unitOfWork.CustomerAddresses.AddAsync(address, cancellationToken);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
 
                     // Only create user account if password is provided
                     // For dealer applications without password, user account is created after admin approval
@@ -259,8 +196,8 @@ public class AuthService : IAuthService
                         {
                             UserName = request.Email,
                             Email = request.Email,
-                            FirstName = request.ContactPersonName.Split(' ').FirstOrDefault(),
-                            LastName = request.ContactPersonName.Split(' ').LastOrDefault(),
+                            FirstName = request.ContactFirstName,
+                            LastName = request.ContactLastName,
                             CustomerId = customer.Id,
                             IsActive = true
                         };
@@ -271,6 +208,11 @@ public class AuthService : IAuthService
                             userCreationError = string.Join(", ", createResult.Errors.Select(e => e.Description));
                             throw new InvalidOperationException($"User creation failed: {userCreationError}");
                         }
+
+                        // Link user to customer
+                        customer.SetUserId(user.Id);
+                        _unitOfWork.Customers.Update(customer);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
                     }
 
                     await transaction.CommitAsync(cancellationToken);
@@ -295,7 +237,7 @@ public class AuthService : IAuthService
                 {
                     try
                     {
-                        await _customerAttributeService.UpsertByTypeAsync(
+                        await _customerAttributeService.UpsertByDefinitionAsync(
                             customer!.Id,
                             attributeGroup,
                             cancellationToken);
@@ -303,14 +245,14 @@ public class AuthService : IAuthService
                     catch (Exception ex)
                     {
                         // Log but don't fail registration for attribute errors
-                        _logger.LogWarning(ex, "Failed to save {AttributeType} attributes for customer {CustomerId}",
-                            attributeGroup.AttributeType, customer!.Id);
+                        _logger.LogWarning(ex, "Failed to save attributes for definition {AttributeDefinitionId} for customer {CustomerId}",
+                            attributeGroup.AttributeDefinitionId, customer!.Id);
                     }
                 }
             }
 
-            _logger.LogInformation("Customer {CompanyName} registered successfully with ID {CustomerId}",
-                customer!.CompanyName, customer.Id);
+            _logger.LogInformation("Customer {Title} registered successfully with ID {CustomerId}",
+                customer!.Title, customer.Id);
 
             return Result<CustomerDto>.Success(MapToCustomerDto(customer));
         }
@@ -368,8 +310,9 @@ public class AuthService : IAuthService
             ExpiresAt = DateTime.UtcNow.AddMinutes(_configuration.GetValue<int>("Jwt:ExpirationMinutes", 15)),
             CustomerId = customer?.Id ?? Guid.Empty,
             Email = user.Email!,
-            CompanyName = customer?.CompanyName ?? string.Empty,
-            IsApproved = customer?.IsApproved ?? true
+            CustomerTitle = customer?.Title ?? string.Empty,
+            Status = customer?.Status.ToString() ?? string.Empty,
+            IsActive = customer?.IsActive ?? true
         });
     }
 
@@ -470,9 +413,9 @@ public class AuthService : IAuthService
 
         if (customer is not null)
         {
-            claims.Add(new Claim("companyName", customer.CompanyName));
-            claims.Add(new Claim("priceTier", customer.PriceTier.ToString()));
-            claims.Add(new Claim("isApproved", customer.IsApproved.ToString().ToLower()));
+            claims.Add(new Claim("customerTitle", customer.Title));
+            claims.Add(new Claim("customerStatus", customer.Status.ToString()));
+            claims.Add(new Claim("isActive", customer.IsActive.ToString().ToLower()));
         }
 
         if (!string.IsNullOrEmpty(user.FirstName))
@@ -510,50 +453,54 @@ public class AuthService : IAuthService
         return new CustomerDto
         {
             Id = customer.Id,
-            CompanyName = customer.CompanyName,
-            TradeName = customer.TradeName,
-            TaxNumber = customer.TaxNumber.Value,
+            ExternalId = customer.ExternalId,
+            ExternalCode = customer.ExternalCode,
+            Title = customer.Title,
             TaxOffice = customer.TaxOffice,
-            MersisNo = customer.MersisNo,
-            IdentityNo = customer.IdentityNo,
-            TradeRegistryNo = customer.TradeRegistryNo,
-            Email = customer.Email.Value,
-            Phone = customer.Phone.Value,
-            MobilePhone = customer.MobilePhone?.Value,
-            Fax = customer.Fax,
+            TaxNo = customer.TaxNo,
+            EstablishmentYear = customer.EstablishmentYear,
             Website = customer.Website,
-            Type = customer.Type.ToString(),
-            PriceTier = customer.PriceTier.ToString(),
-            CreditLimit = customer.CreditLimit.Amount,
-            UsedCredit = customer.UsedCredit.Amount,
-            AvailableCredit = customer.GetAvailableCredit().Amount,
-            Currency = customer.CreditLimit.Currency,
-            IsApproved = customer.IsApproved,
-            ApprovedAt = customer.ApprovedAt,
-            ApprovedBy = customer.ApprovedBy,
-            ContactPersonName = customer.ContactPersonName,
-            ContactPersonTitle = customer.ContactPersonTitle,
+            Status = customer.Status.ToString(),
+            UserId = customer.UserId,
+            DocumentUrls = customer.DocumentUrls,
+            IsActive = customer.IsActive,
+            Contacts = customer.Contacts?.Select(c => new CustomerContactDto
+            {
+                Id = c.Id,
+                CustomerId = c.CustomerId,
+                FirstName = c.FirstName,
+                LastName = c.LastName,
+                Email = c.Email,
+                Position = c.Position,
+                DateOfBirth = c.DateOfBirth,
+                Gender = c.Gender.ToString(),
+                Phone = c.Phone,
+                PhoneExt = c.PhoneExt,
+                Gsm = c.Gsm,
+                IsPrimary = c.IsPrimary,
+                IsActive = c.IsActive
+            }).ToList() ?? new List<CustomerContactDto>(),
             Addresses = customer.Addresses?.Select(a => new CustomerAddressDto
             {
                 Id = a.Id,
                 CustomerId = a.CustomerId,
                 Title = a.Title,
+                FullName = a.FullName,
                 AddressType = a.AddressType.ToString(),
-                Street = a.Address.Street,
-                District = a.Address.District,
-                Neighborhood = a.Address.Neighborhood,
-                City = a.Address.City,
-                State = a.Address.State,
-                Country = a.Address.Country,
-                PostalCode = a.Address.PostalCode,
+                Address = a.Address,
+                GeoLocationId = a.GeoLocationId,
+                GeoLocationPathName = a.GeoLocation?.PathName,
+                PostalCode = a.PostalCode,
+                Phone = a.Phone,
+                PhoneExt = a.PhoneExt,
+                Gsm = a.Gsm,
+                TaxNo = a.TaxNo,
                 IsDefault = a.IsDefault,
                 IsActive = a.IsActive
             }).ToList() ?? new List<CustomerAddressDto>(),
-            PreferredCurrency = customer.PreferredCurrency,
-            PreferredLanguage = customer.PreferredLanguage,
-            IsActive = customer.IsActive,
             CreatedAt = customer.CreatedAt,
-            UpdatedAt = customer.UpdatedAt ?? customer.CreatedAt
+            UpdatedAt = customer.UpdatedAt,
+            LastSyncedAt = customer.LastSyncedAt
         };
     }
 }

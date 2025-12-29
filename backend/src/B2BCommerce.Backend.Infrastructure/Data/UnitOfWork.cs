@@ -39,7 +39,12 @@ public class UnitOfWork : IUnitOfWork
 
     // Customer repositories
     private ICustomerAttributeRepository? _customerAttributes;
-    private ICustomerDocumentRepository? _customerDocuments;
+    private ICustomerContactRepository? _customerContacts;
+    private ICustomerAddressRepository? _customerAddresses;
+
+    // GeoLocation repositories
+    private IGeoLocationTypeRepository? _geoLocationTypes;
+    private IGeoLocationRepository? _geoLocations;
 
     // Collection repositories
     private ICollectionRepository? _collections;
@@ -104,8 +109,18 @@ public class UnitOfWork : IUnitOfWork
     public ICustomerAttributeRepository CustomerAttributes =>
         _customerAttributes ??= new CustomerAttributeRepository(_context);
 
-    public ICustomerDocumentRepository CustomerDocuments =>
-        _customerDocuments ??= new CustomerDocumentRepository(_context);
+    public ICustomerContactRepository CustomerContacts =>
+        _customerContacts ??= new CustomerContactRepository(_context);
+
+    public ICustomerAddressRepository CustomerAddresses =>
+        _customerAddresses ??= new CustomerAddressRepository(_context);
+
+    // GeoLocation repositories
+    public IGeoLocationTypeRepository GeoLocationTypes =>
+        _geoLocationTypes ??= new GeoLocationTypeRepository(_context);
+
+    public IGeoLocationRepository GeoLocations =>
+        _geoLocations ??= new GeoLocationRepository(_context);
 
     // Collection repositories
     public ICollectionRepository Collections =>

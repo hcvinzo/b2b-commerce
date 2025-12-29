@@ -91,7 +91,7 @@ public class OrderService : IOrderService
             return Result<OrderDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        if (!customer.IsApproved)
+        if (customer.Status != CustomerStatus.Active)
         {
             return Result<OrderDto>.Failure("Customer is not approved to place orders", "CUSTOMER_NOT_APPROVED");
         }
@@ -155,8 +155,8 @@ public class OrderService : IOrderService
                         "INSUFFICIENT_STOCK");
                 }
 
-                // Get price based on customer's price tier
-                var unitPrice = product.GetPriceForTier(customer.PriceTier);
+                // Get price (price tier is now handled via dynamic attributes, use base price for now)
+                var unitPrice = product.ListPrice;
 
                 Money? discountAmount = null;
                 if (item.DiscountAmount.HasValue && item.DiscountAmount.Value > 0)
@@ -241,7 +241,8 @@ public class OrderService : IOrderService
 
         try
         {
-            var unitPrice = product.GetPriceForTier(customer.PriceTier);
+            // Price tier is now handled via dynamic attributes, use base price for now
+            var unitPrice = product.ListPrice;
 
             Money? discountAmount = null;
             if (item.DiscountAmount.HasValue && item.DiscountAmount.Value > 0)
@@ -379,20 +380,8 @@ public class OrderService : IOrderService
 
         try
         {
-            // Reserve customer credit
-            var customer = await _unitOfWork.Customers.GetByIdAsync(order.CustomerId, cancellationToken);
-            if (customer is not null)
-            {
-                var orderTotal = new Money(order.TotalAmount.Amount, order.TotalAmount.Currency);
-                if (!customer.HasSufficientCredit(orderTotal))
-                {
-                    return Result<OrderDto>.Failure(
-                        $"Insufficient credit. Available: {customer.GetAvailableCredit().Amount}, Required: {orderTotal.Amount}",
-                        "INSUFFICIENT_CREDIT");
-                }
-                customer.UseCredit(orderTotal);
-                _unitOfWork.Customers.Update(customer);
-            }
+            // Credit management is now handled via dynamic attributes
+            // TODO: Implement credit check via customer attributes if needed
 
             order.Approve(approvedBy, exchangeRate);
 
@@ -475,16 +464,8 @@ public class OrderService : IOrderService
                 }
             }
 
-            // Release customer credit if order was approved
-            if (order.ApprovalStatus == OrderApprovalStatus.Approved)
-            {
-                var customer = await _unitOfWork.Customers.GetByIdAsync(order.CustomerId, cancellationToken);
-                if (customer is not null)
-                {
-                    customer.ReleaseCredit(new Money(order.TotalAmount.Amount, order.TotalAmount.Currency));
-                    _unitOfWork.Customers.Update(customer);
-                }
-            }
+            // Credit management is now handled via dynamic attributes
+            // TODO: Implement credit release via customer attributes if needed
 
             _unitOfWork.Orders.Update(order);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -603,7 +584,7 @@ public class OrderService : IOrderService
             Id = order.Id,
             OrderNumber = order.OrderNumber,
             CustomerId = order.CustomerId,
-            CustomerCompanyName = order.Customer?.CompanyName,
+            CustomerCompanyName = order.Customer?.Title,
             Status = order.Status.ToString(),
             ApprovalStatus = order.ApprovalStatus.ToString(),
             Subtotal = order.Subtotal.Amount,

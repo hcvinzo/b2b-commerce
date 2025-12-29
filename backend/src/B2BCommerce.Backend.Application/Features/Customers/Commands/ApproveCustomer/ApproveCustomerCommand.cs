@@ -7,4 +7,4 @@ namespace B2BCommerce.Backend.Application.Features.Customers.Commands.ApproveCus
 /// <summary>
 /// Command to approve a customer account
 /// </summary>
-public record ApproveCustomerCommand(Guid Id, string ApprovedBy) : ICommand<Result<CustomerDto>>;
+public record ApproveCustomerCommand(Guid Id) : ICommand<Result<CustomerDto>>;

@@ -464,11 +464,15 @@ export interface AddAttributeToProductTypeDto {
 }
 
 // Attribute Definition
+// Note: Backend uses JsonStringEnumConverter, so type and entityType come as strings
 export interface AttributeDefinition extends ExternalEntity {
   code: string;
   name: string;
   nameEn?: string;
-  type: AttributeType;
+  type: AttributeType | AttributeTypeString;
+  entityType?: AttributeEntityType | AttributeEntityTypeString;
+  parentAttributeId?: string;
+  isList?: boolean;
   unit?: string;
   isFilterable: boolean;
   isRequired: boolean;
@@ -484,8 +488,9 @@ export interface AttributeValue {
   displayOrder: number;
 }
 
-// Backend sends integer enum values: 1=Text, 2=Number, 3=Select, 4=MultiSelect, 5=Boolean, 6=Date
-export type AttributeType = 1 | 2 | 3 | 4 | 5 | 6;
+// Backend sends enum as strings due to JsonStringEnumConverter
+export type AttributeTypeString = "Text" | "Number" | "Select" | "MultiSelect" | "Boolean" | "Date" | "Composite";
+export type AttributeType = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export const AttributeTypeEnum = {
   Text: 1,
@@ -494,12 +499,47 @@ export const AttributeTypeEnum = {
   MultiSelect: 4,
   Boolean: 5,
   Date: 6,
+  Composite: 7,
 } as const;
+
+// Map string type to integer for consistent handling
+export const AttributeTypeFromString: Record<AttributeTypeString, AttributeType> = {
+  Text: 1,
+  Number: 2,
+  Select: 3,
+  MultiSelect: 4,
+  Boolean: 5,
+  Date: 6,
+  Composite: 7,
+};
+
+// Backend sends enum as strings due to JsonStringEnumConverter
+export type AttributeEntityTypeString = "Product" | "Customer";
+export type AttributeEntityType = 1 | 2;
+
+export const AttributeEntityTypeEnum = {
+  Product: 1,
+  Customer: 2,
+} as const;
+
+// Map string entityType to integer for consistent handling
+export const AttributeEntityTypeFromString: Record<AttributeEntityTypeString, AttributeEntityType> = {
+  Product: 1,
+  Customer: 2,
+};
+
+export const AttributeEntityTypeLabels: Record<AttributeEntityType, string> = {
+  1: "Product",
+  2: "Customer",
+};
 
 export interface CreateAttributeDefinitionDto {
   code: string;
   name: string;
   type: AttributeType | string;
+  entityType?: AttributeEntityType;
+  parentAttributeId?: string;
+  isList?: boolean;
   unit?: string;
   isFilterable?: boolean;
   isRequired?: boolean;

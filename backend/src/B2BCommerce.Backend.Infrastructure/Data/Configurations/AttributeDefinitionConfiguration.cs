@@ -1,4 +1,5 @@
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,6 +28,12 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
         builder.Property(a => a.Type)
             .IsRequired();
 
+        builder.Property(a => a.EntityType)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasDefaultValue(AttributeEntityType.Product);
+
         builder.Property(a => a.Unit)
             .HasMaxLength(50);
 
@@ -45,6 +52,12 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
         builder.Property(a => a.DisplayOrder)
             .IsRequired()
             .HasDefaultValue(0);
+
+        builder.Property(a => a.ParentAttributeId);
+
+        builder.Property(a => a.IsList)
+            .IsRequired()
+            .HasDefaultValue(false);
 
         // Audit properties
         builder.Property(a => a.CreatedAt)
@@ -82,6 +95,11 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
             .HasForeignKey(v => v.AttributeDefinitionId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(a => a.ParentAttribute)
+            .WithMany(p => p.ChildAttributes)
+            .HasForeignKey(a => a.ParentAttributeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Indexes
         builder.HasIndex(a => a.Code)
             .IsUnique()
@@ -95,6 +113,10 @@ public class AttributeDefinitionConfiguration : IEntityTypeConfiguration<Attribu
         // Non-unique index on ExternalCode (optional reference)
         builder.HasIndex(a => a.ExternalCode)
             .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
+
+        builder.HasIndex(a => a.EntityType);
+
+        builder.HasIndex(a => a.ParentAttributeId);
 
         builder.HasIndex(a => a.IsFilterable);
 

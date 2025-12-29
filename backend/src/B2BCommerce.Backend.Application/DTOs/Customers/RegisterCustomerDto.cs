@@ -8,164 +8,90 @@ public class RegisterCustomerDto
     // Step 1: Company Information (Firma Bilgileri)
 
     /// <summary>
-    /// Company name (Firma Ünvanı)
+    /// Company title/name (Ünvan)
     /// </summary>
-    public string CompanyName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Trade name / Short company name (Firma Kısa Adı)
-    /// </summary>
-    public string TradeName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Tax number (Vergi Numarası) - must be unique
-    /// </summary>
-    public string TaxNumber { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
 
     /// <summary>
     /// Tax office (Vergi Dairesi)
     /// </summary>
-    public string TaxOffice { get; set; } = string.Empty;
+    public string? TaxOffice { get; set; }
 
     /// <summary>
-    /// MERSIS number (Mersis No) - optional
+    /// Tax number (Vergi Numarası)
     /// </summary>
-    public string? MersisNo { get; set; }
+    public string? TaxNo { get; set; }
 
     /// <summary>
-    /// Identity number (TC Kimlik No / Kimlik Numarası) - optional for individual companies
+    /// Year of establishment (Kuruluş Yılı)
     /// </summary>
-    public string? IdentityNo { get; set; }
-
-    /// <summary>
-    /// Trade registry number (Ticaret Sicil No) - optional
-    /// </summary>
-    public string? TradeRegistryNo { get; set; }
-
-    // Step 2: Contact Information (İletişim Bilgileri)
-
-    /// <summary>
-    /// Contact person name (Yetkili Adı Soyadı)
-    /// </summary>
-    public string ContactPersonName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Contact person title (Yetkili Ünvanı)
-    /// </summary>
-    public string ContactPersonTitle { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Phone number (Telefon)
-    /// </summary>
-    public string Phone { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Mobile phone number (Cep Telefonu)
-    /// </summary>
-    public string? MobilePhone { get; set; }
-
-    /// <summary>
-    /// Fax number (Faks)
-    /// </summary>
-    public string? Fax { get; set; }
-
-    /// <summary>
-    /// Email address (E-posta) - must be unique
-    /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public int? EstablishmentYear { get; set; }
 
     /// <summary>
     /// Website URL (Web Sitesi)
     /// </summary>
     public string? Website { get; set; }
 
-    // Step 3: Address Information (Adres Bilgileri)
-
-    // Shipping Address (Teslimat Adresi)
+    // Step 2: Primary Contact Information (İletişim Bilgileri)
 
     /// <summary>
-    /// Shipping address country (Ülke)
+    /// Contact first name (Ad)
     /// </summary>
-    public string ShippingCountry { get; set; } = string.Empty;
+    public string ContactFirstName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Shipping address city/state (İl)
+    /// Contact last name (Soyad)
     /// </summary>
-    public string ShippingCity { get; set; } = string.Empty;
+    public string ContactLastName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Shipping address district (İlçe)
+    /// Contact email address (E-posta)
     /// </summary>
-    public string ShippingDistrict { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
 
     /// <summary>
-    /// Shipping address neighborhood (Mahalle)
+    /// Contact position/title (Pozisyon)
     /// </summary>
-    public string? ShippingNeighborhood { get; set; }
+    public string? ContactPosition { get; set; }
 
     /// <summary>
-    /// Shipping address street (Adres)
+    /// Contact phone number (Telefon)
     /// </summary>
-    public string ShippingStreet { get; set; } = string.Empty;
+    public string? ContactPhone { get; set; }
 
     /// <summary>
-    /// Shipping address postal code (Posta Kodu)
+    /// Contact mobile phone (Mobil)
     /// </summary>
-    public string ShippingPostalCode { get; set; } = string.Empty;
+    public string? ContactGsm { get; set; }
+
+    // Step 3: Primary Address Information (Adres Bilgileri)
 
     /// <summary>
-    /// Shipping address state/province (Bölge) - kept for compatibility
+    /// Address title (Adres Başlığı)
     /// </summary>
-    public string ShippingState { get; set; } = string.Empty;
-
-    // Billing Address (Fatura Adresi)
+    public string AddressTitle { get; set; } = string.Empty;
 
     /// <summary>
-    /// Use shipping address as billing address (Fatura adresi teslimat adresi ile aynı)
+    /// Full address (Adres)
     /// </summary>
-    public bool UseSameAddressForBilling { get; set; } = true;
+    public string Address { get; set; } = string.Empty;
 
     /// <summary>
-    /// Billing address country (Ülke)
+    /// Geographic location ID (if using structured locations)
     /// </summary>
-    public string BillingCountry { get; set; } = string.Empty;
+    public Guid? GeoLocationId { get; set; }
 
     /// <summary>
-    /// Billing address city/state (İl)
+    /// Postal code (Posta Kodu)
     /// </summary>
-    public string BillingCity { get; set; } = string.Empty;
+    public string? PostalCode { get; set; }
+
+    // Step 4: User Account Information (Üyelik Bilgileri)
 
     /// <summary>
-    /// Billing address district (İlçe)
+    /// Email address for user account (E-posta) - must be unique
     /// </summary>
-    public string BillingDistrict { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address neighborhood (Mahalle)
-    /// </summary>
-    public string? BillingNeighborhood { get; set; }
-
-    /// <summary>
-    /// Billing address street (Adres)
-    /// </summary>
-    public string BillingStreet { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address postal code (Posta Kodu)
-    /// </summary>
-    public string BillingPostalCode { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Billing address state/province (Bölge) - kept for compatibility
-    /// </summary>
-    public string BillingState { get; set; } = string.Empty;
-
-    // Step 4: Membership Information (Üyelik Bilgileri)
-
-    /// <summary>
-    /// Username for authentication (Kullanıcı Adı)
-    /// </summary>
-    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 
     /// <summary>
     /// Password for authentication (Şifre)
@@ -187,27 +113,10 @@ public class RegisterCustomerDto
     /// </summary>
     public bool AcceptKvkk { get; set; }
 
-    // Optional fields
+    // Optional: Customer Attributes (collected during registration)
 
     /// <summary>
-    /// Requested credit limit amount
+    /// Customer attributes to save during registration (grouped by definition)
     /// </summary>
-    public decimal CreditLimit { get; set; }
-
-    /// <summary>
-    /// Currency code (e.g., USD, EUR, TRY)
-    /// </summary>
-    public string Currency { get; set; } = "TRY";
-
-    /// <summary>
-    /// Customer type (optional, defaults to Standard)
-    /// </summary>
-    public string? Type { get; set; }
-
-    // Customer Attributes (optional, collected during registration)
-
-    /// <summary>
-    /// Customer attributes to save during registration (grouped by type)
-    /// </summary>
-    public List<UpsertCustomerAttributesByTypeDto>? Attributes { get; set; }
+    public List<UpsertCustomerAttributesByDefinitionDto>? Attributes { get; set; }
 }

@@ -13,9 +13,9 @@ public class UpsertCustomerAttributesCommandValidator : AbstractValidator<Upsert
             .NotEmpty()
             .WithMessage("Customer ID is required");
 
-        RuleFor(x => x.AttributeType)
-            .IsInEnum()
-            .WithMessage("Invalid attribute type");
+        RuleFor(x => x.AttributeDefinitionId)
+            .NotEmpty()
+            .WithMessage("Attribute definition ID is required");
 
         RuleFor(x => x.Items)
             .NotNull()
@@ -24,13 +24,9 @@ public class UpsertCustomerAttributesCommandValidator : AbstractValidator<Upsert
         RuleForEach(x => x.Items)
             .ChildRules(item =>
             {
-                item.RuleFor(i => i.JsonData)
+                item.RuleFor(i => i.Value)
                     .NotEmpty()
-                    .WithMessage("JSON data is required for each item");
-
-                item.RuleFor(i => i.DisplayOrder)
-                    .GreaterThanOrEqualTo(0)
-                    .WithMessage("Display order must be greater than or equal to 0");
+                    .WithMessage("Value is required for each item");
             });
     }
 }

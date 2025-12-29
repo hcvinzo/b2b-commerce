@@ -1,4 +1,5 @@
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Interfaces.Repositories;
 
@@ -67,4 +68,19 @@ public interface IAttributeDefinitionRepository : IGenericRepository<AttributeDe
     /// <param name="value">The AttributeValue to add</param>
     /// <param name="cancellationToken">Cancellation token</param>
     Task AddAttributeValueAsync(AttributeValue value, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets attribute definitions by entity type (Product or Customer)
+    /// </summary>
+    Task<IEnumerable<AttributeDefinition>> GetByEntityTypeAsync(AttributeEntityType entityType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets attribute definitions by entity type with predefined values loaded
+    /// </summary>
+    Task<IEnumerable<AttributeDefinition>> GetByEntityTypeWithValuesAsync(AttributeEntityType entityType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets child attributes for a composite parent attribute
+    /// </summary>
+    Task<IEnumerable<AttributeDefinition>> GetByParentIdAsync(Guid parentId, CancellationToken cancellationToken = default);
 }

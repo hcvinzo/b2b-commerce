@@ -1,306 +1,268 @@
 using B2BCommerce.Backend.Domain.Common;
 using B2BCommerce.Backend.Domain.Enums;
 using B2BCommerce.Backend.Domain.Exceptions;
-using B2BCommerce.Backend.Domain.ValueObjects;
 
 namespace B2BCommerce.Backend.Domain.Entities;
 
 /// <summary>
-/// Customer entity representing B2B customers
+/// Customer entity representing B2B customers.
+/// Inherits from ExternalEntity to support external system synchronization.
 /// </summary>
-public class Customer : BaseEntity, IAggregateRoot
+public class Customer : ExternalEntity, IAggregateRoot
 {
-    public string CompanyName { get; private set; }
-    public string TradeName { get; private set; }
-    public TaxNumber TaxNumber { get; private set; }
-    public string TaxOffice { get; private set; }
-    public string? MersisNo { get; private set; }
-    public string? IdentityNo { get; private set; }
-    public string? TradeRegistryNo { get; private set; }
-    public Email Email { get; private set; }
-    public PhoneNumber Phone { get; private set; }
-    public PhoneNumber? MobilePhone { get; private set; }
-    public string? Fax { get; private set; }
+    /// <summary>
+    /// Company title/name (Ünvan)
+    /// </summary>
+    public string Title { get; private set; }
+
+    /// <summary>
+    /// Tax office name (Vergi Dairesi)
+    /// </summary>
+    public string? TaxOffice { get; private set; }
+
+    /// <summary>
+    /// Tax number (Vergi Numarası)
+    /// </summary>
+    public string? TaxNo { get; private set; }
+
+    /// <summary>
+    /// Year of establishment (Kuruluş Yılı)
+    /// </summary>
+    public int? EstablishmentYear { get; private set; }
+
+    /// <summary>
+    /// Company website URL
+    /// </summary>
     public string? Website { get; private set; }
-    public CustomerType Type { get; private set; }
-    public PriceTier PriceTier { get; private set; }
 
-    // Credit management
-    public Money CreditLimit { get; private set; }
-    public Money UsedCredit { get; private set; }
-    public bool IsApproved { get; private set; }
-    public DateTime? ApprovedAt { get; private set; }
-    public string? ApprovedBy { get; private set; }
+    /// <summary>
+    /// Current status in approval workflow
+    /// </summary>
+    public CustomerStatus Status { get; private set; }
 
-    // Contact information
-    public string ContactPersonName { get; private set; }
-    public string ContactPersonTitle { get; private set; }
+    /// <summary>
+    /// FK to the ASP.NET Identity User associated with this customer
+    /// </summary>
+    public Guid? UserId { get; private set; }
 
-    // Settings
-    public string PreferredCurrency { get; private set; }
-    public string PreferredLanguage { get; private set; }
+    /// <summary>
+    /// Document URLs stored as JSON array (e.g., tax certificate, signature circular)
+    /// Format: [{"type": "TaxCertificate", "url": "https://..."}, ...]
+    /// </summary>
+    public string? DocumentUrls { get; private set; }
+
+    /// <summary>
+    /// Whether the customer is active
+    /// </summary>
     public bool IsActive { get; private set; }
 
     // Navigation properties
-    public ICollection<Order> Orders { get; set; }
-    public ICollection<CustomerAddress> Addresses { get; set; }
-    public ICollection<CustomerAttribute> Attributes { get; set; }
+    private readonly List<CustomerContact> _contacts = new();
+    public IReadOnlyCollection<CustomerContact> Contacts => _contacts.AsReadOnly();
+
+    private readonly List<CustomerAddress> _addresses = new();
+    public IReadOnlyCollection<CustomerAddress> Addresses => _addresses.AsReadOnly();
+
+    private readonly List<CustomerAttribute> _attributes = new();
+    public IReadOnlyCollection<CustomerAttribute> Attributes => _attributes.AsReadOnly();
+
+    private readonly List<Order> _orders = new();
+    public IReadOnlyCollection<Order> Orders => _orders.AsReadOnly();
 
     private Customer() // For EF Core
     {
-        CompanyName = string.Empty;
-        TradeName = string.Empty;
-        TaxNumber = new TaxNumber("0000000000");
-        TaxOffice = string.Empty;
-        Email = new Email("default@example.com");
-        Phone = new PhoneNumber("0000000000");
-        CreditLimit = Money.Zero("USD");
-        UsedCredit = Money.Zero("USD");
-        ContactPersonName = string.Empty;
-        ContactPersonTitle = string.Empty;
-        PreferredCurrency = "USD";
-        PreferredLanguage = "en";
-        Orders = new List<Order>();
-        Addresses = new List<CustomerAddress>();
-        Attributes = new List<CustomerAttribute>();
+        Title = string.Empty;
     }
 
     /// <summary>
     /// Creates a new Customer instance
     /// </summary>
     public static Customer Create(
-        string companyName,
-        string tradeName,
-        TaxNumber taxNumber,
-        string taxOffice,
-        Email email,
-        PhoneNumber phone,
-        string contactPersonName,
-        string contactPersonTitle,
-        Money creditLimit,
-        CustomerType type = CustomerType.Standard,
-        PriceTier priceTier = PriceTier.List,
-        string? mersisNo = null,
-        string? identityNo = null,
-        string? tradeRegistryNo = null,
-        PhoneNumber? mobilePhone = null,
-        string? fax = null,
-        string? website = null)
+        string title,
+        string? taxOffice = null,
+        string? taxNo = null,
+        int? establishmentYear = null,
+        string? website = null,
+        Guid? userId = null)
     {
-        if (string.IsNullOrWhiteSpace(companyName))
+        if (string.IsNullOrWhiteSpace(title))
         {
-            throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
-        }
-
-        if (string.IsNullOrWhiteSpace(contactPersonName))
-        {
-            throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
-        }
-
-        if (string.IsNullOrWhiteSpace(taxOffice))
-        {
-            throw new ArgumentException("Tax office cannot be null or empty", nameof(taxOffice));
+            throw new DomainException("Customer title is required");
         }
 
         var customer = new Customer
         {
-            CompanyName = companyName,
-            TradeName = tradeName ?? string.Empty,
-            TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber)),
-            TaxOffice = taxOffice,
-            MersisNo = mersisNo,
-            IdentityNo = identityNo,
-            TradeRegistryNo = tradeRegistryNo,
-            Email = email ?? throw new ArgumentNullException(nameof(email)),
-            Phone = phone ?? throw new ArgumentNullException(nameof(phone)),
-            MobilePhone = mobilePhone,
-            Fax = fax,
-            Website = website,
-            ContactPersonName = contactPersonName,
-            ContactPersonTitle = contactPersonTitle ?? string.Empty,
-            CreditLimit = creditLimit ?? throw new ArgumentNullException(nameof(creditLimit)),
-            UsedCredit = Money.Zero(creditLimit.Currency),
-            Type = type,
-            PriceTier = priceTier,
-            PreferredCurrency = creditLimit.Currency,
-            PreferredLanguage = "tr",
-            IsApproved = false,
-            IsActive = false, // New customers are passive until approved
-            Orders = new List<Order>(),
-            Addresses = new List<CustomerAddress>(),
-            Attributes = new List<CustomerAttribute>()
+            Title = title.Trim(),
+            TaxOffice = taxOffice?.Trim(),
+            TaxNo = taxNo?.Trim(),
+            EstablishmentYear = establishmentYear,
+            Website = website?.Trim(),
+            Status = CustomerStatus.Pending,
+            UserId = userId,
+            IsActive = false // New customers are inactive until approved
         };
+
+        // Auto-populate ExternalId for Integration API compatibility
+        customer.SetExternalIdentifiers(externalCode: null, externalId: customer.Id.ToString());
 
         return customer;
     }
 
-    [Obsolete("Use Customer.Create() factory method instead")]
-    public Customer(
-        string companyName,
-        TaxNumber taxNumber,
-        Email email,
-        PhoneNumber phone,
-        string contactPersonName,
-        string contactPersonTitle,
-        Money creditLimit,
-        CustomerType type = CustomerType.Standard,
-        PriceTier priceTier = PriceTier.List)
+    /// <summary>
+    /// Creates a customer from an external system (LOGO ERP).
+    /// Uses ExternalId as the primary upsert key.
+    /// </summary>
+    public static Customer CreateFromExternal(
+        string externalId,
+        string title,
+        string? taxOffice = null,
+        string? taxNo = null,
+        int? establishmentYear = null,
+        string? website = null,
+        CustomerStatus status = CustomerStatus.Active,
+        Guid? userId = null,
+        string? externalCode = null)
     {
-        if (string.IsNullOrWhiteSpace(companyName))
+        if (string.IsNullOrWhiteSpace(externalId))
         {
-            throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
+            throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        if (string.IsNullOrWhiteSpace(contactPersonName))
+        var customer = Create(title, taxOffice, taxNo, establishmentYear, website, userId);
+        customer.Status = status;
+        customer.IsActive = status == CustomerStatus.Active;
+
+        // Use base class helper for consistent initialization
+        InitializeFromExternal(customer, externalId, externalCode);
+
+        return customer;
+    }
+
+    /// <summary>
+    /// Updates the customer details
+    /// </summary>
+    public void Update(
+        string title,
+        string? taxOffice,
+        string? taxNo,
+        int? establishmentYear,
+        string? website)
+    {
+        if (string.IsNullOrWhiteSpace(title))
         {
-            throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
+            throw new DomainException("Customer title is required");
         }
 
-        CompanyName = companyName;
-        TradeName = string.Empty;
-        TaxNumber = taxNumber ?? throw new ArgumentNullException(nameof(taxNumber));
-        TaxOffice = string.Empty;
-        Email = email ?? throw new ArgumentNullException(nameof(email));
-        Phone = phone ?? throw new ArgumentNullException(nameof(phone));
-        ContactPersonName = contactPersonName;
-        ContactPersonTitle = contactPersonTitle ?? string.Empty;
-        CreditLimit = creditLimit ?? throw new ArgumentNullException(nameof(creditLimit));
-        UsedCredit = Money.Zero(creditLimit.Currency);
-        Type = type;
-        PriceTier = priceTier;
-        PreferredCurrency = creditLimit.Currency;
-        PreferredLanguage = "tr";
-        IsApproved = false;
-        IsActive = false; // New customers are passive until approved
-        Orders = new List<Order>();
-        Addresses = new List<CustomerAddress>();
-        Attributes = new List<CustomerAttribute>();
+        Title = title.Trim();
+        TaxOffice = taxOffice?.Trim();
+        TaxNo = taxNo?.Trim();
+        EstablishmentYear = establishmentYear;
+        Website = website?.Trim();
     }
 
-    public void Approve(string approvedBy)
+    /// <summary>
+    /// Updates customer from external system sync (LOGO ERP).
+    /// </summary>
+    public void UpdateFromExternal(
+        string title,
+        string? taxOffice,
+        string? taxNo,
+        int? establishmentYear,
+        string? website,
+        CustomerStatus? status = null,
+        string? externalCode = null)
     {
-        if (string.IsNullOrWhiteSpace(approvedBy))
-            throw new ArgumentException("Approver information is required", nameof(approvedBy));
+        Update(title, taxOffice, taxNo, establishmentYear, website);
 
-        IsApproved = true;
-        IsActive = true; // Customer becomes active when approved
-        ApprovedAt = DateTime.UtcNow;
-        ApprovedBy = approvedBy;
-    }
-
-    public void UpdateCreditLimit(Money newCreditLimit)
-    {
-        if (newCreditLimit.Currency != CreditLimit.Currency)
-            throw new InvalidOperationDomainException($"Credit limit currency must be {CreditLimit.Currency}");
-
-        CreditLimit = newCreditLimit;
-    }
-
-    public Money GetAvailableCredit()
-    {
-        return CreditLimit - UsedCredit;
-    }
-
-    public bool HasSufficientCredit(Money amount)
-    {
-        if (amount.Currency != CreditLimit.Currency)
-            throw new InvalidOperationDomainException($"Amount currency must be {CreditLimit.Currency}");
-
-        return GetAvailableCredit() >= amount;
-    }
-
-    public void UseCredit(Money amount)
-    {
-        if (!HasSufficientCredit(amount))
-            throw new InsufficientCreditException(Id, amount.Amount, GetAvailableCredit().Amount);
-
-        UsedCredit = UsedCredit + amount;
-    }
-
-    public void ReleaseCredit(Money amount)
-    {
-        if (amount.Currency != CreditLimit.Currency)
-            throw new InvalidOperationDomainException($"Amount currency must be {CreditLimit.Currency}");
-
-        UsedCredit = UsedCredit - amount;
-
-        // Ensure used credit doesn't go negative
-        if (UsedCredit.Amount < 0)
-            UsedCredit = Money.Zero(CreditLimit.Currency);
-    }
-
-    public bool IsCreditNearLimit(decimal thresholdPercentage = 0.9m)
-    {
-        if (CreditLimit.Amount == 0) return false;
-
-        var usedPercentage = UsedCredit.Amount / CreditLimit.Amount;
-        return usedPercentage >= thresholdPercentage;
-    }
-
-    public void UpdateContactInfo(
-        string companyName,
-        string contactPersonName,
-        string contactPersonTitle,
-        PhoneNumber phone,
-        PhoneNumber? mobilePhone = null,
-        string? fax = null,
-        string? website = null)
-    {
-        if (string.IsNullOrWhiteSpace(companyName))
+        if (status.HasValue)
         {
-            throw new ArgumentException("Company name cannot be null or empty", nameof(companyName));
+            SetStatus(status.Value);
         }
 
-        if (string.IsNullOrWhiteSpace(contactPersonName))
+        if (externalCode is not null)
         {
-            throw new ArgumentException("Contact person name cannot be null or empty", nameof(contactPersonName));
+            SetExternalIdentifiers(externalCode, ExternalId);
         }
 
-        CompanyName = companyName;
-        ContactPersonName = contactPersonName;
-        ContactPersonTitle = contactPersonTitle ?? string.Empty;
-        Phone = phone ?? throw new ArgumentNullException(nameof(phone));
-        MobilePhone = mobilePhone;
-        Fax = fax;
-        Website = website;
+        MarkAsSynced();
     }
 
-    public void UpdateCompanyInfo(
-        string tradeName,
-        string taxOffice,
-        string? mersisNo = null,
-        string? identityNo = null,
-        string? tradeRegistryNo = null)
+    /// <summary>
+    /// Sets the customer status
+    /// </summary>
+    public void SetStatus(CustomerStatus status)
     {
-        if (string.IsNullOrWhiteSpace(taxOffice))
+        Status = status;
+        IsActive = status == CustomerStatus.Active;
+    }
+
+    /// <summary>
+    /// Approves the customer (sets status to Active)
+    /// </summary>
+    public void Approve()
+    {
+        if (Status == CustomerStatus.Active)
         {
-            throw new ArgumentException("Tax office cannot be null or empty", nameof(taxOffice));
+            throw new InvalidOperationDomainException("Customer is already approved");
         }
 
-        TradeName = tradeName ?? string.Empty;
-        TaxOffice = taxOffice;
-        MersisNo = mersisNo;
-        IdentityNo = identityNo;
-        TradeRegistryNo = tradeRegistryNo;
+        SetStatus(CustomerStatus.Active);
     }
 
-    public void UpdatePriceTier(PriceTier priceTier)
+    /// <summary>
+    /// Rejects the customer application
+    /// </summary>
+    public void Reject()
     {
-        PriceTier = priceTier;
+        if (Status == CustomerStatus.Active)
+        {
+            throw new InvalidOperationDomainException("Cannot reject an active customer");
+        }
+
+        SetStatus(CustomerStatus.Rejected);
     }
 
-    public void UpdateType(CustomerType type)
+    /// <summary>
+    /// Suspends the customer account
+    /// </summary>
+    public void Suspend()
     {
-        Type = type;
+        SetStatus(CustomerStatus.Suspended);
     }
 
+    /// <summary>
+    /// Activates the customer
+    /// </summary>
     public void Activate()
     {
         IsActive = true;
+        if (Status != CustomerStatus.Active)
+        {
+            Status = CustomerStatus.Active;
+        }
     }
 
+    /// <summary>
+    /// Deactivates the customer
+    /// </summary>
     public void Deactivate()
     {
         IsActive = false;
+    }
+
+    /// <summary>
+    /// Sets the user ID associated with this customer
+    /// </summary>
+    public void SetUserId(Guid? userId)
+    {
+        UserId = userId;
+    }
+
+    /// <summary>
+    /// Updates the document URLs (stored as JSON)
+    /// </summary>
+    public void UpdateDocumentUrls(string? documentUrlsJson)
+    {
+        DocumentUrls = documentUrlsJson;
     }
 }

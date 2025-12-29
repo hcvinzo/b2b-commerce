@@ -21,26 +21,30 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Result<Cu
     {
         var registerDto = new RegisterCustomerDto
         {
-            // Required fields
-            CompanyName = request.CompanyName,
-            TaxNumber = request.TaxNumber,
+            // Company info
+            Title = request.Title,
             TaxOffice = request.TaxOffice,
-            Email = request.Email,
-            Phone = request.Phone,
-            ContactPersonName = request.ContactPersonName,
-            ContactPersonTitle = request.ContactPersonTitle,
-            // Optional company info
-            TradeName = request.TradeName ?? string.Empty,
-            MersisNo = request.MersisNo,
-            IdentityNo = request.IdentityNo,
-            TradeRegistryNo = request.TradeRegistryNo,
-            MobilePhone = request.MobilePhone,
-            Fax = request.Fax,
+            TaxNo = request.TaxNo,
+            EstablishmentYear = request.EstablishmentYear,
             Website = request.Website,
-            // Financial info with defaults
-            CreditLimit = request.CreditLimit ?? 0,
-            Currency = request.Currency ?? "TRY",
-            Type = request.Type,
+            // Primary contact info
+            ContactFirstName = request.ContactFirstName,
+            ContactLastName = request.ContactLastName,
+            ContactEmail = request.ContactEmail,
+            ContactPosition = request.ContactPosition,
+            ContactPhone = request.ContactPhone,
+            ContactGsm = request.ContactGsm,
+            // Primary address info
+            AddressTitle = request.AddressTitle ?? string.Empty,
+            Address = request.Address ?? string.Empty,
+            GeoLocationId = request.GeoLocationId,
+            PostalCode = request.PostalCode,
+            // User account
+            Email = request.Email,
+            Password = request.Password,
+            PasswordConfirmation = request.PasswordConfirmation,
+            AcceptTerms = request.AcceptTerms,
+            AcceptKvkk = request.AcceptKvkk,
             // Customer attributes
             Attributes = request.Attributes
         };

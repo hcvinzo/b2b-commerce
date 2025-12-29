@@ -34,7 +34,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
     public DbSet<CustomerAttribute> CustomerAttributes => Set<CustomerAttribute>();
-    public DbSet<CustomerDocument> CustomerDocuments => Set<CustomerDocument>();
+    public DbSet<CustomerContact> CustomerContacts => Set<CustomerContact>();
+    public DbSet<GeoLocationType> GeoLocationTypes => Set<GeoLocationType>();
+    public DbSet<GeoLocation> GeoLocations => Set<GeoLocation>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Payment> Payments => Set<Payment>();

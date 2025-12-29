@@ -4,7 +4,6 @@ using B2BCommerce.Backend.Application.Interfaces.Repositories;
 using B2BCommerce.Backend.Application.Interfaces.Services;
 using B2BCommerce.Backend.Domain.Entities;
 using B2BCommerce.Backend.Domain.Enums;
-using B2BCommerce.Backend.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace B2BCommerce.Backend.Infrastructure.Services;
@@ -34,9 +33,9 @@ public class CustomerService : ICustomerService
         return Result<CustomerDto>.Success(MapToCustomerDto(customer));
     }
 
-    public async Task<Result<CustomerDto>> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<Result<CustomerDto>> GetByTaxNoAsync(string taxNo, CancellationToken cancellationToken = default)
     {
-        var customer = await _unitOfWork.Customers.GetByEmailAsync(email, cancellationToken);
+        var customer = await _unitOfWork.Customers.GetByTaxNoAsync(taxNo, cancellationToken);
         if (customer is null)
         {
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
@@ -50,7 +49,7 @@ public class CustomerService : ICustomerService
         int pageSize,
         string? search = null,
         bool? isActive = null,
-        bool? isApproved = null,
+        CustomerStatus? status = null,
         string? sortBy = null,
         string? sortDirection = null,
         CancellationToken cancellationToken = default)
@@ -62,10 +61,8 @@ public class CustomerService : ICustomerService
         {
             var searchLower = search.ToLowerInvariant();
             customers = customers.Where(c =>
-                c.CompanyName.ToLowerInvariant().Contains(searchLower) ||
-                c.Email.Value.ToLowerInvariant().Contains(searchLower) ||
-                c.TaxNumber.Value.Contains(searchLower) ||
-                c.ContactPersonName.ToLowerInvariant().Contains(searchLower));
+                c.Title.ToLowerInvariant().Contains(searchLower) ||
+                (c.TaxNo != null && c.TaxNo.Contains(searchLower)));
         }
 
         // Apply active filter
@@ -74,10 +71,10 @@ public class CustomerService : ICustomerService
             customers = customers.Where(c => c.IsActive == isActive.Value);
         }
 
-        // Apply approved filter
-        if (isApproved.HasValue)
+        // Apply status filter
+        if (status.HasValue)
         {
-            customers = customers.Where(c => c.IsApproved == isApproved.Value);
+            customers = customers.Where(c => c.Status == status.Value);
         }
 
         var totalCount = customers.Count();
@@ -86,21 +83,18 @@ public class CustomerService : ICustomerService
         var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
         customers = sortBy?.ToLowerInvariant() switch
         {
-            "companyname" => isDescending
-                ? customers.OrderByDescending(c => c.CompanyName)
-                : customers.OrderBy(c => c.CompanyName),
-            "email" => isDescending
-                ? customers.OrderByDescending(c => c.Email.Value)
-                : customers.OrderBy(c => c.Email.Value),
-            "creditlimit" => isDescending
-                ? customers.OrderByDescending(c => c.CreditLimit.Amount)
-                : customers.OrderBy(c => c.CreditLimit.Amount),
+            "title" => isDescending
+                ? customers.OrderByDescending(c => c.Title)
+                : customers.OrderBy(c => c.Title),
+            "status" => isDescending
+                ? customers.OrderByDescending(c => c.Status)
+                : customers.OrderBy(c => c.Status),
             "createdat" => isDescending
                 ? customers.OrderByDescending(c => c.CreatedAt)
                 : customers.OrderBy(c => c.CreatedAt),
             _ => isDescending
                 ? customers.OrderByDescending(c => c.CreatedAt)
-                : customers.OrderBy(c => c.CompanyName)
+                : customers.OrderBy(c => c.Title)
         };
 
         var pagedCustomers = customers
@@ -113,9 +107,9 @@ public class CustomerService : ICustomerService
         return Result<PagedResult<CustomerDto>>.Success(pagedResult);
     }
 
-    public async Task<Result<IEnumerable<CustomerDto>>> GetUnapprovedCustomersAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<CustomerDto>>> GetPendingCustomersAsync(CancellationToken cancellationToken = default)
     {
-        var customers = await _unitOfWork.Customers.GetUnapprovedCustomersAsync(cancellationToken);
+        var customers = await _unitOfWork.Customers.GetPendingCustomersAsync(cancellationToken);
         var customerDtos = customers.Select(MapToCustomerDto);
         return Result<IEnumerable<CustomerDto>>.Success(customerDtos);
     }
@@ -130,23 +124,11 @@ public class CustomerService : ICustomerService
 
         try
         {
-            // Update company info
-            customer.UpdateCompanyInfo(
-                tradeName: dto.TradeName,
+            customer.Update(
+                title: dto.Title,
                 taxOffice: dto.TaxOffice,
-                mersisNo: dto.MersisNo,
-                identityNo: dto.IdentityNo,
-                tradeRegistryNo: dto.TradeRegistryNo
-            );
-
-            // Update contact info
-            customer.UpdateContactInfo(
-                companyName: dto.CompanyName,
-                contactPersonName: dto.ContactPersonName,
-                contactPersonTitle: dto.ContactPersonTitle,
-                phone: new PhoneNumber(dto.Phone),
-                mobilePhone: !string.IsNullOrWhiteSpace(dto.MobilePhone) ? new PhoneNumber(dto.MobilePhone) : null,
-                fax: dto.Fax,
+                taxNo: dto.TaxNo,
+                establishmentYear: dto.EstablishmentYear,
                 website: dto.Website
             );
 
@@ -157,11 +139,6 @@ public class CustomerService : ICustomerService
 
             return Result<CustomerDto>.Success(MapToCustomerDto(customer));
         }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Validation error updating customer");
-            return Result<CustomerDto>.Failure(ex.Message, "VALIDATION_ERROR");
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating customer {CustomerId}", id);
@@ -169,7 +146,7 @@ public class CustomerService : ICustomerService
         }
     }
 
-    public async Task<Result<CustomerDto>> ApproveAsync(Guid id, string approvedBy, CancellationToken cancellationToken = default)
+    public async Task<Result<CustomerDto>> ApproveAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
         if (customer is null)
@@ -177,19 +154,19 @@ public class CustomerService : ICustomerService
             return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        if (customer.IsApproved)
+        if (customer.Status == CustomerStatus.Active)
         {
             return Result<CustomerDto>.Failure("Customer is already approved", "ALREADY_APPROVED");
         }
 
         try
         {
-            customer.Approve(approvedBy);
+            customer.Approve();
 
             _unitOfWork.Customers.Update(customer);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Customer {CustomerId} approved by {ApprovedBy}", customer.Id, approvedBy);
+            _logger.LogInformation("Customer {CustomerId} approved", customer.Id);
 
             return Result<CustomerDto>.Success(MapToCustomerDto(customer));
         }
@@ -200,7 +177,7 @@ public class CustomerService : ICustomerService
         }
     }
 
-    public async Task<Result<CustomerDto>> UpdateCreditLimitAsync(Guid id, decimal newCreditLimit, CancellationToken cancellationToken = default)
+    public async Task<Result<CustomerDto>> RejectAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
         if (customer is null)
@@ -210,47 +187,72 @@ public class CustomerService : ICustomerService
 
         try
         {
-            var newCreditMoney = new Money(newCreditLimit, customer.CreditLimit.Currency);
-            customer.UpdateCreditLimit(newCreditMoney);
+            customer.Reject();
 
             _unitOfWork.Customers.Update(customer);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Customer {CustomerId} credit limit updated to {CreditLimit}",
-                customer.Id, newCreditLimit);
+            _logger.LogInformation("Customer {CustomerId} rejected", customer.Id);
 
             return Result<CustomerDto>.Success(MapToCustomerDto(customer));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating credit limit for customer {CustomerId}", id);
-            return Result<CustomerDto>.Failure("Failed to update credit limit", "UPDATE_FAILED");
+            _logger.LogError(ex, "Error rejecting customer {CustomerId}", id);
+            return Result<CustomerDto>.Failure("Failed to reject customer", "REJECTION_FAILED");
         }
     }
 
-    public async Task<Result<decimal>> GetAvailableCreditAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<CustomerDto>> SuspendAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
         if (customer is null)
         {
-            return Result<decimal>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
+            return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        var availableCredit = customer.GetAvailableCredit();
-        return Result<decimal>.Success(availableCredit.Amount);
+        try
+        {
+            customer.Suspend();
+
+            _unitOfWork.Customers.Update(customer);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Customer {CustomerId} suspended", customer.Id);
+
+            return Result<CustomerDto>.Success(MapToCustomerDto(customer));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error suspending customer {CustomerId}", id);
+            return Result<CustomerDto>.Failure("Failed to suspend customer", "SUSPENSION_FAILED");
+        }
     }
 
-    public async Task<Result<bool>> IsCreditNearLimitAsync(Guid id, decimal thresholdPercentage = 90, CancellationToken cancellationToken = default)
+    public async Task<Result<CustomerDto>> SetStatusAsync(Guid id, CustomerStatus status, CancellationToken cancellationToken = default)
     {
         var customer = await _unitOfWork.Customers.GetByIdAsync(id, cancellationToken);
         if (customer is null)
         {
-            return Result<bool>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
+            return Result<CustomerDto>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        // Convert percentage (90) to decimal ratio (0.9)
-        var isNearLimit = customer.IsCreditNearLimit(thresholdPercentage / 100);
-        return Result<bool>.Success(isNearLimit);
+        try
+        {
+            customer.SetStatus(status);
+
+            _unitOfWork.Customers.Update(customer);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Customer {CustomerId} status set to {Status}", customer.Id, status);
+
+            return Result<CustomerDto>.Success(MapToCustomerDto(customer));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting status for customer {CustomerId}", id);
+            return Result<CustomerDto>.Failure("Failed to set customer status", "STATUS_UPDATE_FAILED");
+        }
     }
 
     public async Task<Result> ActivateAsync(Guid id, CancellationToken cancellationToken = default)
@@ -308,55 +310,54 @@ public class CustomerService : ICustomerService
         return new CustomerDto
         {
             Id = customer.Id,
-            CompanyName = customer.CompanyName,
-            TradeName = customer.TradeName,
-            TaxNumber = customer.TaxNumber.Value,
+            ExternalId = customer.ExternalId,
+            ExternalCode = customer.ExternalCode,
+            Title = customer.Title,
             TaxOffice = customer.TaxOffice,
-            MersisNo = customer.MersisNo,
-            IdentityNo = customer.IdentityNo,
-            TradeRegistryNo = customer.TradeRegistryNo,
-            Email = customer.Email.Value,
-            Phone = customer.Phone.Value,
-            MobilePhone = customer.MobilePhone?.Value,
-            Fax = customer.Fax,
+            TaxNo = customer.TaxNo,
+            EstablishmentYear = customer.EstablishmentYear,
             Website = customer.Website,
-            Type = customer.Type.ToString(),
-            PriceTier = customer.PriceTier.ToString(),
-            CreditLimit = customer.CreditLimit.Amount,
-            UsedCredit = customer.UsedCredit.Amount,
-            AvailableCredit = customer.GetAvailableCredit().Amount,
-            Currency = customer.CreditLimit.Currency,
-            IsApproved = customer.IsApproved,
-            ApprovedAt = customer.ApprovedAt,
-            ApprovedBy = customer.ApprovedBy,
-            ContactPersonName = customer.ContactPersonName,
-            ContactPersonTitle = customer.ContactPersonTitle,
-            Addresses = customer.Addresses?.Select(MapToCustomerAddressDto).ToList() ?? new List<CustomerAddressDto>(),
-            PreferredCurrency = customer.PreferredCurrency,
-            PreferredLanguage = customer.PreferredLanguage,
+            Status = customer.Status.ToString(),
+            UserId = customer.UserId,
+            DocumentUrls = customer.DocumentUrls,
             IsActive = customer.IsActive,
+            Contacts = customer.Contacts?.Select(c => new CustomerContactDto
+            {
+                Id = c.Id,
+                CustomerId = c.CustomerId,
+                FirstName = c.FirstName,
+                LastName = c.LastName,
+                Email = c.Email,
+                Position = c.Position,
+                DateOfBirth = c.DateOfBirth,
+                Gender = c.Gender.ToString(),
+                Phone = c.Phone,
+                PhoneExt = c.PhoneExt,
+                Gsm = c.Gsm,
+                IsPrimary = c.IsPrimary,
+                IsActive = c.IsActive
+            }).ToList() ?? new List<CustomerContactDto>(),
+            Addresses = customer.Addresses?.Select(a => new CustomerAddressDto
+            {
+                Id = a.Id,
+                CustomerId = a.CustomerId,
+                Title = a.Title,
+                FullName = a.FullName,
+                AddressType = a.AddressType.ToString(),
+                Address = a.Address,
+                GeoLocationId = a.GeoLocationId,
+                GeoLocationPathName = a.GeoLocation?.PathName,
+                PostalCode = a.PostalCode,
+                Phone = a.Phone,
+                PhoneExt = a.PhoneExt,
+                Gsm = a.Gsm,
+                TaxNo = a.TaxNo,
+                IsDefault = a.IsDefault,
+                IsActive = a.IsActive
+            }).ToList() ?? new List<CustomerAddressDto>(),
             CreatedAt = customer.CreatedAt,
-            UpdatedAt = customer.UpdatedAt ?? customer.CreatedAt
-        };
-    }
-
-    private static CustomerAddressDto MapToCustomerAddressDto(CustomerAddress address)
-    {
-        return new CustomerAddressDto
-        {
-            Id = address.Id,
-            CustomerId = address.CustomerId,
-            Title = address.Title,
-            AddressType = address.AddressType.ToString(),
-            Street = address.Address.Street,
-            District = address.Address.District,
-            Neighborhood = address.Address.Neighborhood,
-            City = address.Address.City,
-            State = address.Address.State,
-            Country = address.Address.Country,
-            PostalCode = address.Address.PostalCode,
-            IsDefault = address.IsDefault,
-            IsActive = address.IsActive
+            UpdatedAt = customer.UpdatedAt,
+            LastSyncedAt = customer.LastSyncedAt
         };
     }
 }

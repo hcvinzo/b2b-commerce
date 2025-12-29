@@ -21,13 +21,13 @@ public class UpsertCustomerAttributesCommandHandler : ICommandHandler<UpsertCust
         UpsertCustomerAttributesCommand request,
         CancellationToken cancellationToken)
     {
-        var dto = new UpsertCustomerAttributesByTypeDto
+        var dto = new UpsertCustomerAttributesByDefinitionDto
         {
-            AttributeType = request.AttributeType,
+            AttributeDefinitionId = request.AttributeDefinitionId,
             Items = request.Items
         };
 
-        return await _customerAttributeService.UpsertByTypeAsync(
+        return await _customerAttributeService.UpsertByDefinitionAsync(
             request.CustomerId,
             dto,
             cancellationToken);

@@ -1,5 +1,4 @@
 using B2BCommerce.Backend.Domain.Entities;
-using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Interfaces.Repositories;
 
@@ -16,18 +15,26 @@ public interface ICustomerAttributeRepository : IGenericRepository<CustomerAttri
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets attributes for a customer by type
+    /// Gets attributes for a customer by attribute definition ID
     /// </summary>
-    Task<IEnumerable<CustomerAttribute>> GetByCustomerIdAndTypeAsync(
+    Task<CustomerAttribute?> GetByCustomerIdAndDefinitionIdAsync(
         Guid customerId,
-        CustomerAttributeType attributeType,
+        Guid attributeDefinitionId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes all attributes for a customer by type
+    /// Gets attributes for a customer by attribute definition code
     /// </summary>
-    Task DeleteByCustomerIdAndTypeAsync(
+    Task<CustomerAttribute?> GetByCustomerIdAndDefinitionCodeAsync(
         Guid customerId,
-        CustomerAttributeType attributeType,
+        string definitionCode,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes all attributes for a customer by attribute definition ID
+    /// </summary>
+    Task DeleteByCustomerIdAndDefinitionIdAsync(
+        Guid customerId,
+        Guid attributeDefinitionId,
         CancellationToken cancellationToken = default);
 }

@@ -52,6 +52,13 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Product");
+
                     b.Property<string>("ExternalCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -70,6 +77,11 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsList")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsRequired")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -87,6 +99,9 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ParentAttributeId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
@@ -110,6 +125,8 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
 
                     b.HasIndex("DisplayOrder");
 
+                    b.HasIndex("EntityType");
+
                     b.HasIndex("ExternalCode")
                         .HasFilter("\"IsDeleted\" = false AND \"ExternalCode\" IS NOT NULL");
 
@@ -120,6 +137,8 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("IsFilterable");
+
+                    b.HasIndex("ParentAttributeId");
 
                     b.ToTable("AttributeDefinitions", (string)null);
                 });
@@ -501,13 +520,13 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<string>("BrandIds")
+                    b.Property<string>("BrandIds")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
                         .HasDefaultValueSql("'[]'::jsonb");
 
-                    b.PrimitiveCollection<string>("CategoryIds")
+                    b.Property<string>("CategoryIds")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
@@ -543,7 +562,7 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)");
 
-                    b.PrimitiveCollection<string>("ProductTypeIds")
+                    b.Property<string>("ProductTypeIds")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
@@ -644,28 +663,6 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ApprovedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("CompanyName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ContactPersonName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ContactPersonTitle")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -680,27 +677,21 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("Email");
+                    b.Property<string>("DocumentUrls")
+                        .HasColumnType("jsonb");
 
-                    b.Property<string>("Fax")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                    b.Property<int?>("EstablishmentYear")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("IdentityNo")
-                        .HasMaxLength(11)
-                        .HasColumnType("character varying(11)")
-                        .HasColumnName("IdentityNo");
+                    b.Property<string>("ExternalCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsApproved")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -710,64 +701,28 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<string>("MersisNo")
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("TaxNo")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<string>("MobilePhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("MobilePhone");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("Phone");
-
-                    b.Property<string>("PreferredCurrency")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("TRY");
-
-                    b.Property<string>("PreferredLanguage")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasDefaultValue("tr");
-
-                    b.Property<string>("PriceTier")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("TaxNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("TaxNumber");
-
                     b.Property<string>("TaxOffice")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
-                    b.Property<string>("TradeName")
+                    b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("TradeRegistryNo")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -776,27 +731,32 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Website")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyName");
-
-                    b.HasIndex("Email")
+                    b.HasIndex("ExternalId")
                         .IsUnique()
-                        .HasFilter("\"IsDeleted\" = false");
+                        .HasFilter("\"ExternalId\" IS NOT NULL AND \"IsDeleted\" = false");
 
                     b.HasIndex("IsActive");
 
-                    b.HasIndex("IsApproved");
-
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("TaxNumber")
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TaxNo")
                         .IsUnique()
-                        .HasFilter("\"IsDeleted\" = false");
+                        .HasFilter("\"TaxNo\" IS NOT NULL AND \"IsDeleted\" = false");
+
+                    b.HasIndex("Title");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Customers", (string)null);
                 });
@@ -806,6 +766,11 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("AddressType")
                         .IsRequired()
@@ -829,6 +794,17 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("FullName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("GeoLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Gsm")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -843,6 +819,22 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PhoneExt")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TaxNo")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -862,6 +854,8 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
 
                     b.HasIndex("CustomerId");
 
+                    b.HasIndex("GeoLocationId");
+
                     b.HasIndex("IsActive");
 
                     b.HasIndex("IsDefault");
@@ -877,10 +871,8 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AttributeType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<Guid>("AttributeDefinitionId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -898,6 +890,246 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.Property<string>("DeletedBy")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttributeDefinitionId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("CustomerId", "AttributeDefinitionId");
+
+                    b.ToTable("CustomerAttributes", (string)null);
+                });
+
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Unknown");
+
+                    b.Property<string>("Gsm")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PhoneExt")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("CustomerId", "IsPrimary")
+                        .HasFilter("\"IsPrimary\" = true AND \"IsDeleted\" = false");
+
+                    b.ToTable("CustomerContacts", (string)null);
+                });
+
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.GeoLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Depth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ExternalCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("GeoLocationTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PathName")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code");
+
+                    b.HasIndex("ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalId\" IS NOT NULL AND \"IsDeleted\" = false");
+
+                    b.HasIndex("GeoLocationTypeId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Path");
+
+                    b.ToTable("GeoLocations", (string)null);
+                });
+
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.GeoLocationType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
 
                     b.Property<int>("DisplayOrder")
                         .ValueGeneratedOnAdd()
@@ -905,103 +1137,28 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
-                    b.Property<string>("JsonData")
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("jsonb");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AttributeType");
-
-                    b.HasIndex("CustomerId");
-
                     b.HasIndex("IsDeleted");
 
-                    b.HasIndex("CustomerId", "AttributeType");
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
-                    b.ToTable("CustomerAttributes", (string)null);
-                });
-
-            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerDocument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ContentUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("DocumentType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("DocumentType");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("CustomerId", "DocumentType");
-
-                    b.ToTable("CustomerDocuments", (string)null);
+                    b.ToTable("GeoLocationTypes", (string)null);
                 });
 
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.Integration.ApiClient", b =>
@@ -2586,6 +2743,16 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.ToTable("UserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.AttributeDefinition", b =>
+                {
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.AttributeDefinition", "ParentAttribute")
+                        .WithMany("ChildAttributes")
+                        .HasForeignKey("ParentAttributeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentAttribute");
+                });
+
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.AttributeValue", b =>
                 {
                     b.HasOne("B2BCommerce.Backend.Domain.Entities.AttributeDefinition", "AttributeDefinition")
@@ -2625,61 +2792,6 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                     b.Navigation("Collection");
                 });
 
-            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.Customer", b =>
-                {
-                    b.OwnsOne("B2BCommerce.Backend.Domain.ValueObjects.Money", "CreditLimit", b1 =>
-                        {
-                            b1.Property<Guid>("CustomerId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<decimal>("Amount")
-                                .HasColumnType("decimal(18,2)")
-                                .HasColumnName("CreditLimitAmount");
-
-                            b1.Property<string>("Currency")
-                                .IsRequired()
-                                .HasMaxLength(3)
-                                .HasColumnType("character varying(3)")
-                                .HasColumnName("CreditLimitCurrency");
-
-                            b1.HasKey("CustomerId");
-
-                            b1.ToTable("Customers");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CustomerId");
-                        });
-
-                    b.OwnsOne("B2BCommerce.Backend.Domain.ValueObjects.Money", "UsedCredit", b1 =>
-                        {
-                            b1.Property<Guid>("CustomerId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<decimal>("Amount")
-                                .HasColumnType("decimal(18,2)")
-                                .HasColumnName("UsedCreditAmount");
-
-                            b1.Property<string>("Currency")
-                                .IsRequired()
-                                .HasMaxLength(3)
-                                .HasColumnType("character varying(3)")
-                                .HasColumnName("UsedCreditCurrency");
-
-                            b1.HasKey("CustomerId");
-
-                            b1.ToTable("Customers");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CustomerId");
-                        });
-
-                    b.Navigation("CreditLimit")
-                        .IsRequired();
-
-                    b.Navigation("UsedCredit")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerAddress", b =>
                 {
                     b.HasOne("B2BCommerce.Backend.Domain.Entities.Customer", "Customer")
@@ -2688,87 +2800,62 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("B2BCommerce.Backend.Domain.ValueObjects.Address", "Address", b1 =>
-                        {
-                            b1.Property<Guid>("CustomerAddressId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("City")
-                                .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
-                                .HasColumnName("City");
-
-                            b1.Property<string>("Country")
-                                .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
-                                .HasColumnName("Country");
-
-                            b1.Property<string>("District")
-                                .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
-                                .HasColumnName("District");
-
-                            b1.Property<string>("Neighborhood")
-                                .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
-                                .HasColumnName("Neighborhood");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasMaxLength(20)
-                                .HasColumnType("character varying(20)")
-                                .HasColumnName("PostalCode");
-
-                            b1.Property<string>("State")
-                                .IsRequired()
-                                .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
-                                .HasColumnName("State");
-
-                            b1.Property<string>("Street")
-                                .IsRequired()
-                                .HasMaxLength(500)
-                                .HasColumnType("character varying(500)")
-                                .HasColumnName("Street");
-
-                            b1.HasKey("CustomerAddressId");
-
-                            b1.ToTable("CustomerAddresses");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CustomerAddressId");
-                        });
-
-                    b.Navigation("Address")
-                        .IsRequired();
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.GeoLocation", "GeoLocation")
+                        .WithMany()
+                        .HasForeignKey("GeoLocationId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Customer");
+
+                    b.Navigation("GeoLocation");
                 });
 
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerAttribute", b =>
                 {
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.AttributeDefinition", "AttributeDefinition")
+                        .WithMany()
+                        .HasForeignKey("AttributeDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("B2BCommerce.Backend.Domain.Entities.Customer", "Customer")
                         .WithMany("Attributes")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("AttributeDefinition");
+
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerDocument", b =>
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.CustomerContact", b =>
                 {
                     b.HasOne("B2BCommerce.Backend.Domain.Entities.Customer", "Customer")
-                        .WithMany()
+                        .WithMany("Contacts")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.GeoLocation", b =>
+                {
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.GeoLocationType", "Type")
+                        .WithMany("Locations")
+                        .HasForeignKey("GeoLocationTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("B2BCommerce.Backend.Domain.Entities.GeoLocation", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
+
+                    b.Navigation("Type");
                 });
 
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.Integration.ApiKey", b =>
@@ -3590,6 +3677,8 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
 
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.AttributeDefinition", b =>
                 {
+                    b.Navigation("ChildAttributes");
+
                     b.Navigation("PredefinedValues");
                 });
 
@@ -3618,7 +3707,19 @@ namespace B2BCommerce.Backend.Infrastructure.Migrations
 
                     b.Navigation("Attributes");
 
+                    b.Navigation("Contacts");
+
                     b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.GeoLocation", b =>
+                {
+                    b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.GeoLocationType", b =>
+                {
+                    b.Navigation("Locations");
                 });
 
             modelBuilder.Entity("B2BCommerce.Backend.Domain.Entities.Integration.ApiClient", b =>

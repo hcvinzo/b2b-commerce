@@ -15,7 +15,6 @@ public class AttributeMappingProfile : Profile
     {
         // AttributeDefinition mappings
         CreateMap<AttributeDefinition, AttributeDefinitionDto>()
-            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
             .ForMember(dest => dest.PredefinedValues, opt => opt.MapFrom(src =>
                 src.PredefinedValues.Where(v => !v.IsDeleted).OrderBy(v => v.DisplayOrder)));
 

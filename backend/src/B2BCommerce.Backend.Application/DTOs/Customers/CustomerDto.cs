@@ -11,119 +11,64 @@ public class CustomerDto
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Company name (Firma Ünvanı)
+    /// External ID for ERP integration
     /// </summary>
-    public string CompanyName { get; set; } = string.Empty;
+    public string? ExternalId { get; set; }
 
     /// <summary>
-    /// Trade name / Short company name (Firma Kısa Adı)
+    /// External code for ERP integration
     /// </summary>
-    public string TradeName { get; set; } = string.Empty;
+    public string? ExternalCode { get; set; }
+
+    /// <summary>
+    /// Company title/name (Ünvan)
+    /// </summary>
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Tax office name (Vergi Dairesi)
+    /// </summary>
+    public string? TaxOffice { get; set; }
 
     /// <summary>
     /// Tax number (Vergi Numarası)
     /// </summary>
-    public string TaxNumber { get; set; } = string.Empty;
+    public string? TaxNo { get; set; }
 
     /// <summary>
-    /// Tax office (Vergi Dairesi)
+    /// Year of establishment (Kuruluş Yılı)
     /// </summary>
-    public string TaxOffice { get; set; } = string.Empty;
+    public int? EstablishmentYear { get; set; }
 
     /// <summary>
-    /// MERSIS number (Mersis No)
-    /// </summary>
-    public string? MersisNo { get; set; }
-
-    /// <summary>
-    /// Identity number (TC Kimlik No / Kimlik Numarası)
-    /// </summary>
-    public string? IdentityNo { get; set; }
-
-    /// <summary>
-    /// Trade registry number (Ticaret Sicil No)
-    /// </summary>
-    public string? TradeRegistryNo { get; set; }
-
-    /// <summary>
-    /// Email address (E-posta)
-    /// </summary>
-    public string Email { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Phone number (Telefon)
-    /// </summary>
-    public string Phone { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Mobile phone number (Cep Telefonu)
-    /// </summary>
-    public string? MobilePhone { get; set; }
-
-    /// <summary>
-    /// Fax number (Faks)
-    /// </summary>
-    public string? Fax { get; set; }
-
-    /// <summary>
-    /// Website URL (Web Sitesi)
+    /// Website URL
     /// </summary>
     public string? Website { get; set; }
 
     /// <summary>
-    /// Customer type
+    /// Current status in approval workflow
     /// </summary>
-    public string Type { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 
     /// <summary>
-    /// Price tier
+    /// Associated user ID
     /// </summary>
-    public string PriceTier { get; set; } = string.Empty;
+    public Guid? UserId { get; set; }
 
     /// <summary>
-    /// Credit limit amount
+    /// Document URLs (JSON array)
     /// </summary>
-    public decimal CreditLimit { get; set; }
+    public string? DocumentUrls { get; set; }
 
     /// <summary>
-    /// Used credit amount
+    /// Whether customer is active
     /// </summary>
-    public decimal UsedCredit { get; set; }
+    public bool IsActive { get; set; }
 
     /// <summary>
-    /// Available credit amount
+    /// Customer contacts
     /// </summary>
-    public decimal AvailableCredit { get; set; }
-
-    /// <summary>
-    /// Currency code
-    /// </summary>
-    public string Currency { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Whether customer is approved
-    /// </summary>
-    public bool IsApproved { get; set; }
-
-    /// <summary>
-    /// Date customer was approved
-    /// </summary>
-    public DateTime? ApprovedAt { get; set; }
-
-    /// <summary>
-    /// Who approved the customer
-    /// </summary>
-    public string? ApprovedBy { get; set; }
-
-    /// <summary>
-    /// Contact person name (Yetkili Adı Soyadı)
-    /// </summary>
-    public string ContactPersonName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Contact person title (Yetkili Ünvanı)
-    /// </summary>
-    public string ContactPersonTitle { get; set; } = string.Empty;
+    public List<CustomerContactDto> Contacts { get; set; } = new();
 
     /// <summary>
     /// Customer addresses
@@ -131,19 +76,9 @@ public class CustomerDto
     public List<CustomerAddressDto> Addresses { get; set; } = new();
 
     /// <summary>
-    /// Preferred currency
+    /// Customer attributes
     /// </summary>
-    public string PreferredCurrency { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Preferred language
-    /// </summary>
-    public string PreferredLanguage { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Whether customer is active
-    /// </summary>
-    public bool IsActive { get; set; }
+    public List<CustomerAttributeDto> Attributes { get; set; } = new();
 
     /// <summary>
     /// Date created
@@ -153,5 +88,10 @@ public class CustomerDto
     /// <summary>
     /// Date last updated
     /// </summary>
-    public DateTime UpdatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Last sync date from external system
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
 }
