@@ -1198,3 +1198,109 @@ export interface CollectionFilters {
   sortBy?: string;
   sortDirection?: "asc" | "desc";
 }
+
+// ============================================
+// GeoLocationType Types
+// ============================================
+
+export interface GeoLocationType {
+  id: string;
+  name: string;
+  displayOrder: number;
+  locationCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateGeoLocationTypeDto {
+  name: string;
+  displayOrder: number;
+}
+
+export interface UpdateGeoLocationTypeDto {
+  name: string;
+  displayOrder: number;
+}
+
+export interface GeoLocationTypeFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}
+
+// ============================================
+// GeoLocation Types
+// ============================================
+
+export interface GeoLocation {
+  id: string;
+  code: string;
+  name: string;
+  geoLocationTypeId: string;
+  geoLocationType?: GeoLocationType;
+  parentId?: string;
+  parent?: GeoLocation;
+  latitude?: number;
+  longitude?: number;
+  metadata?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface GeoLocationListItem {
+  id: string;
+  code: string;
+  name: string;
+  geoLocationTypeId: string;
+  geoLocationTypeName: string;
+  parentId?: string;
+  parentName?: string;
+  latitude?: number;
+  longitude?: number;
+  isActive: boolean;
+}
+
+export interface GeoLocationTree {
+  id: string;
+  code: string;
+  name: string;
+  geoLocationTypeId: string;
+  geoLocationTypeName: string;
+  parentId?: string;
+  latitude?: number;
+  longitude?: number;
+  isActive: boolean;
+  children?: GeoLocationTree[];
+}
+
+export interface CreateGeoLocationDto {
+  geoLocationTypeId: string;
+  code: string;
+  name: string;
+  parentId?: string;
+  latitude?: number;
+  longitude?: number;
+  metadata?: string;
+}
+
+export interface UpdateGeoLocationDto {
+  code: string;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  metadata?: string;
+}
+
+export interface GeoLocationFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  typeId?: string;
+  parentId?: string;
+  isActive?: boolean;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}

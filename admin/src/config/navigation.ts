@@ -17,6 +17,7 @@ import {
   Key,
   Shield,
   Library,
+  MapPin,
   type LucideIcon,
 } from "lucide-react";
 
@@ -174,6 +175,11 @@ export const navigation: NavGroup[] = [
         title: "API Clients",
         url: "/api-clients",
         icon: Key,
+      },
+      {
+        title: "Geo Locations",
+        url: "/geo-locations",
+        icon: MapPin,
       },
       {
         title: "Settings",

@@ -28,7 +28,8 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(xargs ls:*)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "Bash(mkdir:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
