@@ -5,6 +5,7 @@ using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.Cre
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.DeleteAttributeDefinition;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.RemoveAttributeValue;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Commands.UpdateAttributeDefinition;
+using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitionByCode;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitionById;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetAttributeDefinitions;
 using B2BCommerce.Backend.Application.Features.AttributeDefinitions.Queries.GetChildAttributes;
@@ -66,6 +67,26 @@ public class AttributeDefinitionsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var query = new GetAttributeDefinitionByIdQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(new { message = result.ErrorMessage, code = result.ErrorCode });
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Get attribute definition by code
+    /// </summary>
+    [HttpGet("by-code/{code}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(AttributeDefinitionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByCode(string code, CancellationToken cancellationToken)
+    {
+        var query = new GetAttributeDefinitionByCodeQuery(code);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (!result.IsSuccess)

@@ -124,4 +124,99 @@ export async function deleteCustomerDocument(customerId: string, documentId: str
   await api.delete(`/customers/${customerId}/documents/${documentId}`)
 }
 
+// GeoLocation API functions
+
+export interface GeoLocationType {
+  id: string
+  name: string
+  displayOrder: number
+  locationCount: number
+}
+
+export interface GeoLocation {
+  id: string
+  code: string
+  name: string
+  geoLocationTypeId: string
+  geoLocationTypeName: string
+  parentId?: string
+  parentName?: string
+  pathName?: string
+  depth: number
+}
+
+/**
+ * Get all location types (Country, City, District, etc.)
+ */
+export async function getGeoLocationTypes(): Promise<GeoLocationType[]> {
+  const response = await api.get<GeoLocationType[]>('/GeoLocationTypes')
+  return response.data
+}
+
+/**
+ * Get locations by type ID
+ */
+export async function getGeoLocationsByType(typeId: string): Promise<GeoLocation[]> {
+  const response = await api.get<GeoLocation[]>(`/GeoLocations/by-type/${typeId}`)
+  return response.data
+}
+
+/**
+ * Get child locations by parent ID
+ */
+export async function getGeoLocationsByParent(parentId: string): Promise<GeoLocation[]> {
+  const response = await api.get<GeoLocation[]>(`/GeoLocations/${parentId}/children`)
+  return response.data
+}
+
+/**
+ * Get root locations (no parent)
+ */
+export async function getRootGeoLocations(): Promise<GeoLocation[]> {
+  const response = await api.get<GeoLocation[]>('/GeoLocations/root')
+  return response.data
+}
+
+// Attribute API functions
+
+export interface AttributeDefinition {
+  id: string
+  code: string
+  name: string
+  type: number | string
+  entityType?: number | string
+  parentAttributeId?: string
+  isList?: boolean
+  unit?: string
+  isFilterable: boolean
+  isRequired: boolean
+  isVisibleOnProductPage: boolean
+  displayOrder: number
+  predefinedValues: AttributeValue[]
+}
+
+export interface AttributeValue {
+  id: string
+  attributeDefinitionId: string
+  value: string
+  displayText?: string
+  displayOrder: number
+}
+
+/**
+ * Get attribute definition by code
+ */
+export async function getAttributeByCode(code: string): Promise<AttributeDefinition> {
+  const response = await api.get<AttributeDefinition>(`/AttributeDefinitions/by-code/${code}`)
+  return response.data
+}
+
+/**
+ * Get child attributes of a composite attribute
+ */
+export async function getChildAttributes(parentId: string): Promise<AttributeDefinition[]> {
+  const response = await api.get<AttributeDefinition[]>(`/AttributeDefinitions/${parentId}/children`)
+  return response.data
+}
+
 export { api }

@@ -22,24 +22,17 @@ const initialState = {
   contactPerson: {},
   businessInfo: {
     authorizedPersons: [
-      { fullName: '', tcNumber: '', sharePercentage: 0 },
-      { fullName: '', tcNumber: '', sharePercentage: 0 },
-      { fullName: '', tcNumber: '', sharePercentage: 0 },
-      { fullName: '', tcNumber: '', sharePercentage: 0 },
-      { fullName: '', tcNumber: '', sharePercentage: 0 },
-      { fullName: '', tcNumber: '', sharePercentage: 0 },
+      { ad_soyad: '', kimlik_no: '', ortaklik_payi: 0 },
     ],
   },
   operationalDetails: {
-    customerBase: { retailer: 0, corporate: 0, construction: 0, retail: 0 },
-    productCategories: [],
-    currentPartners: [
-      { companyName: '', workingCondition: '', creditLimit: 0 },
-      { companyName: '', workingCondition: '', creditLimit: 0 },
-      { companyName: '', workingCondition: '', creditLimit: 0 },
-      { companyName: '', workingCondition: '', creditLimit: 0 },
-    ],
-    requestedConditions: [],
+    calisanSayisi: '',
+    isletmeYapisi: '',
+    ciro: [{}],
+    musteriKitlesi: [{}],
+    isOrtaklari: [{}, {}, {}, {}],
+    satilanUrunKategorileri: [],
+    calismaKosullari: [],
   },
   bankingDocuments: {
     bankAccounts: [

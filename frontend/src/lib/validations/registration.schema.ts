@@ -70,56 +70,70 @@ export function validateIban(iban: string): boolean {
   return remainder === 1
 }
 
-// Step 1: Contact Person Schema
+// Step 1: Contact Person Schema (İlgili Kişi - CustomerContact)
 export const step1Schema = z.object({
   firstName: z.string().min(1, 'Adı gereklidir'),
   lastName: z.string().min(1, 'Soyadı gereklidir'),
   email: z.string().min(1, 'E-posta adresi gereklidir').email('Geçerli bir e-posta adresi giriniz'),
-  alternativeEmail: z.string().email('Geçerli bir e-posta adresi giriniz').optional().or(z.literal('')),
-  position: z.string().min(1, 'Görevi gereklidir'),
-  birthDate: z.date().optional(),
+  emailConfirmation: z.string().min(1, 'E-posta tekrarı gereklidir').email('Geçerli bir e-posta adresi giriniz'),
+  position: z.string().optional(),
+  dateOfBirth: z.date().optional(),
   gender: z.string().optional(),
-  workPhone: z.string().min(10, 'Geçerli bir telefon numarası giriniz'),
-  extension: z.string().optional(),
-  mobile: z.string().min(10, 'Geçerli bir telefon numarası giriniz'),
-})
+  phone: z.string().optional(),
+  phoneExt: z.string().optional(),
+  gsm: z.string().min(10, 'Geçerli bir telefon numarası giriniz'),
+}).refine(
+  (data) => data.email === data.emailConfirmation,
+  {
+    message: 'E-posta adresleri eşleşmiyor',
+    path: ['emailConfirmation'],
+  }
+)
 
 export type Step1FormData = z.infer<typeof step1Schema>
 
 // Step 2: Business Information Schema
+// Yetkililer & Ortaklar - matches attribute definition codes
 export const authorizedPersonSchema = z.object({
-  fullName: z.string().optional(),
-  tcNumber: z.string()
+  ad_soyad: z.string().optional(),
+  kimlik_no: z.string()
     .optional()
     .refine(
       (val) => !val || validateTcKimlikNo(val),
       { message: 'Geçersiz T.C. Kimlik Numarası' }
     ),
-  sharePercentage: z.number().min(0).max(100).optional(),
+  ortaklik_payi: z.number().min(0).max(100).optional(),
 })
 
 // Generate year options from 1900 to current year
 const currentYear = new Date().getFullYear()
 
 export const step2Schema = z.object({
-  companyTitle: z.string().min(1, 'Ünvan gereklidir'),
-  taxOffice: z.string().min(1, 'Vergi dairesi gereklidir'),
-  taxNumber: z.string().min(10, 'Vergi numarası en az 10 karakter olmalıdır'),
-  foundedYear: z.number().min(1900, 'Geçerli bir yıl seçiniz').max(currentYear, `Kuruluş yılı ${currentYear} yılından büyük olamaz`).optional(),
-  address: z.string().min(1, 'Adres gereklidir'),
-  country: z.string().min(1, 'Ülke gereklidir'),
-  phone: z.string().min(10, 'Geçerli bir telefon numarası giriniz'),
+  // İşletme Bilgileri section
+  title: z.string().min(1, 'Ünvan gereklidir'),
+  taxOffice: z.string().optional(),
+  taxNo: z.string().optional(),
+  establishmentYear: z.number().min(1900, 'Geçerli bir yıl seçiniz').max(currentYear, `Kuruluş yılı ${currentYear} yılından büyük olamaz`).optional(),
   website: z.string().url('Geçerli bir URL giriniz').optional().or(z.literal('')),
-  authorizedPersons: z.array(authorizedPersonSchema).min(1, 'En az bir yetkili kişi girilmelidir'),
+  // İletişim section - CustomerAddress
+  address: z.string().min(1, 'Adres gereklidir'),
+  geoLocationId: z.string().optional(),
+  geoLocationPathName: z.string().optional(),
+  postalCode: z.string().optional(),
+  addressPhone: z.string().optional(),
+  addressPhoneExt: z.string().optional(),
+  addressGsm: z.string().optional(),
+  // Yetkililer & Ortaklar
+  authorizedPersons: z.array(authorizedPersonSchema),
 }).refine(
   (data) => {
     // Get all filled authorized persons (those with at least a name or TC number)
-    const filledPersons = data.authorizedPersons.filter(p => p.fullName || p.tcNumber)
+    const filledPersons = data.authorizedPersons.filter(p => p.ad_soyad || p.kimlik_no)
     if (filledPersons.length === 0) return true // No validation needed if no persons filled
 
     // Calculate total percentage
     const totalPercentage = data.authorizedPersons.reduce(
-      (sum, person) => sum + (person.sharePercentage || 0),
+      (sum, person) => sum + (person.ortaklik_payi || 0),
       0
     )
 
@@ -134,7 +148,7 @@ export const step2Schema = z.object({
   (data) => {
     // Get all non-empty TC numbers
     const tcNumbers = data.authorizedPersons
-      .map(p => p.tcNumber)
+      .map(p => p.kimlik_no)
       .filter((tc): tc is string => !!tc && tc.length > 0)
 
     // Check for duplicates
@@ -150,40 +164,15 @@ export const step2Schema = z.object({
 export type Step2FormData = z.infer<typeof step2Schema>
 
 // Step 3: Operational Details Schema
-export const businessPartnerSchema = z.object({
-  companyName: z.string().optional(),
-  workingCondition: z.string().optional(),
-  creditLimit: z.number().optional(),
-})
-
+// Uses dynamic attributes from API, form only validates select fields
 export const step3Schema = z.object({
-  employeeCount: z.string().min(1, 'Personel sayısı seçiniz'),
-  businessStructure: z.string().min(1, 'İşletme yapısı seçiniz'),
-  revenueYear: z.number().optional(),
-  targetRevenue: z.number().optional(),
-  revenueCurrency: z.enum(['TRY', 'USD', 'EUR']).optional(),
-  customerBase: z.object({
-    retailer: z.number().min(0).max(100),
-    corporate: z.number().min(0).max(100),
-    construction: z.number().min(0).max(100),
-    retail: z.number().min(0).max(100),
-  }),
-  productCategories: z.array(z.string()).min(1, 'En az bir kategori seçiniz'),
-  currentPartners: z.array(businessPartnerSchema).optional(),
-  requestedConditions: z.array(z.string()).min(1, 'En az bir çalışma koşulu seçiniz'),
-}).refine(
-  (data) => {
-    const total = data.customerBase.retailer +
-      data.customerBase.corporate +
-      data.customerBase.construction +
-      data.customerBase.retail
-    return total === 100
-  },
-  {
-    message: 'Müşteri kitlesi oranları toplamı %100 olmalıdır',
-    path: ['customerBase'],
-  }
-)
+  // Single select attributes (loaded from API)
+  calisanSayisi: z.string().min(1, 'Personel sayısı seçiniz'),
+  isletmeYapisi: z.string().min(1, 'İşletme yapısı seçiniz'),
+  // Multi select attributes (loaded from API)
+  satilanUrunKategorileri: z.array(z.string()).min(1, 'En az bir kategori seçiniz'),
+  calismaKosullari: z.array(z.string()).min(1, 'En az bir çalışma koşulu seçiniz'),
+})
 
 export type Step3FormData = z.infer<typeof step3Schema>
 

@@ -39,20 +39,20 @@ export default function RegisterStep1Page() {
       firstName: contactPerson.firstName || '',
       lastName: contactPerson.lastName || '',
       email: contactPerson.email || '',
-      alternativeEmail: contactPerson.alternativeEmail || '',
+      emailConfirmation: contactPerson.emailConfirmation || '',
       position: contactPerson.position || '',
-      birthDate: contactPerson.birthDate ? new Date(contactPerson.birthDate) : undefined,
+      dateOfBirth: contactPerson.dateOfBirth ? new Date(contactPerson.dateOfBirth) : undefined,
       gender: contactPerson.gender || '',
-      workPhone: contactPerson.workPhone || '+90',
-      extension: contactPerson.extension || '',
-      mobile: contactPerson.mobile || '+90',
+      phone: contactPerson.phone || '',
+      phoneExt: contactPerson.phoneExt || '',
+      gsm: contactPerson.gsm || '+90',
     },
   })
 
   const onSubmit = async (data: Step1FormData) => {
     setContactPerson({
       ...data,
-      birthDate: data.birthDate?.toISOString(),
+      dateOfBirth: data.dateOfBirth?.toISOString(),
     })
     setCurrentStep(2)
     router.push('/register/step-2')
@@ -130,12 +130,12 @@ export default function RegisterStep1Page() {
                   />
                   <FormField
                     control={form.control}
-                    name="alternativeEmail"
+                    name="emailConfirmation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Alternatif E-Posta</FormLabel>
+                        <FormLabel>E-Posta Tekrar</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="Alternatif E-Posta" {...field} />
+                          <Input type="email" placeholder="E-Posta Tekrar" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -160,7 +160,7 @@ export default function RegisterStep1Page() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="birthDate"
+                    name="dateOfBirth"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Doğum Tarihi</FormLabel>
@@ -188,8 +188,8 @@ export default function RegisterStep1Page() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="male">Erkek</SelectItem>
-                            <SelectItem value="female">Kadın</SelectItem>
+                            <SelectItem value="Male">Erkek</SelectItem>
+                            <SelectItem value="Female">Kadın</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -201,12 +201,12 @@ export default function RegisterStep1Page() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="workPhone"
+                    name="phone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>İş Telefon</FormLabel>
                         <FormControl>
-                          <Input type="tel" placeholder="+90 5XX XXX XX XX" {...field} />
+                          <Input type="tel" placeholder="+90 XXX XXX XX XX" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -214,7 +214,7 @@ export default function RegisterStep1Page() {
                   />
                   <FormField
                     control={form.control}
-                    name="extension"
+                    name="phoneExt"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Dahili Numara</FormLabel>
@@ -229,7 +229,7 @@ export default function RegisterStep1Page() {
 
                 <FormField
                   control={form.control}
-                  name="mobile"
+                  name="gsm"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Mobil</FormLabel>

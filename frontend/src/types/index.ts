@@ -1,63 +1,62 @@
-// Contact Person (Step 1)
+// Contact Person (Step 1) - Maps to CustomerContact
 export interface ContactPerson {
-  firstName: string
-  lastName: string
-  email: string
-  alternativeEmail?: string
-  position: string
-  birthDate?: string
-  gender?: string
-  country?: string
-  city?: string
-  district?: string
-  workPhone: string
-  extension?: string
-  mobile: string
+  firstName: string // CustomerContact.FirstName
+  lastName: string // CustomerContact.LastName
+  email: string // CustomerContact.Email
+  emailConfirmation: string // For validation - must match email
+  position?: string // CustomerContact.Position
+  dateOfBirth?: string // CustomerContact.DateOfBirth
+  gender?: string // CustomerContact.Gender (Male/Female)
+  phone?: string // CustomerContact.Phone (İş Telefonu)
+  phoneExt?: string // CustomerContact.PhoneExt (Dahili Numara)
+  gsm: string // CustomerContact.Gsm (Mobil)
 }
 
-// Authorized Person
+// Authorized Person / Shareholder (Yetkililer & Ortaklar)
 export interface AuthorizedPerson {
-  fullName?: string
-  tcNumber?: string
-  sharePercentage?: number
+  ad_soyad?: string // Full name
+  kimlik_no?: string // TC Kimlik No (11 digits)
+  ortaklik_payi?: number // Share percentage (0-100)
 }
 
 // Business Information (Step 2)
 export interface BusinessInfo {
-  companyTitle: string
-  taxOffice: string
-  taxNumber: string
-  foundedYear?: number
-  address: string
-  country: string
-  phone: string
-  website?: string
+  // İşletme Bilgileri section
+  title: string // Customer.Title (Ünvan)
+  taxOffice?: string // Customer.TaxOffice (Vergi Dairesi)
+  taxNo?: string // Customer.TaxNo (Vergi Numarası)
+  establishmentYear?: number // Customer.EstablishmentYear (Kuruluş Yılı)
+  website?: string // Customer.Website (İnternet Sayfası)
+  // İletişim section - CustomerAddress
+  address: string // CustomerAddress.Address
+  geoLocationId?: string // CustomerAddress.GeoLocationId
+  geoLocationPathName?: string // For display (e.g., "Türkiye/İstanbul/Kadıköy")
+  postalCode?: string // CustomerAddress.PostalCode (Posta Kodu)
+  addressPhone?: string // CustomerAddress.Phone (Telefon)
+  addressPhoneExt?: string // CustomerAddress.PhoneExt (Dahili)
+  addressGsm?: string // CustomerAddress.Gsm (Mobil)
+  // Yetkililer & Ortaklar - CustomerAttributes
   authorizedPersons: AuthorizedPerson[]
 }
 
-// Business Partner
-export interface BusinessPartner {
-  companyName?: string
-  workingCondition?: string
-  creditLimit?: number
+// Composite Attribute Value (generic for dynamic attributes)
+export interface CompositeAttributeValue {
+  [key: string]: string | number | undefined
 }
 
-// Operational Details (Step 3)
+// Operational Details (Step 3) - Using dynamic attributes from API
 export interface OperationalDetails {
-  employeeCount: string
-  businessStructure: string
-  revenueYear?: number
-  targetRevenue?: number
-  revenueCurrency?: 'TRY' | 'USD' | 'EUR'
-  customerBase: {
-    retailer: number
-    corporate: number
-    construction: number
-    retail: number
-  }
-  productCategories: string[]
-  currentPartners: BusinessPartner[]
-  requestedConditions: string[]
+  // Single select attributes
+  calisanSayisi: string // calisan_sayisi attribute
+  isletmeYapisi: string // isletme_yapisi attribute
+  // Composite attributes (single value)
+  ciro?: CompositeAttributeValue[] // ciro composite attribute
+  musteriKitlesi?: CompositeAttributeValue[] // musteri_kitlesi composite attribute
+  // Composite attributes (multi value)
+  isOrtaklari?: CompositeAttributeValue[] // is_ortaklari composite attribute
+  // Multi select attributes
+  satilanUrunKategorileri: string[] // satilan_urun_kategorileri attribute
+  calismaKosullari: string[] // calisma_kosullari attribute
 }
 
 // Bank Account
@@ -119,6 +118,8 @@ export interface DealerRegistrationDto {
   type?: string
   // Customer attributes (collected during registration)
   attributes?: UpsertCustomerAttributesDto[]
+  // Document URLs (stored as JSON string in Customer.DocumentUrls)
+  documentUrls?: string
 }
 
 // Registration response from backend

@@ -1,14 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -25,42 +25,121 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { StepIndicator } from '@/components/ui/StepIndicator'
+import { GeoLocationSelect } from '@/components/ui/geo-location-select'
+import {
+  CompositeAttributeInput,
+  type CompositeAttributeField,
+  type CompositeAttributeValue,
+} from '@/components/ui/composite-attribute-input'
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step2Schema, Step2FormData } from '@/lib/validations/registration.schema'
+import { getAttributeByCode, getChildAttributes, type AttributeDefinition } from '@/lib/api'
+
+// Map attribute type to field type
+function mapAttributeTypeToFieldType(type: number | string): 'text' | 'number' | 'tc_kimlik' {
+  // Handle both numeric and string type values
+  const typeValue = typeof type === 'string' ? type.toLowerCase() : type
+
+  if (typeValue === 1 || typeValue === 'number') return 'number'
+  if (typeValue === 'tc_kimlik') return 'tc_kimlik'
+  return 'text'
+}
 
 export default function RegisterStep2Page() {
   const router = useRouter()
   const { businessInfo, setBusinessInfo, setCurrentStep } = useRegistrationStore()
 
+  // State for composite attribute
+  const [compositeFields, setCompositeFields] = useState<CompositeAttributeField[]>([])
+  const [compositeTitle, setCompositeTitle] = useState<string>('Yetkililer & Ortaklar')
+  const [isLoadingAttribute, setIsLoadingAttribute] = useState(true)
+
+  // Authorized persons state (managed separately from form)
+  const [authorizedPersons, setAuthorizedPersons] = useState<CompositeAttributeValue[]>(() => {
+    const persons = businessInfo.authorizedPersons
+    if (persons && persons.length > 0) {
+      return persons as CompositeAttributeValue[]
+    }
+    return [{ ad_soyad: '', kimlik_no: '', ortaklik_payi: 0 }]
+  })
+
+  // Load composite attribute definition
+  useEffect(() => {
+    async function loadCompositeAttribute() {
+      try {
+        // Get the parent attribute by code
+        const parentAttribute = await getAttributeByCode('yetkili_ve_ortaklar')
+        setCompositeTitle(parentAttribute.name)
+
+        // Get child attributes
+        const childAttributes = await getChildAttributes(parentAttribute.id)
+
+        // Map child attributes to fields
+        const fields: CompositeAttributeField[] = childAttributes
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map((attr) => ({
+            code: attr.code,
+            name: attr.name,
+            type: mapAttributeTypeToFieldType(attr.type),
+            placeholder: attr.name,
+            required: attr.isRequired,
+            maxLength: attr.code === 'kimlik_no' ? 11 : undefined,
+            min: attr.code === 'ortaklik_payi' ? 0 : undefined,
+            max: attr.code === 'ortaklik_payi' ? 100 : undefined,
+          }))
+
+        setCompositeFields(fields)
+      } catch (error) {
+        console.error('Failed to load composite attribute:', error)
+        // Fallback to default fields if API fails
+        setCompositeFields([
+          { code: 'ad_soyad', name: 'Adı Soyadı', type: 'text', placeholder: 'Adı Soyadı' },
+          { code: 'kimlik_no', name: 'T.C. Kimlik No', type: 'tc_kimlik', placeholder: 'T.C. Kimlik No', maxLength: 11 },
+          { code: 'ortaklik_payi', name: 'Pay Oranı (%)', type: 'number', placeholder: '%', min: 0, max: 100 },
+        ])
+      } finally {
+        setIsLoadingAttribute(false)
+      }
+    }
+    loadCompositeAttribute()
+  }, [])
+
   const form = useForm<Step2FormData>({
     resolver: zodResolver(step2Schema),
     defaultValues: {
-      companyTitle: businessInfo.companyTitle || '',
+      // İşletme Bilgileri
+      title: businessInfo.title || '',
       taxOffice: businessInfo.taxOffice || '',
-      taxNumber: businessInfo.taxNumber || '',
-      foundedYear: businessInfo.foundedYear,
-      address: businessInfo.address || '',
-      country: businessInfo.country || '',
-      phone: businessInfo.phone || '+90',
+      taxNo: businessInfo.taxNo || '',
+      establishmentYear: businessInfo.establishmentYear,
       website: businessInfo.website || '',
+      // İletişim
+      address: businessInfo.address || '',
+      geoLocationId: businessInfo.geoLocationId || '',
+      geoLocationPathName: businessInfo.geoLocationPathName || '',
+      postalCode: businessInfo.postalCode || '',
+      addressPhone: businessInfo.addressPhone || '+90',
+      addressPhoneExt: businessInfo.addressPhoneExt || '',
+      addressGsm: businessInfo.addressGsm || '+90',
+      // Yetkililer & Ortaklar
       authorizedPersons: businessInfo.authorizedPersons || [
-        { fullName: '', tcNumber: '', sharePercentage: 0 },
-        { fullName: '', tcNumber: '', sharePercentage: 0 },
-        { fullName: '', tcNumber: '', sharePercentage: 0 },
-        { fullName: '', tcNumber: '', sharePercentage: 0 },
-        { fullName: '', tcNumber: '', sharePercentage: 0 },
-        { fullName: '', tcNumber: '', sharePercentage: 0 },
+        { ad_soyad: '', kimlik_no: '', ortaklik_payi: 0 },
       ],
     },
   })
 
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: 'authorizedPersons',
-  })
+  // Update form when authorizedPersons change
+  useEffect(() => {
+    form.setValue('authorizedPersons', authorizedPersons)
+  }, [authorizedPersons, form])
 
   const onSubmit = async (data: Step2FormData) => {
-    setBusinessInfo(data)
+    // Include authorizedPersons from state
+    const formData = {
+      ...data,
+      authorizedPersons,
+    }
+    setBusinessInfo(formData)
     setCurrentStep(3)
     router.push('/register/step-3')
   }
@@ -78,14 +157,14 @@ export default function RegisterStep2Page() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Section - Business Info */}
+                {/* İşletme Bilgileri Section */}
                 <div>
                   <h2 className="text-lg font-semibold text-foreground mb-4">İşletme Bilgileri</h2>
 
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="companyTitle"
+                      name="title"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Ünvan</FormLabel>
@@ -113,7 +192,7 @@ export default function RegisterStep2Page() {
                       />
                       <FormField
                         control={form.control}
-                        name="taxNumber"
+                        name="taxNo"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Vergi Numarası</FormLabel>
@@ -126,7 +205,7 @@ export default function RegisterStep2Page() {
                       />
                       <FormField
                         control={form.control}
-                        name="foundedYear"
+                        name="establishmentYear"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Kuruluş Yılı</FormLabel>
@@ -156,8 +235,20 @@ export default function RegisterStep2Page() {
                       />
                     </div>
 
+                    <FormField
+                      control={form.control}
+                      name="website"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>İnternet Sayfası</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <h3 className="text-lg font-semibold text-foreground mt-8 mb-4">İletişim</h3>
-
                     <FormField
                       control={form.control}
                       name="address"
@@ -165,22 +256,42 @@ export default function RegisterStep2Page() {
                         <FormItem>
                           <FormLabel>Adres</FormLabel>
                           <FormControl>
-                            <Input placeholder="Adres" {...field} />
+                            <Input placeholder="Açık adres" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* GeoLocation Select (Cascading) */}
+                    <FormField
+                      control={form.control}
+                      name="geoLocationId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <GeoLocationSelect
+                            label="Konum"
+                            value={field.value}
+                            onChange={(geoLocationId, pathName) => {
+                              field.onChange(geoLocationId)
+                              form.setValue('geoLocationPathName', pathName || '')
+                            }}
+                            maxDepth={4}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                       <FormField
                         control={form.control}
-                        name="country"
+                        name="postalCode"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Ülke</FormLabel>
+                            <FormLabel>Posta Kodu</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ülke" {...field} />
+                              <Input placeholder="Posta Kodu" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -188,7 +299,7 @@ export default function RegisterStep2Page() {
                       />
                       <FormField
                         control={form.control}
-                        name="phone"
+                        name="addressPhone"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Telefon</FormLabel>
@@ -201,12 +312,25 @@ export default function RegisterStep2Page() {
                       />
                       <FormField
                         control={form.control}
-                        name="website"
+                        name="addressPhoneExt"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>İnternet Sayfası</FormLabel>
+                            <FormLabel>Dahili</FormLabel>
                             <FormControl>
-                              <Input placeholder="https://" {...field} />
+                              <Input placeholder="Dahili No" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="addressGsm"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Mobil</FormLabel>
+                            <FormControl>
+                              <Input type="tel" placeholder="+90 5XX XXX XX XX" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -216,68 +340,34 @@ export default function RegisterStep2Page() {
                   </div>
                 </div>
 
-                {/* Right Section - Authorized Persons */}
+                {/* Right Section - Yetkililer & Ortaklar */}
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground mb-4">Yetkililer & Ortaklar</h2>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Adı Soyadı</th>
-                          <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">T.C. Kimlik No</th>
-                          <th className="text-left py-2 px-2 text-sm font-medium text-muted-foreground">Pay Oranı (%)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {fields.map((field, index) => (
-                          <tr key={field.id} className="border-b border-border/50">
-                            <td className="py-2 px-2">
-                              <Input
-                                placeholder="Adı Soyadı"
-                                className="text-sm"
-                                {...form.register(`authorizedPersons.${index}.fullName`)}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <div>
-                                <Input
-                                  placeholder="T.C. Kimlik No"
-                                  className="text-sm"
-                                  maxLength={11}
-                                  {...form.register(`authorizedPersons.${index}.tcNumber`)}
-                                />
-                                {form.formState.errors.authorizedPersons?.[index]?.tcNumber && (
-                                  <p className="text-xs text-destructive mt-1">
-                                    {form.formState.errors.authorizedPersons[index]?.tcNumber?.message}
-                                  </p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-2 px-2">
-                              <Input
-                                type="number"
-                                placeholder="%"
-                                className="text-sm w-20"
-                                min={0}
-                                max={100}
-                                {...form.register(`authorizedPersons.${index}.sharePercentage`, { valueAsNumber: true })}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {form.formState.errors.authorizedPersons?.message && (
-                    <p className="text-destructive text-sm mt-2">{form.formState.errors.authorizedPersons.message}</p>
+                  {isLoadingAttribute ? (
+                    <div className="flex items-center gap-2 text-muted-foreground py-8">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Yükleniyor...</span>
+                    </div>
+                  ) : (
+                    <CompositeAttributeInput
+                      title={compositeTitle}
+                      fields={compositeFields}
+                      values={authorizedPersons}
+                      onChange={setAuthorizedPersons}
+                      minRows={1}
+                      maxRows={10}
+                      addButtonText={`${compositeTitle} ekle`}
+                    />
                   )}
-                  {form.formState.errors.authorizedPersons?.root?.message && (
-                    <p className="text-destructive text-sm mt-2">{form.formState.errors.authorizedPersons.root.message}</p>
+                  {form.formState.errors.authorizedPersons?.message && (
+                    <p className="text-destructive text-sm mt-2">
+                      {form.formState.errors.authorizedPersons.message}
+                    </p>
                   )}
                 </div>
+
               </div>
 
+              {/* Navigation Buttons */}
               <div className="flex justify-between mt-8 pt-6 border-t border-border">
                 <Button
                   type="button"
