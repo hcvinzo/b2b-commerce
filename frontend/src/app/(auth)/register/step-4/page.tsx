@@ -19,7 +19,7 @@ import {
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step4Schema, Step4FormData } from '@/lib/validations/registration.schema'
 import { registerDealer, uploadRegistrationDocument, getAttributeByCode, getChildAttributes } from '@/lib/api'
-import type { DealerRegistrationDto, UpsertCustomerAttributesDto } from '@/types'
+import type { DealerRegistrationDto, UpsertCustomerAttributesByDefinitionDto } from '@/types'
 
 // Map attribute type to field type for composite attributes
 function mapAttributeTypeToFieldType(type: number | string, isList?: boolean): 'text' | 'number' | 'tc_kimlik' | 'select' {
@@ -28,6 +28,146 @@ function mapAttributeTypeToFieldType(type: number | string, isList?: boolean): '
   if (typeValue === 1 || typeValue === 'number') return 'number'
   if (typeValue === 'tc_kimlik') return 'tc_kimlik'
   return 'text'
+}
+
+// Helper function to build customer attributes for registration
+async function buildCustomerAttributes(
+  businessInfo: { authorizedPersons?: Array<{ ad_soyad?: string; kimlik_no?: string; ortaklik_payi?: number }> },
+  operationalDetails: {
+    calisanSayisi?: string
+    isletmeYapisi?: string
+    ciro?: Array<Record<string, string | number | undefined>>
+    musteriKitlesi?: Array<Record<string, string | number | undefined>>
+    isOrtaklari?: Array<Record<string, string | number | undefined>>
+    satilanUrunKategorileri?: string[]
+    calismaKosullari?: string[]
+  },
+  bankAccountValues: CompositeAttributeValue[],
+  teminatValues: CompositeAttributeValue[]
+): Promise<UpsertCustomerAttributesByDefinitionDto[]> {
+  const attributes: UpsertCustomerAttributesByDefinitionDto[] = []
+
+  try {
+    // Step 2 attributes
+    // yetkili_ve_ortaklar (composite - multi value)
+    if (businessInfo.authorizedPersons && businessInfo.authorizedPersons.length > 0) {
+      const attr = await getAttributeByCode('yetkili_ve_ortaklar')
+      const nonEmptyPersons = businessInfo.authorizedPersons.filter(
+        p => p.ad_soyad || p.kimlik_no || (p.ortaklik_payi && p.ortaklik_payi > 0)
+      )
+      if (nonEmptyPersons.length > 0) {
+        attributes.push({
+          attributeDefinitionId: attr.id,
+          items: nonEmptyPersons.map(p => ({ value: JSON.stringify(p) }))
+        })
+      }
+    }
+
+    // Step 3 attributes
+    // personel_sayisi (single select) - wrap in JSON for jsonb column
+    if (operationalDetails.calisanSayisi) {
+      const attr = await getAttributeByCode('personel_sayisi')
+      attributes.push({
+        attributeDefinitionId: attr.id,
+        items: [{ value: JSON.stringify(operationalDetails.calisanSayisi) }]
+      })
+    }
+
+    // isletme_yapisi (single select) - wrap in JSON for jsonb column
+    if (operationalDetails.isletmeYapisi) {
+      const attr = await getAttributeByCode('isletme_yapisi')
+      attributes.push({
+        attributeDefinitionId: attr.id,
+        items: [{ value: JSON.stringify(operationalDetails.isletmeYapisi) }]
+      })
+    }
+
+    // ciro (composite - single value)
+    if (operationalDetails.ciro && operationalDetails.ciro.length > 0) {
+      const ciroData = operationalDetails.ciro[0]
+      if (ciroData && Object.keys(ciroData).length > 0) {
+        const attr = await getAttributeByCode('ciro')
+        attributes.push({
+          attributeDefinitionId: attr.id,
+          items: [{ value: JSON.stringify(ciroData) }]
+        })
+      }
+    }
+
+    // musteri_kitlesi (composite - single value)
+    if (operationalDetails.musteriKitlesi && operationalDetails.musteriKitlesi.length > 0) {
+      const musteriData = operationalDetails.musteriKitlesi[0]
+      if (musteriData && Object.keys(musteriData).length > 0) {
+        const attr = await getAttributeByCode('musteri_kitlesi')
+        attributes.push({
+          attributeDefinitionId: attr.id,
+          items: [{ value: JSON.stringify(musteriData) }]
+        })
+      }
+    }
+
+    // is_ortaklari (composite - multi value)
+    if (operationalDetails.isOrtaklari && operationalDetails.isOrtaklari.length > 0) {
+      const nonEmptyOrtaklar = operationalDetails.isOrtaklari.filter(
+        o => o && Object.values(o).some(v => v !== undefined && v !== '' && v !== 0)
+      )
+      if (nonEmptyOrtaklar.length > 0) {
+        const attr = await getAttributeByCode('is_ortaklari')
+        attributes.push({
+          attributeDefinitionId: attr.id,
+          items: nonEmptyOrtaklar.map(o => ({ value: JSON.stringify(o) }))
+        })
+      }
+    }
+
+    // satilan_urun_kategorileri (multi select) - wrap each in JSON for jsonb column
+    if (operationalDetails.satilanUrunKategorileri && operationalDetails.satilanUrunKategorileri.length > 0) {
+      const attr = await getAttributeByCode('satilan_urun_kategorileri')
+      attributes.push({
+        attributeDefinitionId: attr.id,
+        items: operationalDetails.satilanUrunKategorileri.map(v => ({ value: JSON.stringify(v) }))
+      })
+    }
+
+    // calisma_kosullari (multi select) - wrap each in JSON for jsonb column
+    if (operationalDetails.calismaKosullari && operationalDetails.calismaKosullari.length > 0) {
+      const attr = await getAttributeByCode('calisma_kosullari')
+      attributes.push({
+        attributeDefinitionId: attr.id,
+        items: operationalDetails.calismaKosullari.map(v => ({ value: JSON.stringify(v) }))
+      })
+    }
+
+    // Step 4 attributes
+    // banka_hesap_bilgileri (composite - multi value)
+    const nonEmptyBankAccounts = bankAccountValues.filter(
+      b => b && (b.banka_adi || b.iban)
+    )
+    if (nonEmptyBankAccounts.length > 0) {
+      const attr = await getAttributeByCode('banka_hesap_bilgileri')
+      attributes.push({
+        attributeDefinitionId: attr.id,
+        items: nonEmptyBankAccounts.map(b => ({ value: JSON.stringify(b) }))
+      })
+    }
+
+    // teminatlar (composite - multi value)
+    const nonEmptyTeminatlar = teminatValues.filter(
+      t => t && (t.teminat_turu || (t.tutar && Number(t.tutar) > 0))
+    )
+    if (nonEmptyTeminatlar.length > 0) {
+      const attr = await getAttributeByCode('teminatlar')
+      attributes.push({
+        attributeDefinitionId: attr.id,
+        items: nonEmptyTeminatlar.map(t => ({ value: JSON.stringify(t) }))
+      })
+    }
+  } catch (error) {
+    console.error('Failed to build customer attributes:', error)
+    // Continue without attributes if there's an error fetching definitions
+  }
+
+  return attributes
 }
 
 // Document type keys for form
@@ -238,105 +378,50 @@ export default function RegisterStep4Page() {
 
       setUploadProgress('Kayıt işlemi yapılıyor...')
 
-      // Step 2: Build customer attributes from all form data
-      const attributes: UpsertCustomerAttributesDto[] = []
+      // Build customer attributes from all collected data
+      const customerAttributes = await buildCustomerAttributes(
+        businessInfo,
+        operationalDetails,
+        bankAccountValues,
+        teminatValues
+      )
 
-      // Step 2: Authorized Persons → ShareholderOrDirector
-      const shareholders = businessInfo.authorizedPersons?.filter(p => p.ad_soyad) || []
-      if (shareholders.length > 0) {
-        attributes.push({
-          attributeType: 'ShareholderOrDirector',
-          items: shareholders.map((s, i) => ({
-            displayOrder: i,
-            jsonData: JSON.stringify({
-              fullName: s.ad_soyad || '',
-              identityNumber: s.kimlik_no || '',
-              sharePercentage: s.ortaklik_payi || 0
-            })
-          }))
-        })
-      }
-
-      // Step 3: Business Partners (İş Ortakları) → BusinessPartner
-      const partners = operationalDetails.isOrtaklari?.filter((p: Record<string, unknown>) => {
-        // Check if any field has a value
-        return Object.values(p).some(v => v !== '' && v !== 0 && v !== undefined)
-      }) || []
-      if (partners.length > 0) {
-        attributes.push({
-          attributeType: 'BusinessPartner',
-          items: partners.map((p: Record<string, unknown>, i: number) => ({
-            displayOrder: i,
-            jsonData: JSON.stringify(p)
-          }))
-        })
-      }
-
-      // Step 3: Product Categories → ProductCategory
-      const categories = operationalDetails.satilanUrunKategorileri || []
-      if (categories.length > 0) {
-        attributes.push({
-          attributeType: 'ProductCategory',
-          items: [{
-            displayOrder: 0,
-            jsonData: JSON.stringify({ categories })
-          }]
-        })
-      }
-
-      // Step 4: Bank Accounts → BankAccount (from dynamic attributes)
-      const banks = bankAccountValues.filter(b => b.banka_adi || b.iban)
-      if (banks.length > 0) {
-        attributes.push({
-          attributeType: 'BankAccount',
-          items: banks.map((b, i) => ({
-            displayOrder: i,
-            jsonData: JSON.stringify(b)
-          }))
-        })
-      }
-
-      // Step 4: Collaterals → Collateral (from dynamic attributes)
-      const collaterals = teminatValues.filter(c => c.teminat_turu)
-      if (collaterals.length > 0) {
-        attributes.push({
-          attributeType: 'Collateral',
-          items: collaterals.map((c, i) => ({
-            displayOrder: i,
-            jsonData: JSON.stringify(c)
-          }))
-        })
-      }
-
-      // Step 3: Requested Conditions → PaymentPreference
-      const preferences = operationalDetails.calismaKosullari || []
-      if (preferences.length > 0) {
-        attributes.push({
-          attributeType: 'PaymentPreference',
-          items: [{
-            displayOrder: 0,
-            jsonData: JSON.stringify({ preferences })
-          }]
-        })
-      }
-
-      // Build registration DTO
+      // Build registration DTO (matches RegisterCommand)
       const registrationDto: DealerRegistrationDto = {
-        // Required company info
-        companyName: businessInfo.title || '',
-        taxNumber: businessInfo.taxNo || '',
-        taxOffice: businessInfo.taxOffice || '',
-        email: contactPerson.email || '',
-        phone: businessInfo.addressPhone || contactPerson.phone || '',
-        contactPersonName: `${contactPerson.firstName || ''} ${contactPerson.lastName || ''}`.trim(),
-        contactPersonTitle: contactPerson.position || '',
-        // Optional company info
-        mobilePhone: contactPerson.gsm || undefined,
+        // Company info
+        title: businessInfo.title || '',
+        taxOffice: businessInfo.taxOffice || undefined,
+        taxNo: businessInfo.taxNo || undefined,
+        establishmentYear: businessInfo.establishmentYear || undefined,
         website: businessInfo.website || undefined,
-        // Customer attributes
-        attributes: attributes.length > 0 ? attributes : undefined,
-        // Document URLs (stored as JSON in Customer.DocumentUrls)
+        // Primary contact info
+        contactFirstName: contactPerson.firstName || '',
+        contactLastName: contactPerson.lastName || '',
+        contactEmail: contactPerson.email || '',
+        contactPosition: contactPerson.position || undefined,
+        contactDateOfBirth: contactPerson.dateOfBirth || undefined,
+        contactGender: contactPerson.gender || undefined,
+        contactPhone: contactPerson.phone || undefined,
+        contactPhoneExt: contactPerson.phoneExt || undefined,
+        contactGsm: contactPerson.gsm || undefined,
+        // Primary address info
+        addressTitle: 'Merkez',  // Default address title
+        address: businessInfo.address || undefined,
+        geoLocationId: businessInfo.geoLocationId || undefined,
+        postalCode: businessInfo.postalCode || undefined,
+        addressPhone: businessInfo.addressPhone || undefined,
+        addressPhoneExt: businessInfo.addressPhoneExt || undefined,
+        addressGsm: businessInfo.addressGsm || undefined,
+        // User account (TODO: Add these fields to registration form)
+        email: contactPerson.email || '',
+        password: 'TempPassword123!',  // TODO: Get from form
+        passwordConfirmation: 'TempPassword123!',  // TODO: Get from form
+        acceptTerms: true,  // TODO: Get from form
+        acceptKvkk: true,  // TODO: Get from form
+        // Document URLs
         documentUrls: documentUrls.length > 0 ? JSON.stringify(documentUrls) : undefined,
+        // Customer attributes
+        attributes: customerAttributes.length > 0 ? customerAttributes : undefined,
       }
 
       // Submit to API

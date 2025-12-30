@@ -143,17 +143,29 @@ public class CustomerAttributeService : ICustomerAttributeService
         UpsertCustomerAttributesByDefinitionDto dto,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogDebug(
+            "UpsertByDefinitionAsync called for customer {CustomerId}, definition {AttributeDefinitionId}",
+            customerId, dto.AttributeDefinitionId);
+
         var customer = await _unitOfWork.Customers.GetByIdAsync(customerId, cancellationToken);
         if (customer is null)
         {
+            _logger.LogWarning("Customer {CustomerId} not found", customerId);
             return Result<IEnumerable<CustomerAttributeDto>>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
         var attributeDefinition = await _unitOfWork.AttributeDefinitions.GetByIdAsync(dto.AttributeDefinitionId, cancellationToken);
         if (attributeDefinition is null)
         {
+            _logger.LogWarning(
+                "Attribute definition {AttributeDefinitionId} not found for customer {CustomerId}",
+                dto.AttributeDefinitionId, customerId);
             return Result<IEnumerable<CustomerAttributeDto>>.Failure("Attribute definition not found", "ATTRIBUTE_DEFINITION_NOT_FOUND");
         }
+
+        _logger.LogDebug(
+            "Found attribute definition {AttributeDefinitionId} (Code: {Code}) for customer {CustomerId}",
+            dto.AttributeDefinitionId, attributeDefinition.Code, customerId);
 
         // Delete existing attribute for this definition (replace semantics)
         await _unitOfWork.CustomerAttributes.DeleteByCustomerIdAndDefinitionIdAsync(

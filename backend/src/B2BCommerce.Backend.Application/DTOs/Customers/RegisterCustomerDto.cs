@@ -55,9 +55,24 @@ public class RegisterCustomerDto
     public string? ContactPosition { get; set; }
 
     /// <summary>
+    /// Contact date of birth (Doğum Tarihi)
+    /// </summary>
+    public DateTime? ContactDateOfBirth { get; set; }
+
+    /// <summary>
+    /// Contact gender (Cinsiyet): Male, Female, Unknown
+    /// </summary>
+    public string? ContactGender { get; set; }
+
+    /// <summary>
     /// Contact phone number (Telefon)
     /// </summary>
     public string? ContactPhone { get; set; }
+
+    /// <summary>
+    /// Contact phone extension (Dahili)
+    /// </summary>
+    public string? ContactPhoneExt { get; set; }
 
     /// <summary>
     /// Contact mobile phone (Mobil)
@@ -86,6 +101,21 @@ public class RegisterCustomerDto
     /// </summary>
     public string? PostalCode { get; set; }
 
+    /// <summary>
+    /// Address phone number
+    /// </summary>
+    public string? AddressPhone { get; set; }
+
+    /// <summary>
+    /// Address phone extension
+    /// </summary>
+    public string? AddressPhoneExt { get; set; }
+
+    /// <summary>
+    /// Address mobile phone
+    /// </summary>
+    public string? AddressGsm { get; set; }
+
     // Step 4: User Account Information (Üyelik Bilgileri)
 
     /// <summary>
@@ -113,7 +143,12 @@ public class RegisterCustomerDto
     /// </summary>
     public bool AcceptKvkk { get; set; }
 
-    // Optional: Customer Attributes (collected during registration)
+    // Optional: Documents and Attributes
+
+    /// <summary>
+    /// Document URLs as JSON string (stored in Customer.DocumentUrls)
+    /// </summary>
+    public string? DocumentUrls { get; set; }
 
     /// <summary>
     /// Customer attributes to save during registration (grouped by definition)

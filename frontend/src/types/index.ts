@@ -96,30 +96,40 @@ export interface DealerRegistration {
 
 // DTO for backend registration API (matches RegisterCommand)
 export interface DealerRegistrationDto {
-  // Required company info
-  companyName: string
-  taxNumber: string
-  taxOffice: string
-  email: string
-  phone: string
-  contactPersonName: string
-  contactPersonTitle: string
-  // Optional company info
-  tradeName?: string
-  mersisNo?: string
-  identityNo?: string
-  tradeRegistryNo?: string
-  mobilePhone?: string
-  fax?: string
+  // Company info
+  title: string
+  taxOffice?: string
+  taxNo?: string
+  establishmentYear?: number
   website?: string
-  // Optional financial info
-  creditLimit?: number
-  currency?: string
-  type?: string
-  // Customer attributes (collected during registration)
-  attributes?: UpsertCustomerAttributesDto[]
-  // Document URLs (stored as JSON string in Customer.DocumentUrls)
+  // Primary contact info
+  contactFirstName: string
+  contactLastName: string
+  contactEmail: string
+  contactPosition?: string
+  contactDateOfBirth?: string  // ISO date string
+  contactGender?: string  // Male, Female, Unknown
+  contactPhone?: string
+  contactPhoneExt?: string
+  contactGsm?: string
+  // Primary address info
+  addressTitle?: string
+  address?: string
+  geoLocationId?: string
+  postalCode?: string
+  addressPhone?: string
+  addressPhoneExt?: string
+  addressGsm?: string
+  // User account
+  email: string
+  password: string
+  passwordConfirmation: string
+  acceptTerms: boolean
+  acceptKvkk: boolean
+  // Document URLs (JSON string)
   documentUrls?: string
+  // Customer attributes (collected during registration)
+  attributes?: UpsertCustomerAttributesByDefinitionDto[]
 }
 
 // Registration response from backend
@@ -186,21 +196,13 @@ export interface DocumentUploadState {
   error: string | null
 }
 
-// Customer Attribute Types (for registration and admin)
-export type CustomerAttributeType =
-  | 'ShareholderOrDirector'
-  | 'BusinessPartner'
-  | 'ProductCategory'
-  | 'BankAccount'
-  | 'Collateral'
-  | 'PaymentPreference'
-
-export interface UpsertCustomerAttributesDto {
-  attributeType: CustomerAttributeType
+// Customer Attribute DTOs (matches backend UpsertCustomerAttributesByDefinitionDto)
+export interface UpsertCustomerAttributesByDefinitionDto {
+  attributeDefinitionId: string  // UUID of the attribute definition
   items: CustomerAttributeItemDto[]
 }
 
 export interface CustomerAttributeItemDto {
-  displayOrder: number
-  jsonData: string
+  id?: string  // Optional ID for updating existing
+  value: string  // JSON string containing the attribute data
 }

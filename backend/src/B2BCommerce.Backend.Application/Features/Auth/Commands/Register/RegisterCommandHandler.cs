@@ -32,20 +32,27 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Result<Cu
             ContactLastName = request.ContactLastName,
             ContactEmail = request.ContactEmail,
             ContactPosition = request.ContactPosition,
+            ContactDateOfBirth = request.ContactDateOfBirth,
+            ContactGender = request.ContactGender,
             ContactPhone = request.ContactPhone,
+            ContactPhoneExt = request.ContactPhoneExt,
             ContactGsm = request.ContactGsm,
             // Primary address info
             AddressTitle = request.AddressTitle ?? string.Empty,
             Address = request.Address ?? string.Empty,
             GeoLocationId = request.GeoLocationId,
             PostalCode = request.PostalCode,
+            AddressPhone = request.AddressPhone,
+            AddressPhoneExt = request.AddressPhoneExt,
+            AddressGsm = request.AddressGsm,
             // User account
             Email = request.Email,
             Password = request.Password,
             PasswordConfirmation = request.PasswordConfirmation,
             AcceptTerms = request.AcceptTerms,
             AcceptKvkk = request.AcceptKvkk,
-            // Customer attributes
+            // Documents and attributes
+            DocumentUrls = request.DocumentUrls,
             Attributes = request.Attributes
         };
 

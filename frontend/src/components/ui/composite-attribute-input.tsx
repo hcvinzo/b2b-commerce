@@ -149,10 +149,12 @@ export function CompositeAttributeInput({
                           className="text-sm"
                           value={row[field.code] ?? (field.type === 'number' ? 0 : '')}
                           onChange={(e) => {
-                            const value =
-                              field.type === 'number'
-                                ? parseFloat(e.target.value) || 0
-                                : e.target.value
+                            let value: string | number = e.target.value
+                            if (field.type === 'number') {
+                              // Handle empty string as 0, otherwise parse the number
+                              const parsed = parseFloat(e.target.value)
+                              value = isNaN(parsed) ? 0 : parsed
+                            }
                             handleFieldChange(rowIndex, field.code, value)
                           }}
                           min={field.min}

@@ -57,24 +57,32 @@ public class AuthController : ControllerBase
             request.TaxNo,
             request.EstablishmentYear,
             request.Website,
-            // Contact info
+            // Primary contact info
             request.ContactFirstName,
             request.ContactLastName,
             request.ContactEmail,
             request.ContactPosition,
+            request.ContactDateOfBirth,
+            request.ContactGender,
             request.ContactPhone,
+            request.ContactPhoneExt,
             request.ContactGsm,
-            // Address info
+            // Primary address info
             request.AddressTitle,
             request.Address,
             request.GeoLocationId,
             request.PostalCode,
+            request.AddressPhone,
+            request.AddressPhoneExt,
+            request.AddressGsm,
             // User account info
             request.Email,
             request.Password,
             request.PasswordConfirmation,
             request.AcceptTerms,
             request.AcceptKvkk,
+            // Document URLs
+            request.DocumentUrls,
             // Optional attributes
             request.Attributes);
 

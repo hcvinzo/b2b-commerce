@@ -164,14 +164,14 @@ export const step2Schema = z.object({
 export type Step2FormData = z.infer<typeof step2Schema>
 
 // Step 3: Operational Details Schema
-// Uses dynamic attributes from API, form only validates select fields
+// Uses dynamic attributes from API, validation is lenient to allow proceeding if attributes fail to load
 export const step3Schema = z.object({
   // Single select attributes (loaded from API)
-  calisanSayisi: z.string().min(1, 'Personel sayısı seçiniz'),
-  isletmeYapisi: z.string().min(1, 'İşletme yapısı seçiniz'),
+  calisanSayisi: z.string(),
+  isletmeYapisi: z.string(),
   // Multi select attributes (loaded from API)
-  satilanUrunKategorileri: z.array(z.string()).min(1, 'En az bir kategori seçiniz'),
-  calismaKosullari: z.array(z.string()).min(1, 'En az bir çalışma koşulu seçiniz'),
+  satilanUrunKategorileri: z.array(z.string()),
+  calismaKosullari: z.array(z.string()),
 })
 
 export type Step3FormData = z.infer<typeof step3Schema>
@@ -194,8 +194,8 @@ export const collateralSchema = z.object({
 })
 
 export const step4Schema = z.object({
-  bankAccounts: z.array(bankAccountSchema).min(1, 'En az bir banka hesabı girilmelidir'),
-  collaterals: z.array(collateralSchema).optional(),
+  bankAccounts: z.array(bankAccountSchema),
+  collaterals: z.array(collateralSchema),
   documents: z.object({
     taxCertificate: z.any().optional(),
     signatureCircular: z.any().optional(),

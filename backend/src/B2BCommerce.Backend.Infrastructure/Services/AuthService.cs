@@ -148,6 +148,12 @@ public class AuthService : IAuthService
                         website: request.Website
                     );
 
+                    // Set document URLs if provided
+                    if (!string.IsNullOrWhiteSpace(request.DocumentUrls))
+                    {
+                        customer.UpdateDocumentUrls(request.DocumentUrls);
+                    }
+
                     await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -155,13 +161,30 @@ public class AuthService : IAuthService
                     if (!string.IsNullOrWhiteSpace(request.ContactFirstName) &&
                         !string.IsNullOrWhiteSpace(request.ContactLastName))
                     {
+                        // Parse gender from string
+                        var gender = Gender.Unknown;
+                        if (!string.IsNullOrWhiteSpace(request.ContactGender))
+                        {
+                            Enum.TryParse<Gender>(request.ContactGender, ignoreCase: true, out gender);
+                        }
+
+                        // Parse date of birth
+                        DateOnly? dateOfBirth = null;
+                        if (request.ContactDateOfBirth.HasValue)
+                        {
+                            dateOfBirth = DateOnly.FromDateTime(request.ContactDateOfBirth.Value);
+                        }
+
                         var contact = CustomerContact.Create(
                             customerId: customer.Id,
                             firstName: request.ContactFirstName,
                             lastName: request.ContactLastName,
                             email: request.ContactEmail,
                             position: request.ContactPosition,
+                            dateOfBirth: dateOfBirth,
+                            gender: gender,
                             phone: request.ContactPhone,
+                            phoneExt: request.ContactPhoneExt,
                             gsm: request.ContactGsm,
                             isPrimary: true
                         );
@@ -181,6 +204,9 @@ public class AuthService : IAuthService
                             address: request.Address,
                             geoLocationId: request.GeoLocationId,
                             postalCode: request.PostalCode,
+                            phone: request.AddressPhone,
+                            phoneExt: request.AddressPhoneExt,
+                            gsm: request.AddressGsm,
                             isDefault: true
                         );
 
@@ -233,22 +259,50 @@ public class AuthService : IAuthService
             // Save customer attributes (non-critical, done after main transaction)
             if (request.Attributes is not null && request.Attributes.Count > 0)
             {
+                _logger.LogInformation(
+                    "Processing {Count} attribute groups for customer {CustomerId}",
+                    request.Attributes.Count, customer!.Id);
+
+                var successCount = 0;
+                var failCount = 0;
+
                 foreach (var attributeGroup in request.Attributes)
                 {
                     try
                     {
-                        await _customerAttributeService.UpsertByDefinitionAsync(
+                        _logger.LogDebug(
+                            "Saving attribute group {AttributeDefinitionId} with {ItemCount} items for customer {CustomerId}",
+                            attributeGroup.AttributeDefinitionId, attributeGroup.Items?.Count ?? 0, customer!.Id);
+
+                        var attributeResult = await _customerAttributeService.UpsertByDefinitionAsync(
                             customer!.Id,
                             attributeGroup,
                             cancellationToken);
+
+                        if (!attributeResult.IsSuccess)
+                        {
+                            failCount++;
+                            _logger.LogWarning(
+                                "Failed to save attributes for definition {AttributeDefinitionId} for customer {CustomerId}: {ErrorMessage}",
+                                attributeGroup.AttributeDefinitionId, customer!.Id, attributeResult.ErrorMessage);
+                        }
+                        else
+                        {
+                            successCount++;
+                        }
                     }
                     catch (Exception ex)
                     {
+                        failCount++;
                         // Log but don't fail registration for attribute errors
-                        _logger.LogWarning(ex, "Failed to save attributes for definition {AttributeDefinitionId} for customer {CustomerId}",
+                        _logger.LogWarning(ex, "Exception while saving attributes for definition {AttributeDefinitionId} for customer {CustomerId}",
                             attributeGroup.AttributeDefinitionId, customer!.Id);
                     }
                 }
+
+                _logger.LogInformation(
+                    "Completed processing attributes for customer {CustomerId}: {SuccessCount} succeeded, {FailCount} failed",
+                    customer!.Id, successCount, failCount);
             }
 
             _logger.LogInformation("Customer {Title} registered successfully with ID {CustomerId}",

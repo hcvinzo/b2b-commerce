@@ -54,14 +54,29 @@ export default function RegisterStep2Page() {
   const [compositeTitle, setCompositeTitle] = useState<string>('Yetkililer & Ortaklar')
   const [isLoadingAttribute, setIsLoadingAttribute] = useState(true)
 
+  // Helper to normalize person data (ensure ortaklik_payi is number)
+  const normalizePersons = (persons: CompositeAttributeValue[]): CompositeAttributeValue[] => {
+    return persons.map(person => ({
+      ...person,
+      ortaklik_payi: typeof person.ortaklik_payi === 'string'
+        ? parseFloat(person.ortaklik_payi) || 0
+        : (person.ortaklik_payi ?? 0)
+    }))
+  }
+
   // Authorized persons state (managed separately from form)
   const [authorizedPersons, setAuthorizedPersons] = useState<CompositeAttributeValue[]>(() => {
     const persons = businessInfo.authorizedPersons
     if (persons && persons.length > 0) {
-      return persons as CompositeAttributeValue[]
+      return normalizePersons(persons as CompositeAttributeValue[])
     }
     return [{ ad_soyad: '', kimlik_no: '', ortaklik_payi: 0 }]
   })
+
+  // Wrapper to normalize values before setting state
+  const handleAuthorizedPersonsChange = (values: CompositeAttributeValue[]) => {
+    setAuthorizedPersons(normalizePersons(values))
+  }
 
   // Load composite attribute definition
   useEffect(() => {
@@ -128,7 +143,7 @@ export default function RegisterStep2Page() {
     },
   })
 
-  // Update form when authorizedPersons change
+  // Update form when authorizedPersons change (already normalized by handleAuthorizedPersonsChange)
   useEffect(() => {
     form.setValue('authorizedPersons', authorizedPersons)
   }, [authorizedPersons, form])
@@ -156,6 +171,56 @@ export default function RegisterStep2Page() {
         <CardContent className="p-8">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* Form Error Summary */}
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-sm font-medium text-destructive mb-2">Lütfen aşağıdaki alanları kontrol ediniz:</p>
+                  <ul className="text-sm text-destructive list-disc list-inside">
+                    {form.formState.errors.title && <li>Ünvan gereklidir</li>}
+                    {form.formState.errors.address && <li>Adres gereklidir</li>}
+                    {form.formState.errors.website && <li>Geçerli bir web sitesi URL&apos;si giriniz</li>}
+                    {form.formState.errors.establishmentYear && <li>Geçerli bir kuruluş yılı seçiniz</li>}
+                    {form.formState.errors.authorizedPersons && (() => {
+                      const errors = form.formState.errors.authorizedPersons
+                      const errorsAsArray = Array.isArray(errors) ? errors : []
+                      const hasKimlikError = errorsAsArray.some((item) => item?.kimlik_no)
+                      const hasPayiError = errorsAsArray.some((item) => item?.ortaklik_payi)
+                      const rootMessage = errors.root?.message
+                      const directMessage = errors.message
+
+                      // Get actual ortaklik_payi error message if exists
+                      const payiErrorItem = errorsAsArray.find((item) => item?.ortaklik_payi)
+                      const payiErrorMessage = payiErrorItem?.ortaklik_payi?.message
+
+                      return (
+                        <>
+                          {/* Root level message (e.g., percentage validation, duplicate TC) */}
+                          {directMessage && (
+                            <li>{String(directMessage)}</li>
+                          )}
+                          {/* Root error without message (from refine) */}
+                          {rootMessage && (
+                            <li>{String(rootMessage)}</li>
+                          )}
+                          {/* Array item errors (e.g., invalid TC Kimlik) */}
+                          {hasKimlikError && (
+                            <li>Geçersiz T.C. Kimlik Numarası girdiniz</li>
+                          )}
+                          {/* Array item errors - ortaklik_payi with actual message */}
+                          {hasPayiError && (
+                            <li>{payiErrorMessage || 'Pay oranı 0 ile 100 arasında olmalıdır'}</li>
+                          )}
+                          {/* Fallback - show the actual error for debugging */}
+                          {!directMessage && !rootMessage && !hasKimlikError && !hasPayiError && (
+                            <li>Yetkili/ortak bilgilerini kontrol ediniz (Detay için konsolu kontrol edin)</li>
+                          )}
+                        </>
+                      )
+                    })()}
+                  </ul>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* İşletme Bilgileri Section */}
                 <div>
@@ -352,7 +417,7 @@ export default function RegisterStep2Page() {
                       title={compositeTitle}
                       fields={compositeFields}
                       values={authorizedPersons}
-                      onChange={setAuthorizedPersons}
+                      onChange={handleAuthorizedPersonsChange}
                       minRows={1}
                       maxRows={10}
                       addButtonText={`${compositeTitle} ekle`}

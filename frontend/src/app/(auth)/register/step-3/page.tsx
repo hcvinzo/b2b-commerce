@@ -198,6 +198,19 @@ export default function RegisterStep3Page() {
         <CardContent className="p-8">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* Form Error Summary */}
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-sm font-medium text-destructive mb-2">Lütfen aşağıdaki alanları kontrol ediniz:</p>
+                  <ul className="text-sm text-destructive list-disc list-inside">
+                    {form.formState.errors.calisanSayisi && <li>Personel Sayısı seçiniz</li>}
+                    {form.formState.errors.isletmeYapisi && <li>İşletme Yapısı seçiniz</li>}
+                    {form.formState.errors.satilanUrunKategorileri && <li>En az bir ürün kategorisi seçiniz</li>}
+                    {form.formState.errors.calismaKosullari && <li>En az bir çalışma koşulu seçiniz</li>}
+                  </ul>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Section */}
                 <div className="space-y-6">

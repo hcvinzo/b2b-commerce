@@ -57,6 +57,216 @@ cd admin && npm run build
 
 ---
 
+## Dealer Portal (Frontend) Architecture
+
+**Tech Stack**: Next.js 15, React 19, TypeScript, TailwindCSS, shadcn/ui, Zustand (state), React Hook Form + Zod
+
+### Project Structure
+
+```
+frontend/src/
+├── app/
+│   ├── (auth)/                    # Auth route group (public pages)
+│   │   ├── login/page.tsx
+│   │   └── register/
+│   │       ├── step-1/page.tsx    # Contact Person
+│   │       ├── step-2/page.tsx    # Business Info
+│   │       ├── step-3/page.tsx    # Operational Details
+│   │       └── step-4/page.tsx    # Banking & Documents
+│   ├── (dashboard)/               # Dashboard route group (protected)
+│   └── layout.tsx
+├── components/
+│   └── ui/
+│       ├── composite-attribute-input.tsx  # Dynamic composite fields
+│       ├── single-select-attribute.tsx    # Dynamic single select
+│       ├── multi-select-attribute.tsx     # Dynamic multi checkboxes
+│       ├── geo-location-select.tsx        # Cascading location dropdowns
+│       └── FileUpload.tsx
+├── stores/
+│   └── registrationStore.ts       # Zustand multi-step form state
+├── lib/
+│   ├── api.ts                     # API client functions
+│   └── validations/
+│       └── registration.schema.ts # Zod schemas for all steps
+└── types/
+    └── index.ts                   # TypeScript interfaces
+```
+
+### Multi-Step Registration System
+
+The dealer registration is a 4-step form using Zustand for state persistence across steps.
+
+**State Management** (`stores/registrationStore.ts`):
+```typescript
+interface RegistrationState {
+  currentStep: number
+  contactPerson: Partial<ContactPerson>      // Step 1
+  businessInfo: Partial<BusinessInfo>        // Step 2
+  operationalDetails: Partial<OperationalDetails>  // Step 3
+  bankingDocuments: Partial<BankingDocuments>     // Step 4
+  // Actions
+  setContactPerson: (data) => void
+  setBusinessInfo: (data) => void
+  setOperationalDetails: (data) => void
+  setBankingDocuments: (data) => void
+  reset: () => void
+}
+```
+
+### Dynamic Attribute Components
+
+The registration forms use dynamic attributes loaded from the API. This allows form fields to be configured in the database.
+
+**CompositeAttributeInput** (`components/ui/composite-attribute-input.tsx`):
+- Renders a table with dynamic columns based on child attributes
+- Supports `text`, `number`, `tc_kimlik`, and `select` field types
+- Used for multi-row data entry (e.g., bank accounts, collaterals, business partners)
+
+```tsx
+interface CompositeAttributeField {
+  code: string
+  name: string
+  type: 'text' | 'number' | 'tc_kimlik' | 'select'
+  placeholder?: string
+  required?: boolean
+  min?: number
+  max?: number
+  maxLength?: number
+  options?: SelectOption[]  // For select type
+}
+
+// Usage
+<CompositeAttributeInput
+  title="Banka Hesap Bilgileri"
+  fields={bankAccountFields}  // Loaded from API
+  values={bankAccountValues}
+  onChange={setBankAccountValues}
+  minRows={6}
+  maxRows={10}
+  addButtonText="Banka Hesabı Ekle"
+/>
+```
+
+**SingleSelectAttribute** (`components/ui/single-select-attribute.tsx`):
+- Loads attribute options by code from API
+- Renders as dropdown select
+- Used for single-choice fields (e.g., personel_sayisi, isletme_yapisi)
+
+```tsx
+<SingleSelectAttribute
+  attributeCode="personel_sayisi"
+  value={field.value}
+  onChange={field.onChange}
+  label="Personel Sayısı"
+  required
+/>
+```
+
+**MultiSelectAttribute** (`components/ui/multi-select-attribute.tsx`):
+- Loads attribute options by code from API
+- Renders as checkbox grid
+- Configurable column layout (1-4 columns)
+
+```tsx
+<MultiSelectAttribute
+  attributeCode="satilan_urun_kategorileri"
+  value={field.value}
+  onChange={field.onChange}
+  label="Ürün Kategorileri"
+  columns={3}
+/>
+```
+
+### Loading Attributes from API
+
+**Pattern for loading composite attributes**:
+```typescript
+// Load parent attribute by code
+const parentAttr = await getAttributeByCode('banka_hesap_bilgileri')
+setTitle(parentAttr.name)
+
+// Load child attributes
+const children = await getChildAttributes(parentAttr.id)
+const fields = children
+  .sort((a, b) => a.displayOrder - b.displayOrder)
+  .map((attr) => ({
+    code: attr.code,
+    name: attr.name,
+    type: mapAttributeTypeToFieldType(attr.type, attr.isList),
+    placeholder: attr.name,
+    required: attr.isRequired,
+    options: attr.predefinedValues?.map((v) => ({
+      value: v.value,
+      label: v.displayText || v.value,
+    })),
+  }))
+```
+
+**Attribute type mapping**:
+```typescript
+function mapAttributeTypeToFieldType(type: number | string, isList?: boolean) {
+  const typeValue = typeof type === 'string' ? type.toLowerCase() : type
+  if (typeValue === 2 || typeValue === 3 || typeValue === 'select' || isList) return 'select'
+  if (typeValue === 1 || typeValue === 'number') return 'number'
+  if (typeValue === 'tc_kimlik') return 'tc_kimlik'
+  return 'text'
+}
+```
+
+### Registration Steps & Attribute Codes
+
+| Step | Section | Attribute Code | Type |
+|------|---------|---------------|------|
+| 2 | Yetkililer & Ortaklar | `yetkili_ve_ortaklar` | Composite (multi-row) |
+| 3 | Personel Sayısı | `personel_sayisi` | Single select |
+| 3 | İşletme Yapısı | `isletme_yapisi` | Single select |
+| 3 | Ciro | `ciro` | Composite (single-row) |
+| 3 | Müşteri Kitlesi | `musteri_kitlesi` | Composite (single-row) |
+| 3 | İş Ortakları | `is_ortaklari` | Composite (multi-row) |
+| 3 | Ürün Kategorileri | `satilan_urun_kategorileri` | Multi select |
+| 3 | Çalışma Koşulları | `calisma_kosullari` | Multi select |
+| 4 | Banka Hesapları | `banka_hesap_bilgileri` | Composite (multi-row) |
+| 4 | Teminatlar | `teminatlar` | Composite (multi-row) |
+
+### Document Upload
+
+Documents are uploaded to S3 during registration and stored in `Customer.DocumentUrls` as JSON:
+
+```typescript
+interface DocumentUrl {
+  document_type: string  // e.g., 'taxCertificate'
+  file_type: string      // e.g., 'application/pdf'
+  file_url: string       // S3 URL
+  file_name: string
+  file_size: number
+}
+
+// DealerRegistrationDto
+{
+  // ... other fields
+  documentUrls: JSON.stringify(documentUrls)
+}
+```
+
+### API Functions
+
+**Key API functions for registration** (`lib/api.ts`):
+```typescript
+// Get attribute definition by code (AllowAnonymous)
+getAttributeByCode(code: string): Promise<AttributeDefinition>
+
+// Get child attributes of composite attribute (AllowAnonymous)
+getChildAttributes(parentId: string): Promise<AttributeDefinition[]>
+
+// Register dealer
+registerDealer(data: DealerRegistrationDto): Promise<RegistrationResponse>
+
+// Upload document during registration
+uploadRegistrationDocument(file: File): Promise<FileUploadResponse>
+```
+
+---
+
 ## Admin Panel Architecture
 
 **Tech Stack**: Next.js 16, React 19, TypeScript, TailwindCSS, shadcn/ui, React Query (TanStack Query)
