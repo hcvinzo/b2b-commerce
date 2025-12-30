@@ -22,7 +22,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form'
 import { StepIndicator } from '@/components/ui/StepIndicator'
 import { GeoLocationSelect } from '@/components/ui/geo-location-select'
@@ -33,7 +32,7 @@ import {
 } from '@/components/ui/composite-attribute-input'
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step2Schema, Step2FormData } from '@/lib/validations/registration.schema'
-import { getAttributeByCode, getChildAttributes, type AttributeDefinition } from '@/lib/api'
+import { getAttributeByCode, getChildAttributes } from '@/lib/api'
 
 // Map attribute type to field type
 function mapAttributeTypeToFieldType(type: number | string): 'text' | 'number' | 'tc_kimlik' {
@@ -159,6 +158,8 @@ export default function RegisterStep2Page() {
     router.push('/register/step-3')
   }
 
+  const { errors } = form.formState
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Step Indicator */}
@@ -172,21 +173,20 @@ export default function RegisterStep2Page() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               {/* Form Error Summary */}
-              {Object.keys(form.formState.errors).length > 0 && (
+              {Object.keys(errors).length > 0 && (
                 <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
                   <p className="text-sm font-medium text-destructive mb-2">Lütfen aşağıdaki alanları kontrol ediniz:</p>
                   <ul className="text-sm text-destructive list-disc list-inside">
-                    {form.formState.errors.title && <li>Ünvan gereklidir</li>}
-                    {form.formState.errors.address && <li>Adres gereklidir</li>}
-                    {form.formState.errors.website && <li>Geçerli bir web sitesi URL&apos;si giriniz</li>}
-                    {form.formState.errors.establishmentYear && <li>Geçerli bir kuruluş yılı seçiniz</li>}
-                    {form.formState.errors.authorizedPersons && (() => {
-                      const errors = form.formState.errors.authorizedPersons
-                      const errorsAsArray = Array.isArray(errors) ? errors : []
+                    {errors.title && <li>Ünvan gereklidir</li>}
+                    {errors.address && <li>Adres gereklidir</li>}
+                    {errors.website && <li>Geçerli bir web sitesi URL&apos;si giriniz</li>}
+                    {errors.establishmentYear && <li>Geçerli bir kuruluş yılı seçiniz</li>}
+                    {errors.authorizedPersons && (() => {
+                      const errorsAsArray = Array.isArray(errors.authorizedPersons) ? errors.authorizedPersons : []
                       const hasKimlikError = errorsAsArray.some((item) => item?.kimlik_no)
                       const hasPayiError = errorsAsArray.some((item) => item?.ortaklik_payi)
-                      const rootMessage = errors.root?.message
-                      const directMessage = errors.message
+                      const rootMessage = errors.authorizedPersons.root?.message
+                      const directMessage = errors.authorizedPersons.message
 
                       // Get actual ortaklik_payi error message if exists
                       const payiErrorItem = errorsAsArray.find((item) => item?.ortaklik_payi)
@@ -230,13 +230,12 @@ export default function RegisterStep2Page() {
                     <FormField
                       control={form.control}
                       name="title"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>Ünvan</FormLabel>
+                          <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Ünvan</FormLabel>
                           <FormControl>
-                            <Input placeholder="Şirket Ünvanı" {...field} />
+                            <Input placeholder="Şirket Ünvanı" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                           </FormControl>
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -245,44 +244,40 @@ export default function RegisterStep2Page() {
                       <FormField
                         control={form.control}
                         name="taxOffice"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Vergi Dairesi</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Vergi Dairesi</FormLabel>
                             <FormControl>
-                              <Input placeholder="Vergi Dairesi" {...field} />
+                              <Input placeholder="Vergi Dairesi" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                             </FormControl>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
                         name="taxNo"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Vergi Numarası</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Vergi Numarası</FormLabel>
                             <FormControl>
-                              <Input placeholder="Vergi Numarası" {...field} />
+                              <Input placeholder="Vergi Numarası" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                             </FormControl>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
                         name="establishmentYear"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Kuruluş Yılı</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Kuruluş Yılı</FormLabel>
                             <Select
                               onValueChange={(value) => field.onChange(parseInt(value))}
                               defaultValue={field.value?.toString()}
                             >
-                              <FormControl>
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Yıl Seçiniz" />
-                                </SelectTrigger>
-                              </FormControl>
+                              <SelectTrigger className={`w-full ${fieldState.error ? 'border-destructive' : ''}`}>
+                                <SelectValue placeholder="Yıl Seçiniz" />
+                              </SelectTrigger>
                               <SelectContent>
                                 {Array.from(
                                   { length: new Date().getFullYear() - 1900 + 1 },
@@ -294,7 +289,6 @@ export default function RegisterStep2Page() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -303,13 +297,12 @@ export default function RegisterStep2Page() {
                     <FormField
                       control={form.control}
                       name="website"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>İnternet Sayfası</FormLabel>
+                          <FormLabel className={fieldState.error ? 'text-destructive' : ''}>İnternet Sayfası</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://" {...field} />
+                            <Input placeholder="https://" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                           </FormControl>
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -317,13 +310,12 @@ export default function RegisterStep2Page() {
                     <FormField
                       control={form.control}
                       name="address"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>Adres</FormLabel>
+                          <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Adres</FormLabel>
                           <FormControl>
-                            <Input placeholder="Açık adres" {...field} />
+                            <Input placeholder="Açık adres" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                           </FormControl>
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -332,7 +324,7 @@ export default function RegisterStep2Page() {
                     <FormField
                       control={form.control}
                       name="geoLocationId"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
                           <GeoLocationSelect
                             label="Konum"
@@ -342,8 +334,8 @@ export default function RegisterStep2Page() {
                               form.setValue('geoLocationPathName', pathName || '')
                             }}
                             maxDepth={4}
+                            hasError={!!fieldState.error}
                           />
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -352,52 +344,48 @@ export default function RegisterStep2Page() {
                       <FormField
                         control={form.control}
                         name="postalCode"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Posta Kodu</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Posta Kodu</FormLabel>
                             <FormControl>
-                              <Input placeholder="Posta Kodu" {...field} />
+                              <Input placeholder="Posta Kodu" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                             </FormControl>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
                         name="addressPhone"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Telefon</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Telefon</FormLabel>
                             <FormControl>
-                              <Input type="tel" placeholder="+90 XXX XXX XX XX" {...field} />
+                              <Input type="tel" placeholder="+90 XXX XXX XX XX" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                             </FormControl>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
                         name="addressPhoneExt"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Dahili</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Dahili</FormLabel>
                             <FormControl>
-                              <Input placeholder="Dahili No" {...field} />
+                              <Input placeholder="Dahili No" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                             </FormControl>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
                         name="addressGsm"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
-                            <FormLabel>Mobil</FormLabel>
+                            <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Mobil</FormLabel>
                             <FormControl>
-                              <Input type="tel" placeholder="+90 5XX XXX XX XX" {...field} />
+                              <Input type="tel" placeholder="+90 5XX XXX XX XX" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                             </FormControl>
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -422,11 +410,6 @@ export default function RegisterStep2Page() {
                       maxRows={10}
                       addButtonText={`${compositeTitle} ekle`}
                     />
-                  )}
-                  {form.formState.errors.authorizedPersons?.message && (
-                    <p className="text-destructive text-sm mt-2">
-                      {form.formState.errors.authorizedPersons.message}
-                    </p>
                   )}
                 </div>
 

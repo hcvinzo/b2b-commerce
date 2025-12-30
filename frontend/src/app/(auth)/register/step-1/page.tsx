@@ -22,7 +22,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form'
 import { StepIndicator } from '@/components/ui/StepIndicator'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -79,6 +78,8 @@ export default function RegisterStep1Page() {
     router.push('/register/step-2')
   }
 
+  const { errors } = form.formState
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Step Indicator */}
@@ -106,30 +107,44 @@ export default function RegisterStep1Page() {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Form Error Summary */}
+                {Object.keys(errors).length > 0 && (
+                  <div className="mb-2 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-sm font-medium text-destructive mb-2">Lütfen aşağıdaki alanları kontrol ediniz:</p>
+                    <ul className="text-sm text-destructive list-disc list-inside">
+                      {errors.firstName && <li>Ad gereklidir</li>}
+                      {errors.lastName && <li>Soyad gereklidir</li>}
+                      {errors.email && <li>{errors.email.message || 'Geçerli bir e-posta adresi giriniz'}</li>}
+                      {errors.emailConfirmation && <li>{errors.emailConfirmation.message || 'E-posta adresleri eşleşmiyor'}</li>}
+                      {errors.position && <li>Görev gereklidir</li>}
+                      {errors.phone && <li>Telefon numarası gereklidir</li>}
+                      {errors.gsm && <li>Mobil telefon numarası gereklidir</li>}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="firstName"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>Adı</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Adı</FormLabel>
                         <FormControl>
-                          <Input placeholder="Adı" {...field} />
+                          <Input placeholder="Adı" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="lastName"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>Soyadı</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Soyadı</FormLabel>
                         <FormControl>
-                          <Input placeholder="Soyadı" {...field} />
+                          <Input placeholder="Soyadı" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -139,26 +154,24 @@ export default function RegisterStep1Page() {
                   <FormField
                     control={form.control}
                     name="email"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>E-Posta</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>E-Posta</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="E-Posta" {...field} />
+                          <Input type="email" placeholder="E-Posta" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="emailConfirmation"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>E-Posta Tekrar</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>E-Posta Tekrar</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="E-Posta Tekrar" {...field} />
+                          <Input type="email" placeholder="E-Posta Tekrar" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -167,13 +180,12 @@ export default function RegisterStep1Page() {
                 <FormField
                   control={form.control}
                   name="position"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Görevi</FormLabel>
+                      <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Görevi</FormLabel>
                       <FormControl>
-                        <Input placeholder="Görevi" {...field} />
+                        <Input placeholder="Görevi" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -182,38 +194,33 @@ export default function RegisterStep1Page() {
                   <FormField
                     control={form.control}
                     name="dateOfBirth"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>Doğum Tarihi</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Doğum tarihi seçiniz"
-                          />
-                        </FormControl>
-                        <FormMessage />
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Doğum Tarihi</FormLabel>
+                        <DatePicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Doğum tarihi seçiniz"
+                          className={fieldState.error ? 'border-destructive' : ''}
+                        />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="gender"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>Cinsiyet</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Cinsiyet</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Seçiniz" />
-                            </SelectTrigger>
-                          </FormControl>
+                          <SelectTrigger className={`w-full ${fieldState.error ? 'border-destructive' : ''}`}>
+                            <SelectValue placeholder="Seçiniz" />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Male">Erkek</SelectItem>
                             <SelectItem value="Female">Kadın</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -223,26 +230,24 @@ export default function RegisterStep1Page() {
                   <FormField
                     control={form.control}
                     name="phone"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>İş Telefon</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>İş Telefon</FormLabel>
                         <FormControl>
-                          <Input type="tel" placeholder="+90 XXX XXX XX XX" {...field} />
+                          <Input type="tel" placeholder="+90 XXX XXX XX XX" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="phoneExt"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
-                        <FormLabel>Dahili Numara</FormLabel>
+                        <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Dahili Numara</FormLabel>
                         <FormControl>
-                          <Input placeholder="Dahili Numara" {...field} />
+                          <Input placeholder="Dahili Numara" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -251,13 +256,12 @@ export default function RegisterStep1Page() {
                 <FormField
                   control={form.control}
                   name="gsm"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Mobil</FormLabel>
+                      <FormLabel className={fieldState.error ? 'text-destructive' : ''}>Mobil</FormLabel>
                       <FormControl>
-                        <Input type="tel" placeholder="+90 5XX XXX XX XX" {...field} />
+                        <Input type="tel" placeholder="+90 5XX XXX XX XX" className={fieldState.error ? 'border-destructive' : ''} {...field} />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />

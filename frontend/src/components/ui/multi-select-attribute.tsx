@@ -15,6 +15,7 @@ interface MultiSelectAttributeProps {
   disabled?: boolean
   className?: string
   columns?: number
+  hasError?: boolean
 }
 
 export function MultiSelectAttribute({
@@ -26,6 +27,7 @@ export function MultiSelectAttribute({
   disabled = false,
   className,
   columns = 3,
+  hasError = false,
 }: MultiSelectAttributeProps) {
   const [attribute, setAttribute] = useState<AttributeDefinition | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -93,7 +95,7 @@ export function MultiSelectAttribute({
   return (
     <div className={className}>
       {displayLabel && (
-        <h3 className="text-lg font-semibold text-foreground mb-4">
+        <h3 className={`text-lg font-semibold mb-4 ${hasError ? 'text-destructive' : 'text-foreground'}`}>
           {displayLabel}
           {required && <span className="text-destructive ml-1">*</span>}
         </h3>

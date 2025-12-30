@@ -27,6 +27,7 @@ interface GeoLocationSelectProps {
   required?: boolean
   disabled?: boolean
   className?: string
+  hasError?: boolean // Show error styling
 }
 
 interface LocationLevel {
@@ -46,6 +47,7 @@ export function GeoLocationSelect({
   required = false,
   disabled = false,
   className,
+  hasError = false,
 }: GeoLocationSelectProps) {
   const [locationTypes, setLocationTypes] = useState<GeoLocationType[]>([])
   const [levels, setLevels] = useState<LocationLevel[]>([])
@@ -176,7 +178,7 @@ export function GeoLocationSelect({
   return (
     <div className={className}>
       {label && (
-        <Label className="mb-2 block">
+        <Label className={`mb-2 block ${hasError ? 'text-destructive' : ''}`}>
           {label}
           {required && <span className="text-destructive ml-1">*</span>}
         </Label>
@@ -184,7 +186,7 @@ export function GeoLocationSelect({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {levels.map((level, index) => (
           <div key={level.typeId}>
-            <Label className="text-xs text-muted-foreground mb-1 block">
+            <Label className={`text-xs mb-1 block ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
               {level.typeName}
             </Label>
             <Select
@@ -192,7 +194,7 @@ export function GeoLocationSelect({
               onValueChange={(val) => handleLevelChange(index, val || undefined)}
               disabled={disabled || level.isLoading}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className={`w-full ${hasError ? 'border-destructive' : ''}`}>
                 {level.isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />

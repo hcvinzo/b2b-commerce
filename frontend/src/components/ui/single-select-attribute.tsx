@@ -21,6 +21,7 @@ interface SingleSelectAttributeProps {
   required?: boolean
   disabled?: boolean
   className?: string
+  hasError?: boolean
 }
 
 export function SingleSelectAttribute({
@@ -32,6 +33,7 @@ export function SingleSelectAttribute({
   required = false,
   disabled = false,
   className,
+  hasError = false,
 }: SingleSelectAttributeProps) {
   const [attribute, setAttribute] = useState<AttributeDefinition | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -90,7 +92,7 @@ export function SingleSelectAttribute({
   return (
     <div className={className}>
       {displayLabel && (
-        <Label className="mb-2 block">
+        <Label className={`mb-2 block ${hasError ? 'text-destructive' : ''}`}>
           {displayLabel}
           {required && <span className="text-destructive ml-1">*</span>}
         </Label>
@@ -100,7 +102,7 @@ export function SingleSelectAttribute({
         onValueChange={onChange}
         disabled={disabled}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger className={`w-full ${hasError ? 'border-destructive' : ''}`}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

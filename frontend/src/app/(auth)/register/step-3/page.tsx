@@ -20,7 +20,6 @@ import {
   Form,
   FormField,
   FormItem,
-  FormMessage,
 } from '@/components/ui/form'
 import { StepIndicator } from '@/components/ui/StepIndicator'
 import { SingleSelectAttribute } from '@/components/ui/single-select-attribute'
@@ -186,6 +185,8 @@ export default function RegisterStep3Page() {
     router.push('/register/step-4')
   }
 
+  const { errors } = form.formState
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Step Indicator */}
@@ -199,14 +200,14 @@ export default function RegisterStep3Page() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               {/* Form Error Summary */}
-              {Object.keys(form.formState.errors).length > 0 && (
+              {Object.keys(errors).length > 0 && (
                 <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
                   <p className="text-sm font-medium text-destructive mb-2">Lütfen aşağıdaki alanları kontrol ediniz:</p>
                   <ul className="text-sm text-destructive list-disc list-inside">
-                    {form.formState.errors.calisanSayisi && <li>Personel Sayısı seçiniz</li>}
-                    {form.formState.errors.isletmeYapisi && <li>İşletme Yapısı seçiniz</li>}
-                    {form.formState.errors.satilanUrunKategorileri && <li>En az bir ürün kategorisi seçiniz</li>}
-                    {form.formState.errors.calismaKosullari && <li>En az bir çalışma koşulu seçiniz</li>}
+                    {errors.calisanSayisi && <li>Personel Sayısı seçiniz</li>}
+                    {errors.isletmeYapisi && <li>İşletme Yapısı seçiniz</li>}
+                    {errors.satilanUrunKategorileri && <li>En az bir ürün kategorisi seçiniz</li>}
+                    {errors.calismaKosullari && <li>En az bir çalışma koşulu seçiniz</li>}
                   </ul>
                 </div>
               )}
@@ -221,7 +222,7 @@ export default function RegisterStep3Page() {
                       <FormField
                         control={form.control}
                         name="calisanSayisi"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
                             <SingleSelectAttribute
                               attributeCode="personel_sayisi"
@@ -229,15 +230,15 @@ export default function RegisterStep3Page() {
                               onChange={field.onChange}
                               label="Personel Sayısı"
                               required
+                              hasError={!!fieldState.error}
                             />
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
                       <FormField
                         control={form.control}
                         name="isletmeYapisi"
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <FormItem>
                             <SingleSelectAttribute
                               attributeCode="isletme_yapisi"
@@ -245,8 +246,8 @@ export default function RegisterStep3Page() {
                               onChange={field.onChange}
                               label="İşletme Yapısı"
                               required
+                              hasError={!!fieldState.error}
                             />
-                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -341,7 +342,7 @@ export default function RegisterStep3Page() {
                   <FormField
                     control={form.control}
                     name="satilanUrunKategorileri"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
                         <MultiSelectAttribute
                           attributeCode="satilan_urun_kategorileri"
@@ -349,8 +350,8 @@ export default function RegisterStep3Page() {
                           onChange={field.onChange}
                           label="Satışını Gerçekleştirdiğiniz Ürün Kategorileri"
                           columns={3}
+                          hasError={!!fieldState.error}
                         />
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -382,7 +383,7 @@ export default function RegisterStep3Page() {
                   <FormField
                     control={form.control}
                     name="calismaKosullari"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem>
                         <MultiSelectAttribute
                           attributeCode="calisma_kosullari"
@@ -390,8 +391,8 @@ export default function RegisterStep3Page() {
                           onChange={field.onChange}
                           label="Talep Ettiğiniz Çalışma Koşulları"
                           columns={1}
+                          hasError={!!fieldState.error}
                         />
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
