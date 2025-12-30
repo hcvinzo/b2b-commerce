@@ -28,6 +28,7 @@ import { StepIndicator } from '@/components/ui/StepIndicator'
 import { DatePicker } from '@/components/ui/date-picker'
 import { useRegistrationStore } from '@/stores/registrationStore'
 import { step1Schema, Step1FormData } from '@/lib/validations/registration.schema'
+import { checkEmailAvailability } from '@/lib/api'
 
 export default function RegisterStep1Page() {
   const router = useRouter()
@@ -50,6 +51,26 @@ export default function RegisterStep1Page() {
   })
 
   const onSubmit = async (data: Step1FormData) => {
+    // Check if email is available before proceeding
+    try {
+      const emailCheck = await checkEmailAvailability(data.email)
+      if (!emailCheck.available) {
+        form.setError('email', {
+          type: 'manual',
+          message: 'Bu e-posta adresi zaten kayıtlı',
+        })
+        return
+      }
+    } catch (error) {
+      // If email check fails, show error but don't block the user
+      console.error('Email check failed:', error)
+      form.setError('email', {
+        type: 'manual',
+        message: 'E-posta kontrolü yapılamadı. Lütfen tekrar deneyin.',
+      })
+      return
+    }
+
     setContactPerson({
       ...data,
       dateOfBirth: data.dateOfBirth?.toISOString(),

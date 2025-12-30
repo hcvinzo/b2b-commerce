@@ -247,11 +247,25 @@ public class AuthService : IAuthService
                             "Processing {Count} attribute groups for customer {CustomerId}",
                             request.Attributes.Count, customer!.Id);
 
+                        var successfulAttributes = 0;
+                        var failedAttributes = 0;
+
                         foreach (var attributeGroup in request.Attributes)
                         {
-                            _logger.LogDebug(
+                            _logger.LogInformation(
                                 "Saving attribute group {AttributeDefinitionId} with {ItemCount} items for customer {CustomerId}",
                                 attributeGroup.AttributeDefinitionId, attributeGroup.Items?.Count ?? 0, customer!.Id);
+
+                            // Log each item's value
+                            if (attributeGroup.Items is not null)
+                            {
+                                for (var i = 0; i < attributeGroup.Items.Count; i++)
+                                {
+                                    _logger.LogDebug(
+                                        "Attribute group {AttributeDefinitionId} - Item[{Index}]: Value = {Value}",
+                                        attributeGroup.AttributeDefinitionId, i, attributeGroup.Items[i].Value);
+                                }
+                            }
 
                             var attributeResult = await _customerAttributeService.UpsertByDefinitionAsync(
                                 customer!.Id,
@@ -260,14 +274,31 @@ public class AuthService : IAuthService
 
                             if (!attributeResult.IsSuccess)
                             {
+                                failedAttributes++;
+                                _logger.LogError(
+                                    "Failed to save attributes for definition {AttributeDefinitionId}: {ErrorMessage}",
+                                    attributeGroup.AttributeDefinitionId, attributeResult.ErrorMessage);
                                 throw new InvalidOperationException(
                                     $"Failed to save attributes for definition {attributeGroup.AttributeDefinitionId}: {attributeResult.ErrorMessage}");
+                            }
+                            else
+                            {
+                                successfulAttributes++;
+                                _logger.LogInformation(
+                                    "Successfully saved {Count} attributes for definition {AttributeDefinitionId}",
+                                    attributeResult.Data?.Count() ?? 0, attributeGroup.AttributeDefinitionId);
                             }
                         }
 
                         _logger.LogInformation(
-                            "Successfully saved all {Count} attribute groups for customer {CustomerId}",
-                            request.Attributes.Count, customer!.Id);
+                            "Finished processing attribute groups for customer {CustomerId}: {SuccessCount} successful, {FailCount} failed",
+                            customer!.Id, successfulAttributes, failedAttributes);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "No attribute groups to process for customer {CustomerId}",
+                            customer!.Id);
                     }
 
                     await transaction.CommitAsync(cancellationToken);
@@ -417,6 +448,12 @@ public class AuthService : IAuthService
         {
             return Task.FromResult(Result<bool>.Success(false));
         }
+    }
+
+    public async Task<Result<bool>> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var existingUser = await _userManager.FindByEmailAsync(email);
+        return Result<bool>.Success(existingUser is null);
     }
 
     private async Task<string> GenerateJwtTokenAsync(ApplicationUser user, Customer? customer)

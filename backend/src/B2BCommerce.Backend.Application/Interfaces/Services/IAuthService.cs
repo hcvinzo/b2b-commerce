@@ -38,4 +38,9 @@ public interface IAuthService
     /// Validate if a token is still valid
     /// </summary>
     Task<Result<bool>> ValidateTokenAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Check if an email is available for registration
+    /// </summary>
+    Task<Result<bool>> IsEmailAvailableAsync(string email, CancellationToken cancellationToken = default);
 }

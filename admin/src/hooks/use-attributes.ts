@@ -29,11 +29,11 @@ export const attributeKeys = {
   children: (parentId: string) => [...attributeKeys.all, "children", parentId] as const,
 };
 
-// Query: Get all attributes (without values for performance)
-export function useAttributes(entityType?: AttributeEntityType) {
+// Query: Get all attributes
+export function useAttributes(entityType?: AttributeEntityType, includeValues: boolean = false) {
   return useQuery({
-    queryKey: attributeKeys.listByEntityType(entityType),
-    queryFn: () => getAttributes({ includeValues: false, entityType }),
+    queryKey: [...attributeKeys.listByEntityType(entityType), { includeValues }],
+    queryFn: () => getAttributes({ includeValues, entityType }),
   });
 }
 

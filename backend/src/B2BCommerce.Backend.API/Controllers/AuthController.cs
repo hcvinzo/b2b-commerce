@@ -6,6 +6,7 @@ using B2BCommerce.Backend.Application.Features.Auth.Commands.Login;
 using B2BCommerce.Backend.Application.Features.Auth.Commands.Logout;
 using B2BCommerce.Backend.Application.Features.Auth.Commands.RefreshToken;
 using B2BCommerce.Backend.Application.Features.Auth.Commands.Register;
+using B2BCommerce.Backend.Application.Features.Auth.Queries.CheckEmail;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,24 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Check if email is available for registration
+    /// </summary>
+    [HttpGet("check-email")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CheckEmail([FromQuery] string email, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return Ok(new { available = false, message = "Email is required" });
+        }
+
+        var query = new CheckEmailQuery(email);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        return Ok(new { available = result.Data, message = result.Data ? "Email is available" : "Email already registered" });
     }
 
     /// <summary>

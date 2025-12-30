@@ -25,14 +25,45 @@ public class CustomerAttributeService : ICustomerAttributeService
         Guid customerId,
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("GetByCustomerIdAsync called for customer {CustomerId}", customerId);
+
         var customer = await _unitOfWork.Customers.GetByIdAsync(customerId, cancellationToken);
         if (customer is null)
         {
+            _logger.LogWarning("Customer {CustomerId} not found", customerId);
             return Result<IEnumerable<CustomerAttributeDto>>.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
         var attributes = await _unitOfWork.CustomerAttributes.GetByCustomerIdAsync(customerId, cancellationToken);
-        return Result<IEnumerable<CustomerAttributeDto>>.Success(attributes.Select(MapToDto));
+
+        _logger.LogInformation("Found {Count} customer attributes for customer {CustomerId}", attributes.Count(), customerId);
+
+        // Log each attribute for debugging
+        foreach (var attr in attributes)
+        {
+            _logger.LogDebug(
+                "CustomerAttribute: Id={AttrId}, DefinitionId={DefId}, Code={Code}, Name={Name}, HasDefinition={HasDef}",
+                attr.Id,
+                attr.AttributeDefinitionId,
+                attr.AttributeDefinition?.Code ?? "NULL",
+                attr.AttributeDefinition?.Name ?? "NULL",
+                attr.AttributeDefinition is not null);
+        }
+
+        var dtos = attributes.Select(MapToDto).ToList();
+
+        // Log any DTOs with empty codes (indicates missing navigation property)
+        var emptyCodeDtos = dtos.Where(d => string.IsNullOrEmpty(d.AttributeCode)).ToList();
+        if (emptyCodeDtos.Any())
+        {
+            _logger.LogWarning(
+                "Found {Count} customer attributes with empty AttributeCode for customer {CustomerId}. DefinitionIds: {DefinitionIds}",
+                emptyCodeDtos.Count,
+                customerId,
+                string.Join(", ", emptyCodeDtos.Select(d => d.AttributeDefinitionId)));
+        }
+
+        return Result<IEnumerable<CustomerAttributeDto>>.Success(dtos);
     }
 
     public async Task<Result<IEnumerable<CustomerAttributeDto>>> GetByCustomerIdAndDefinitionIdAsync(
@@ -143,9 +174,20 @@ public class CustomerAttributeService : ICustomerAttributeService
         UpsertCustomerAttributesByDefinitionDto dto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug(
-            "UpsertByDefinitionAsync called for customer {CustomerId}, definition {AttributeDefinitionId}",
-            customerId, dto.AttributeDefinitionId);
+        _logger.LogInformation(
+            "UpsertByDefinitionAsync called for customer {CustomerId}, definition {AttributeDefinitionId}, items count: {ItemsCount}",
+            customerId, dto.AttributeDefinitionId, dto.Items?.Count ?? 0);
+
+        // Log all items for debugging
+        if (dto.Items is not null)
+        {
+            for (var i = 0; i < dto.Items.Count; i++)
+            {
+                _logger.LogDebug(
+                    "Item[{Index}] for definition {AttributeDefinitionId}: Value = {Value}",
+                    i, dto.AttributeDefinitionId, dto.Items[i].Value);
+            }
+        }
 
         var customer = await _unitOfWork.Customers.GetByIdAsync(customerId, cancellationToken);
         if (customer is null)
@@ -163,9 +205,9 @@ public class CustomerAttributeService : ICustomerAttributeService
             return Result<IEnumerable<CustomerAttributeDto>>.Failure("Attribute definition not found", "ATTRIBUTE_DEFINITION_NOT_FOUND");
         }
 
-        _logger.LogDebug(
-            "Found attribute definition {AttributeDefinitionId} (Code: {Code}) for customer {CustomerId}",
-            dto.AttributeDefinitionId, attributeDefinition.Code, customerId);
+        _logger.LogInformation(
+            "Found attribute definition {AttributeDefinitionId} (Code: {Code}, Type: {Type}, EntityType: {EntityType}) for customer {CustomerId}",
+            dto.AttributeDefinitionId, attributeDefinition.Code, attributeDefinition.Type, attributeDefinition.EntityType, customerId);
 
         // Delete existing attribute for this definition (replace semantics)
         await _unitOfWork.CustomerAttributes.DeleteByCustomerIdAndDefinitionIdAsync(
@@ -173,18 +215,44 @@ public class CustomerAttributeService : ICustomerAttributeService
 
         // Process items: create new attributes
         var resultAttributes = new List<CustomerAttribute>();
-        foreach (var item in dto.Items)
+        if (dto.Items is null || dto.Items.Count == 0)
         {
-            var attribute = CustomerAttribute.Create(customerId, dto.AttributeDefinitionId, item.Value);
-            await _unitOfWork.CustomerAttributes.AddAsync(attribute, cancellationToken);
-            resultAttributes.Add(attribute);
+            _logger.LogWarning(
+                "No items to save for definition {AttributeDefinitionId} for customer {CustomerId}",
+                dto.AttributeDefinitionId, customerId);
+        }
+        else
+        {
+            foreach (var item in dto.Items)
+            {
+                _logger.LogDebug(
+                    "Creating attribute for definition {AttributeDefinitionId} with value: {Value}",
+                    dto.AttributeDefinitionId, item.Value);
+
+                try
+                {
+                    var attribute = CustomerAttribute.Create(customerId, dto.AttributeDefinitionId, item.Value);
+                    await _unitOfWork.CustomerAttributes.AddAsync(attribute, cancellationToken);
+                    resultAttributes.Add(attribute);
+                    _logger.LogDebug(
+                        "Successfully created attribute {AttributeId} for definition {AttributeDefinitionId}",
+                        attribute.Id, dto.AttributeDefinitionId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Failed to create attribute for definition {AttributeDefinitionId} with value: {Value}",
+                        dto.AttributeDefinitionId, item.Value);
+                    throw;
+                }
+            }
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Upserted {Count} customer attributes for definition {AttributeDefinitionId} for customer {CustomerId}",
-            resultAttributes.Count, dto.AttributeDefinitionId, customerId);
+            "Upserted {Count} customer attributes for definition {AttributeDefinitionId} (Code: {Code}) for customer {CustomerId}",
+            resultAttributes.Count, dto.AttributeDefinitionId, attributeDefinition.Code, customerId);
 
         return Result<IEnumerable<CustomerAttributeDto>>.Success(resultAttributes.Select(MapToDto));
     }

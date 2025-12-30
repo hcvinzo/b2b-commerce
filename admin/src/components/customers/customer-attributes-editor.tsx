@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Plus, Trash2, Save, Users, Building, Package, Landmark, Shield, CreditCard, AlertCircle } from "lucide-react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { Plus, Trash2, Save, AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,110 +27,102 @@ import {
   useCustomerAttributes,
   useUpsertCustomerAttributes,
 } from "@/hooks/use-customers";
+import { useAttributes, useChildAttributes } from "@/hooks/use-attributes";
 import {
-  ShareholderData,
-  BusinessPartnerData,
-  ProductCategoryData,
-  BankAccountData,
-  CollateralData,
-  PaymentPreferenceData,
+  AttributeDefinition,
+  AttributeEntityTypeEnum,
+  AttributeTypeFromString,
+  CustomerAttribute,
 } from "@/types/entities";
 import { toast } from "sonner";
-
-// Extended types that include the attribute ID for updates
-interface AttributeItem<T> {
-  id?: string;
-  data: T;
-}
-
-// Dirty state for each section
-interface DirtyState {
-  shareholders: boolean;
-  businessPartners: boolean;
-  productCategories: boolean;
-  bankAccounts: boolean;
-  collaterals: boolean;
-  paymentPreferences: boolean;
-}
-
-// Predefined options for checkboxes
-const PRODUCT_CATEGORIES = [
-  "Bilgisayarlar",
-  "Bilgisayar Parçaları",
-  "Oyuncu Ürünleri",
-  "Yazılım",
-  "İş İstasyonları",
-  "Çevre Birimler",
-  "Ağ Ürünleri",
-  "Aksesuarlar",
-  "Sunucular",
-  "Veri Depolama",
-  "Baskı Çözümleri",
-  "Diğer",
-];
-
-const PAYMENT_PREFERENCES = [
-  "Nakit & Kredi Kartı",
-  "Açık Hesap & Kredili",
-  "Çek",
-];
-
-const PAYMENT_TERMS = [
-  "Peşin",
-  "15 Gün",
-  "30 Gün",
-  "45 Gün",
-  "60 Gün",
-  "90 Gün",
-];
-
-const COLLATERAL_TYPES = [
-  "Nakit Teminat",
-  "Banka Teminat Mektubu",
-  "Gayrimenkul İpoteği",
-  "Kefalet",
-  "Diğer",
-];
-
-const CURRENCIES = ["TRY", "USD", "EUR"];
 
 interface CustomerAttributesEditorProps {
   customerId: string;
 }
 
+// Helper to parse attribute type from string or number
+function getAttributeTypeNumber(type: string | number): number {
+  if (typeof type === "number") return type;
+  return AttributeTypeFromString[type as keyof typeof AttributeTypeFromString] || 1;
+}
+
+// Helper to parse JSON safely
+function safeParseJson<T>(json: string, defaultValue: T): T {
+  if (!json) return defaultValue;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return defaultValue;
+  }
+}
+
+// Helper to normalize attribute value based on attribute type
+// Handles both old format (raw values) and new format ({selected: value})
+function normalizeAttributeValue(
+  rawValue: string,
+  attributeType: number
+): Record<string, unknown> {
+  const parsed = safeParseJson<unknown>(rawValue, rawValue);
+
+  // If already in correct object format, return as-is
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>;
+  }
+
+  // For Select (3) and MultiSelect (4), wrap raw values in {selected: value}
+  if (attributeType === 3) {
+    // Select - single value
+    return { selected: parsed };
+  }
+
+  // For other types, wrap in {value: parsed}
+  if (typeof parsed === "string" || typeof parsed === "number" || typeof parsed === "boolean") {
+    return { value: parsed };
+  }
+
+  // Default: return as object or empty
+  return typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+}
+
+// Track dirty state per attribute definition
+type DirtyState = Record<string, boolean>;
+
+// Track local state per attribute definition
+interface AttributeState {
+  attributeDefinitionId: string;
+  attributeCode: string;
+  attributeName: string;
+  items: Array<{ id?: string; value: Record<string, unknown> }>;
+}
+
 export function CustomerAttributesEditor({
   customerId,
 }: CustomerAttributesEditorProps) {
-  const { data: attributes, isLoading } = useCustomerAttributes(customerId);
+  // Fetch attribute definitions for Customer entity type (with predefined values for Select/MultiSelect)
+  const { data: attributeDefinitions, isLoading: isLoadingDefinitions } = useAttributes(
+    AttributeEntityTypeEnum.Customer,
+    true // includeValues
+  );
+
+  // Fetch customer attributes
+  const { data: customerAttributes, isLoading: isLoadingAttributes } = useCustomerAttributes(customerId);
+
   const upsertMutation = useUpsertCustomerAttributes();
 
-  // Local state for each attribute type - now includes IDs for updates
-  const [shareholders, setShareholders] = useState<AttributeItem<ShareholderData>[]>([]);
-  const [businessPartners, setBusinessPartners] = useState<AttributeItem<BusinessPartnerData>[]>([]);
-  const [productCategories, setProductCategories] = useState<{ id?: string; categories: string[] }>({ categories: [] });
-  const [bankAccounts, setBankAccounts] = useState<AttributeItem<BankAccountData>[]>([]);
-  const [collaterals, setCollaterals] = useState<AttributeItem<CollateralData>[]>([]);
-  const [paymentPreferences, setPaymentPreferences] = useState<{ id?: string; preferences: string[] }>({ preferences: [] });
+  // Filter to only show root-level attributes (not child attributes of composite types)
+  // and sort by displayOrder
+  const rootAttributeDefinitions = useMemo(() => {
+    if (!attributeDefinitions) return [];
+    return attributeDefinitions
+      .filter((def) => !def.parentAttributeId)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [attributeDefinitions]);
 
-  // Track dirty state per section
-  const [dirtyState, setDirtyState] = useState<DirtyState>({
-    shareholders: false,
-    businessPartners: false,
-    productCategories: false,
-    bankAccounts: false,
-    collaterals: false,
-    paymentPreferences: false,
-  });
+  // Local state for attribute values - keyed by attributeCode
+  const [attributeStates, setAttributeStates] = useState<Record<string, AttributeState>>({});
 
-  // Helper to mark a section as dirty
-  const markDirty = (section: keyof DirtyState) => {
-    setDirtyState(prev => ({ ...prev, [section]: true }));
-  };
-
-  // Helper to mark a section as clean
-  const markClean = (section: keyof DirtyState) => {
-    setDirtyState(prev => ({ ...prev, [section]: false }));
-  };
+  // Track dirty state per attribute
+  const [dirtyState, setDirtyState] = useState<DirtyState>({});
 
   // Check if any section has unsaved changes
   const hasUnsavedChanges = Object.values(dirtyState).some(Boolean);
@@ -138,214 +130,231 @@ export function CustomerAttributesEditor({
   // Count of dirty sections
   const dirtyCount = Object.values(dirtyState).filter(Boolean).length;
 
-  // Parse attributes on load
+  // Parse customer attributes into local state when data loads
   useEffect(() => {
-    if (attributes) {
-      const shareholderAttrs = attributes.filter(
-        (a) => a.attributeType === "ShareholderOrDirector"
-      );
-      const partnerAttrs = attributes.filter(
-        (a) => a.attributeType === "BusinessPartner"
-      );
-      const categoryAttrs = attributes.filter(
-        (a) => a.attributeType === "ProductCategory"
-      );
-      const bankAttrs = attributes.filter(
-        (a) => a.attributeType === "BankAccount"
-      );
-      const collateralAttrs = attributes.filter(
-        (a) => a.attributeType === "Collateral"
-      );
-      const preferenceAttrs = attributes.filter(
-        (a) => a.attributeType === "PaymentPreference"
-      );
+    if (rootAttributeDefinitions && customerAttributes) {
+      const newStates: Record<string, AttributeState> = {};
 
-      setShareholders(
-        shareholderAttrs.map((a) => ({
-          id: a.id,
-          data: JSON.parse(a.jsonData) as ShareholderData,
-        }))
-      );
-      setBusinessPartners(
-        partnerAttrs.map((a) => ({
-          id: a.id,
-          data: JSON.parse(a.jsonData) as BusinessPartnerData,
-        }))
-      );
-      setBankAccounts(
-        bankAttrs.map((a) => ({
-          id: a.id,
-          data: JSON.parse(a.jsonData) as BankAccountData,
-        }))
-      );
-      setCollaterals(
-        collateralAttrs.map((a) => ({
-          id: a.id,
-          data: JSON.parse(a.jsonData) as CollateralData,
-        }))
-      );
+      // Initialize state for each root attribute definition (not child attributes)
+      rootAttributeDefinitions.forEach((def) => {
+        const typeNum = getAttributeTypeNumber(def.type);
+        const matchingAttributes = customerAttributes.filter(
+          (ca) => ca.attributeCode === def.code
+        );
 
-      // Product categories and payment preferences are stored as single items with arrays
-      if (categoryAttrs.length > 0) {
-        const data = JSON.parse(categoryAttrs[0].jsonData) as ProductCategoryData;
-        setProductCategories({ id: categoryAttrs[0].id, categories: data.categories || [] });
-      } else {
-        setProductCategories({ categories: [] });
-      }
+        // For MultiSelect (type 4), aggregate multiple rows into a single item with array
+        if (typeNum === 4 && matchingAttributes.length > 0) {
+          // Collect all selected values from multiple rows
+          const selectedValues: string[] = [];
+          matchingAttributes.forEach((ca) => {
+            const parsed = safeParseJson<unknown>(ca.value, ca.value);
+            if (typeof parsed === "object" && parsed !== null && "selected" in parsed) {
+              // Already in {selected: value} format
+              const sel = (parsed as { selected: unknown }).selected;
+              if (Array.isArray(sel)) {
+                selectedValues.push(...sel.map(String));
+              } else if (sel) {
+                selectedValues.push(String(sel));
+              }
+            } else if (typeof parsed === "string") {
+              // Raw string value
+              selectedValues.push(parsed);
+            }
+          });
 
-      if (preferenceAttrs.length > 0) {
-        const data = JSON.parse(preferenceAttrs[0].jsonData) as PaymentPreferenceData;
-        setPaymentPreferences({ id: preferenceAttrs[0].id, preferences: data.preferences || [] });
-      } else {
-        setPaymentPreferences({ preferences: [] });
-      }
-
-      // Reset all dirty states
-      setDirtyState({
-        shareholders: false,
-        businessPartners: false,
-        productCategories: false,
-        bankAccounts: false,
-        collaterals: false,
-        paymentPreferences: false,
+          newStates[def.code] = {
+            attributeDefinitionId: def.id,
+            attributeCode: def.code,
+            attributeName: def.name,
+            items: [{ value: { selected: selectedValues } }],
+          };
+        } else {
+          // For other types, process normally
+          newStates[def.code] = {
+            attributeDefinitionId: def.id,
+            attributeCode: def.code,
+            attributeName: def.name,
+            items: matchingAttributes.map((ca) => ({
+              id: ca.id,
+              value: normalizeAttributeValue(ca.value, typeNum),
+            })),
+          };
+        }
       });
+
+      setAttributeStates(newStates);
+      setDirtyState({});
     }
-  }, [attributes]);
+  }, [rootAttributeDefinitions, customerAttributes]);
 
-  // Save handlers
-  const saveShareholders = useCallback(async () => {
-    await upsertMutation.mutateAsync({
-      customerId,
-      data: {
-        attributeType: "ShareholderOrDirector",
-        items: shareholders.map((s, i) => ({
-          id: s.id,
-          displayOrder: i,
-          jsonData: JSON.stringify(s.data),
-        })),
-      },
-    });
-    markClean("shareholders");
-  }, [customerId, shareholders, upsertMutation]);
+  // Mark a section as dirty
+  const markDirty = useCallback((code: string) => {
+    setDirtyState((prev) => ({ ...prev, [code]: true }));
+  }, []);
 
-  const saveBusinessPartners = useCallback(async () => {
-    await upsertMutation.mutateAsync({
-      customerId,
-      data: {
-        attributeType: "BusinessPartner",
-        items: businessPartners.map((p, i) => ({
-          id: p.id,
-          displayOrder: i,
-          jsonData: JSON.stringify(p.data),
-        })),
-      },
-    });
-    markClean("businessPartners");
-  }, [customerId, businessPartners, upsertMutation]);
+  // Mark a section as clean
+  const markClean = useCallback((code: string) => {
+    setDirtyState((prev) => ({ ...prev, [code]: false }));
+  }, []);
 
-  const saveProductCategories = useCallback(async () => {
-    await upsertMutation.mutateAsync({
-      customerId,
-      data: {
-        attributeType: "ProductCategory",
-        items:
-          productCategories.categories.length > 0
-            ? [
-                {
-                  id: productCategories.id,
-                  displayOrder: 0,
-                  jsonData: JSON.stringify({ categories: productCategories.categories }),
-                },
-              ]
-            : [],
-      },
-    });
-    markClean("productCategories");
-  }, [customerId, productCategories, upsertMutation]);
+  // Save handler for a specific attribute
+  const saveAttribute = useCallback(
+    async (code: string) => {
+      const state = attributeStates[code];
+      if (!state) return;
 
-  const saveBankAccounts = useCallback(async () => {
-    await upsertMutation.mutateAsync({
-      customerId,
-      data: {
-        attributeType: "BankAccount",
-        items: bankAccounts.map((b, i) => ({
-          id: b.id,
-          displayOrder: i,
-          jsonData: JSON.stringify(b.data),
-        })),
-      },
-    });
-    markClean("bankAccounts");
-  }, [customerId, bankAccounts, upsertMutation]);
+      // Find the attribute definition to check its type
+      const def = rootAttributeDefinitions?.find((d) => d.code === code);
+      const typeNum = def ? getAttributeTypeNumber(def.type) : 0;
 
-  const saveCollaterals = useCallback(async () => {
-    await upsertMutation.mutateAsync({
-      customerId,
-      data: {
-        attributeType: "Collateral",
-        items: collaterals.map((c, i) => ({
-          id: c.id,
-          displayOrder: i,
-          jsonData: JSON.stringify(c.data),
-        })),
-      },
-    });
-    markClean("collaterals");
-  }, [customerId, collaterals, upsertMutation]);
+      try {
+        let itemsToSave: Array<{ id?: string; value: string }>;
 
-  const savePaymentPreferences = useCallback(async () => {
-    await upsertMutation.mutateAsync({
-      customerId,
-      data: {
-        attributeType: "PaymentPreference",
-        items:
-          paymentPreferences.preferences.length > 0
-            ? [
-                {
-                  id: paymentPreferences.id,
-                  displayOrder: 0,
-                  jsonData: JSON.stringify({ preferences: paymentPreferences.preferences }),
-                },
-              ]
-            : [],
-      },
-    });
-    markClean("paymentPreferences");
-  }, [customerId, paymentPreferences, upsertMutation]);
+        // For MultiSelect (type 4), expand the selected array into multiple items
+        if (typeNum === 4 && state.items.length > 0) {
+          const selectedValues = (state.items[0]?.value?.selected as string[]) || [];
+          itemsToSave = selectedValues.map((val) => ({
+            value: JSON.stringify(val), // Each value as a separate item
+          }));
+        } else {
+          // For other types, save as-is
+          itemsToSave = state.items.map((item) => ({
+            id: item.id,
+            value: JSON.stringify(item.value),
+          }));
+        }
 
-  // Save all sections with unsaved changes
+        await upsertMutation.mutateAsync({
+          customerId,
+          data: {
+            attributeDefinitionId: state.attributeDefinitionId,
+            items: itemsToSave,
+          },
+        });
+        markClean(code);
+      } catch (error) {
+        console.error("Failed to save attribute:", error);
+      }
+    },
+    [attributeStates, customerId, markClean, upsertMutation, rootAttributeDefinitions]
+  );
+
+  // Save all dirty sections
   const saveAll = useCallback(async () => {
-    const promises: Promise<void>[] = [];
-
-    if (dirtyState.shareholders) promises.push(saveShareholders());
-    if (dirtyState.businessPartners) promises.push(saveBusinessPartners());
-    if (dirtyState.productCategories) promises.push(saveProductCategories());
-    if (dirtyState.bankAccounts) promises.push(saveBankAccounts());
-    if (dirtyState.collaterals) promises.push(saveCollaterals());
-    if (dirtyState.paymentPreferences) promises.push(savePaymentPreferences());
+    const dirtyCodes = Object.entries(dirtyState)
+      .filter(([, isDirty]) => isDirty)
+      .map(([code]) => code);
 
     try {
-      await Promise.all(promises);
+      await Promise.all(dirtyCodes.map((code) => saveAttribute(code)));
       toast.success("Tüm değişiklikler kaydedildi");
     } catch {
       toast.error("Bazı değişiklikler kaydedilemedi");
     }
-  }, [
-    dirtyState,
-    saveShareholders,
-    saveBusinessPartners,
-    saveProductCategories,
-    saveBankAccounts,
-    saveCollaterals,
-    savePaymentPreferences,
-  ]);
+  }, [dirtyState, saveAttribute]);
 
-  if (isLoading) {
+  // Update item value handler
+  const updateItemValue = useCallback(
+    (code: string, itemIndex: number, key: string, value: unknown) => {
+      setAttributeStates((prev) => {
+        const state = prev[code];
+        if (!state) return prev;
+
+        const newItems = [...state.items];
+        newItems[itemIndex] = {
+          ...newItems[itemIndex],
+          value: { ...newItems[itemIndex].value, [key]: value },
+        };
+
+        return {
+          ...prev,
+          [code]: { ...state, items: newItems },
+        };
+      });
+      markDirty(code);
+    },
+    [markDirty]
+  );
+
+  // Add new item to a list attribute
+  const addItem = useCallback(
+    (code: string) => {
+      setAttributeStates((prev) => {
+        const state = prev[code];
+        if (!state) return prev;
+
+        return {
+          ...prev,
+          [code]: {
+            ...state,
+            items: [...state.items, { value: {} }],
+          },
+        };
+      });
+      markDirty(code);
+    },
+    [markDirty]
+  );
+
+  // Remove item from a list attribute
+  const removeItem = useCallback(
+    (code: string, itemIndex: number) => {
+      setAttributeStates((prev) => {
+        const state = prev[code];
+        if (!state) return prev;
+
+        const newItems = state.items.filter((_, i) => i !== itemIndex);
+
+        return {
+          ...prev,
+          [code]: { ...state, items: newItems },
+        };
+      });
+      markDirty(code);
+    },
+    [markDirty]
+  );
+
+  // Set entire value (for non-composite types like Select, MultiSelect)
+  const setAttributeValue = useCallback(
+    (code: string, value: unknown) => {
+      setAttributeStates((prev) => {
+        const state = prev[code];
+        if (!state) return prev;
+
+        // For non-list attributes, update the first item or create one
+        const items = state.items.length > 0
+          ? [{ ...state.items[0], value: value as Record<string, unknown> }]
+          : [{ value: value as Record<string, unknown> }];
+
+        return {
+          ...prev,
+          [code]: { ...state, items },
+        };
+      });
+      markDirty(code);
+    },
+    [markDirty]
+  );
+
+  if (isLoadingDefinitions || isLoadingAttributes) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-[300px]" />
         <Skeleton className="h-[300px]" />
       </div>
+    );
+  }
+
+  if (!rootAttributeDefinitions || rootAttributeDefinitions.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center text-muted-foreground">
+            Müşteri için tanımlanmış özellik bulunamadı.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -376,564 +385,436 @@ export function CustomerAttributesEditor({
         </div>
       )}
 
-      {/* Shareholders & Directors */}
-      <Card className={dirtyState.shareholders ? "ring-2 ring-orange-200" : ""}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              <div>
-                <div className="flex items-center">
-                  <CardTitle>Yetkililer & Ortaklar</CardTitle>
-                  <DirtyBadge isDirty={dirtyState.shareholders} />
-                </div>
-                <CardDescription>Şirket ortakları ve yöneticileri</CardDescription>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShareholders([
-                    ...shareholders,
-                    { data: { fullName: "", identityNumber: "", sharePercentage: 0 } },
-                  ]);
-                  markDirty("shareholders");
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Ekle
-              </Button>
-              <Button
-                size="sm"
-                onClick={saveShareholders}
-                disabled={upsertMutation.isPending || !dirtyState.shareholders}
-                variant={dirtyState.shareholders ? "default" : "outline"}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                Kaydet
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {shareholders.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Kayıt bulunamadı</p>
-          ) : (
-            <div className="space-y-4">
-              {shareholders.map((s, idx) => (
-                <div key={s.id || idx} className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <Label>Adı Soyadı</Label>
-                    <Input
-                      value={s.data.fullName}
-                      onChange={(e) => {
-                        const updated = [...shareholders];
-                        updated[idx] = { ...s, data: { ...s.data, fullName: e.target.value } };
-                        setShareholders(updated);
-                        markDirty("shareholders");
-                      }}
-                      placeholder="Ad Soyad"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label>T.C. Kimlik Numarası</Label>
-                    <Input
-                      value={s.data.identityNumber}
-                      onChange={(e) => {
-                        const updated = [...shareholders];
-                        updated[idx] = { ...s, data: { ...s.data, identityNumber: e.target.value } };
-                        setShareholders(updated);
-                        markDirty("shareholders");
-                      }}
-                      placeholder="T.C. Kimlik No"
-                    />
-                  </div>
-                  <div className="w-32">
-                    <Label>Pay Oranı (%)</Label>
-                    <Input
-                      type="number"
-                      value={s.data.sharePercentage}
-                      onChange={(e) => {
-                        const updated = [...shareholders];
-                        updated[idx] = {
-                          ...s,
-                          data: { ...s.data, sharePercentage: parseFloat(e.target.value) || 0 },
-                        };
-                        setShareholders(updated);
-                        markDirty("shareholders");
-                      }}
-                      placeholder="%"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setShareholders(shareholders.filter((_, i) => i !== idx));
-                      markDirty("shareholders");
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Business Partners */}
-      <Card className={dirtyState.businessPartners ? "ring-2 ring-orange-200" : ""}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
-              <div>
-                <div className="flex items-center">
-                  <CardTitle>Çalışmakta Olduğunuz Şirketler</CardTitle>
-                  <DirtyBadge isDirty={dirtyState.businessPartners} />
-                </div>
-                <CardDescription>İş ortakları ve çalışma koşulları</CardDescription>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBusinessPartners([
-                    ...businessPartners,
-                    { data: { companyName: "", paymentTerm: "", creditLimitUsd: 0 } },
-                  ]);
-                  markDirty("businessPartners");
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Ekle
-              </Button>
-              <Button
-                size="sm"
-                onClick={saveBusinessPartners}
-                disabled={upsertMutation.isPending || !dirtyState.businessPartners}
-                variant={dirtyState.businessPartners ? "default" : "outline"}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                Kaydet
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {businessPartners.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Kayıt bulunamadı</p>
-          ) : (
-            <div className="space-y-4">
-              {businessPartners.map((p, idx) => (
-                <div key={p.id || idx} className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <Label>Şirket Adı</Label>
-                    <Input
-                      value={p.data.companyName}
-                      onChange={(e) => {
-                        const updated = [...businessPartners];
-                        updated[idx] = { ...p, data: { ...p.data, companyName: e.target.value } };
-                        setBusinessPartners(updated);
-                        markDirty("businessPartners");
-                      }}
-                      placeholder="Şirket Adı"
-                    />
-                  </div>
-                  <div className="w-40">
-                    <Label>Vade</Label>
-                    <Select
-                      value={p.data.paymentTerm}
-                      onValueChange={(value) => {
-                        const updated = [...businessPartners];
-                        updated[idx] = { ...p, data: { ...p.data, paymentTerm: value } };
-                        setBusinessPartners(updated);
-                        markDirty("businessPartners");
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seçiniz" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAYMENT_TERMS.map((term) => (
-                          <SelectItem key={term} value={term}>
-                            {term}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-40">
-                    <Label>Limit Tutarı (USD)</Label>
-                    <Input
-                      type="number"
-                      value={p.data.creditLimitUsd}
-                      onChange={(e) => {
-                        const updated = [...businessPartners];
-                        updated[idx] = {
-                          ...p,
-                          data: { ...p.data, creditLimitUsd: parseFloat(e.target.value) || 0 },
-                        };
-                        setBusinessPartners(updated);
-                        markDirty("businessPartners");
-                      }}
-                      placeholder="Limit"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setBusinessPartners(
-                        businessPartners.filter((_, i) => i !== idx)
-                      );
-                      markDirty("businessPartners");
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Product Categories */}
-      <Card className={dirtyState.productCategories ? "ring-2 ring-orange-200" : ""}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              <div>
-                <div className="flex items-center">
-                  <CardTitle>Satışını Gerçekleştirdiğiniz Ürün Kategorileri</CardTitle>
-                  <DirtyBadge isDirty={dirtyState.productCategories} />
-                </div>
-                <CardDescription>Birden fazla seçenek işaretleyebilirsiniz</CardDescription>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              onClick={saveProductCategories}
-              disabled={upsertMutation.isPending || !dirtyState.productCategories}
-              variant={dirtyState.productCategories ? "default" : "outline"}
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Kaydet
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {PRODUCT_CATEGORIES.map((cat) => (
-              <div key={cat} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`cat-${cat}`}
-                  checked={productCategories.categories.includes(cat)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setProductCategories({
-                        ...productCategories,
-                        categories: [...productCategories.categories, cat],
-                      });
-                    } else {
-                      setProductCategories({
-                        ...productCategories,
-                        categories: productCategories.categories.filter((c) => c !== cat),
-                      });
-                    }
-                    markDirty("productCategories");
-                  }}
-                />
-                <Label htmlFor={`cat-${cat}`} className="text-sm cursor-pointer">
-                  {cat}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bank Accounts */}
-      <Card className={dirtyState.bankAccounts ? "ring-2 ring-orange-200" : ""}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Landmark className="h-5 w-5" />
-              <div>
-                <div className="flex items-center">
-                  <CardTitle>Banka Hesap Bilgileri</CardTitle>
-                  <DirtyBadge isDirty={dirtyState.bankAccounts} />
-                </div>
-                <CardDescription>Şirket banka hesapları</CardDescription>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBankAccounts([
-                    ...bankAccounts,
-                    { data: { bankName: "", iban: "" } },
-                  ]);
-                  markDirty("bankAccounts");
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Ekle
-              </Button>
-              <Button
-                size="sm"
-                onClick={saveBankAccounts}
-                disabled={upsertMutation.isPending || !dirtyState.bankAccounts}
-                variant={dirtyState.bankAccounts ? "default" : "outline"}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                Kaydet
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {bankAccounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Kayıt bulunamadı</p>
-          ) : (
-            <div className="space-y-4">
-              {bankAccounts.map((b, idx) => (
-                <div key={b.id || idx} className="flex gap-4 items-end">
-                  <div className="w-64">
-                    <Label>Banka Adı</Label>
-                    <Input
-                      value={b.data.bankName}
-                      onChange={(e) => {
-                        const updated = [...bankAccounts];
-                        updated[idx] = { ...b, data: { ...b.data, bankName: e.target.value } };
-                        setBankAccounts(updated);
-                        markDirty("bankAccounts");
-                      }}
-                      placeholder="Banka Adı"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label>IBAN</Label>
-                    <Input
-                      value={b.data.iban}
-                      onChange={(e) => {
-                        const updated = [...bankAccounts];
-                        updated[idx] = { ...b, data: { ...b.data, iban: e.target.value } };
-                        setBankAccounts(updated);
-                        markDirty("bankAccounts");
-                      }}
-                      placeholder="TRXX XXXX XXXX XXXX XXXX XXXX XX"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setBankAccounts(bankAccounts.filter((_, i) => i !== idx));
-                      markDirty("bankAccounts");
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Collaterals */}
-      <Card className={dirtyState.collaterals ? "ring-2 ring-orange-200" : ""}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              <div>
-                <div className="flex items-center">
-                  <CardTitle>Teminatlar</CardTitle>
-                  <DirtyBadge isDirty={dirtyState.collaterals} />
-                </div>
-                <CardDescription>Şirket teminat bilgileri</CardDescription>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setCollaterals([
-                    ...collaterals,
-                    { data: { type: "", amount: 0, currency: "USD" } },
-                  ]);
-                  markDirty("collaterals");
-                }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Ekle
-              </Button>
-              <Button
-                size="sm"
-                onClick={saveCollaterals}
-                disabled={upsertMutation.isPending || !dirtyState.collaterals}
-                variant={dirtyState.collaterals ? "default" : "outline"}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                Kaydet
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {collaterals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Kayıt bulunamadı</p>
-          ) : (
-            <div className="space-y-4">
-              {collaterals.map((c, idx) => (
-                <div key={c.id || idx} className="flex gap-4 items-end">
-                  <div className="w-48">
-                    <Label>Teminat Türü</Label>
-                    <Select
-                      value={c.data.type}
-                      onValueChange={(value) => {
-                        const updated = [...collaterals];
-                        updated[idx] = { ...c, data: { ...c.data, type: value } };
-                        setCollaterals(updated);
-                        markDirty("collaterals");
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seçiniz" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COLLATERAL_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex-1">
-                    <Label>Tutar</Label>
-                    <Input
-                      type="number"
-                      value={c.data.amount}
-                      onChange={(e) => {
-                        const updated = [...collaterals];
-                        updated[idx] = {
-                          ...c,
-                          data: { ...c.data, amount: parseFloat(e.target.value) || 0 },
-                        };
-                        setCollaterals(updated);
-                        markDirty("collaterals");
-                      }}
-                      placeholder="Tutar"
-                    />
-                  </div>
-                  <div className="w-28">
-                    <Label>Para Birimi</Label>
-                    <Select
-                      value={c.data.currency}
-                      onValueChange={(value) => {
-                        const updated = [...collaterals];
-                        updated[idx] = { ...c, data: { ...c.data, currency: value } };
-                        setCollaterals(updated);
-                        markDirty("collaterals");
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CURRENCIES.map((curr) => (
-                          <SelectItem key={curr} value={curr}>
-                            {curr}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setCollaterals(collaterals.filter((_, i) => i !== idx));
-                      markDirty("collaterals");
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Payment Preferences */}
-      <Card className={dirtyState.paymentPreferences ? "ring-2 ring-orange-200" : ""}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              <div>
-                <div className="flex items-center">
-                  <CardTitle>Talep Ettiğiniz Çalışma Koşulları</CardTitle>
-                  <DirtyBadge isDirty={dirtyState.paymentPreferences} />
-                </div>
-                <CardDescription>Birden fazla seçenek işaretleyebilirsiniz</CardDescription>
-              </div>
-            </div>
-            <Button
-              size="sm"
-              onClick={savePaymentPreferences}
-              disabled={upsertMutation.isPending || !dirtyState.paymentPreferences}
-              variant={dirtyState.paymentPreferences ? "default" : "outline"}
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Kaydet
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-6">
-            {PAYMENT_PREFERENCES.map((pref) => (
-              <div key={pref} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`pref-${pref}`}
-                  checked={paymentPreferences.preferences.includes(pref)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setPaymentPreferences({
-                        ...paymentPreferences,
-                        preferences: [...paymentPreferences.preferences, pref],
-                      });
-                    } else {
-                      setPaymentPreferences({
-                        ...paymentPreferences,
-                        preferences: paymentPreferences.preferences.filter((p) => p !== pref),
-                      });
-                    }
-                    markDirty("paymentPreferences");
-                  }}
-                />
-                <Label htmlFor={`pref-${pref}`} className="text-sm cursor-pointer">
-                  {pref}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Render each root attribute definition (not child attributes) */}
+      {rootAttributeDefinitions.map((definition) => (
+        <AttributeCard
+          key={definition.id}
+          definition={definition}
+          state={attributeStates[definition.code]}
+          isDirty={dirtyState[definition.code] || false}
+          onSave={() => saveAttribute(definition.code)}
+          onAddItem={() => addItem(definition.code)}
+          onRemoveItem={(idx) => removeItem(definition.code, idx)}
+          onUpdateItemValue={(idx, key, val) => updateItemValue(definition.code, idx, key, val)}
+          onSetValue={(val) => setAttributeValue(definition.code, val)}
+          isSaving={upsertMutation.isPending}
+        />
+      ))}
     </div>
+  );
+}
+
+// Individual attribute card component
+interface AttributeCardProps {
+  definition: AttributeDefinition;
+  state?: AttributeState;
+  isDirty: boolean;
+  onSave: () => void;
+  onAddItem: () => void;
+  onRemoveItem: (index: number) => void;
+  onUpdateItemValue: (index: number, key: string, value: unknown) => void;
+  onSetValue: (value: unknown) => void;
+  isSaving: boolean;
+}
+
+function AttributeCard({
+  definition,
+  state,
+  isDirty,
+  onSave,
+  onAddItem,
+  onRemoveItem,
+  onUpdateItemValue,
+  onSetValue,
+  isSaving,
+}: AttributeCardProps) {
+  const typeNum = getAttributeTypeNumber(definition.type);
+  const isComposite = typeNum === 7; // Composite
+  const isList = definition.isList || false;
+
+  // Dirty indicator badge component
+  const DirtyBadge = () =>
+    isDirty ? (
+      <Badge variant="outline" className="ml-2 text-orange-600 border-orange-300 bg-orange-50">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        Kaydedilmedi
+      </Badge>
+    ) : null;
+
+  return (
+    <Card className={isDirty ? "ring-2 ring-orange-200" : ""}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center">
+              <CardTitle>{definition.name}</CardTitle>
+              <DirtyBadge />
+            </div>
+            <CardDescription>
+              {definition.code}
+              {isComposite && isList && " (Liste)"}
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            {isComposite && isList && (
+              <Button variant="outline" size="sm" onClick={onAddItem}>
+                <Plus className="h-4 w-4 mr-1" />
+                Ekle
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={onSave}
+              disabled={isSaving || !isDirty}
+              variant={isDirty ? "default" : "outline"}
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Kaydet
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isComposite ? (
+          <CompositeAttributeEditor
+            definition={definition}
+            items={state?.items || []}
+            isList={isList}
+            onUpdateItemValue={onUpdateItemValue}
+            onRemoveItem={onRemoveItem}
+            onAddItem={onAddItem}
+          />
+        ) : typeNum === 3 ? ( // Select
+          <SelectAttributeEditor
+            definition={definition}
+            value={state?.items[0]?.value}
+            onSetValue={onSetValue}
+          />
+        ) : typeNum === 4 ? ( // MultiSelect
+          <MultiSelectAttributeEditor
+            definition={definition}
+            value={state?.items[0]?.value}
+            onSetValue={onSetValue}
+          />
+        ) : (
+          <SimpleAttributeEditor
+            definition={definition}
+            value={state?.items[0]?.value}
+            onSetValue={onSetValue}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Composite attribute editor - handles child attributes
+interface CompositeAttributeEditorProps {
+  definition: AttributeDefinition;
+  items: Array<{ id?: string; value: Record<string, unknown> }>;
+  isList: boolean;
+  onUpdateItemValue: (index: number, key: string, value: unknown) => void;
+  onRemoveItem: (index: number) => void;
+  onAddItem: () => void;
+}
+
+function CompositeAttributeEditor({
+  definition,
+  items,
+  isList,
+  onUpdateItemValue,
+  onRemoveItem,
+  onAddItem,
+}: CompositeAttributeEditorProps) {
+  const { data: childAttributes, isLoading } = useChildAttributes(definition.id);
+
+  // Sort child attributes by displayOrder
+  const sortedChildAttributes = useMemo(() => {
+    if (!childAttributes) return [];
+    return [...childAttributes].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [childAttributes]);
+
+  if (isLoading) {
+    return <Skeleton className="h-20" />;
+  }
+
+  if (!sortedChildAttributes || sortedChildAttributes.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">Alt özellik tanımı bulunamadı.</p>
+    );
+  }
+
+  // For list attributes
+  if (isList) {
+    if (items.length === 0) {
+      return (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground mb-2">Kayıt bulunamadı</p>
+          <Button variant="outline" size="sm" onClick={onAddItem}>
+            <Plus className="h-4 w-4 mr-1" />
+            Ekle
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {items.map((item, idx) => (
+          <div key={item.id || idx} className="flex gap-4 items-end border-b pb-4 last:border-0">
+            {sortedChildAttributes.map((childDef) => (
+              <div key={childDef.id} className="flex-1">
+                <Label>{childDef.name}</Label>
+                <ChildAttributeInput
+                  definition={childDef}
+                  value={item.value[childDef.code]}
+                  onChange={(val) => onUpdateItemValue(idx, childDef.code, val)}
+                />
+              </div>
+            ))}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onRemoveItem(idx)}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // For single composite value
+  const item = items[0] || { value: {} };
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {sortedChildAttributes.map((childDef) => (
+        <div key={childDef.id}>
+          <Label>{childDef.name}</Label>
+          <ChildAttributeInput
+            definition={childDef}
+            value={item.value[childDef.code]}
+            onChange={(val) => onUpdateItemValue(0, childDef.code, val)}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Child attribute input - renders appropriate input based on type
+interface ChildAttributeInputProps {
+  definition: AttributeDefinition;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}
+
+function ChildAttributeInput({ definition, value, onChange }: ChildAttributeInputProps) {
+  const typeNum = getAttributeTypeNumber(definition.type);
+
+  // Sort predefined values by displayOrder
+  const sortedValues = useMemo(() => {
+    if (!definition.predefinedValues) return [];
+    return [...definition.predefinedValues].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [definition.predefinedValues]);
+
+  // Select type
+  if (typeNum === 3 && sortedValues.length) {
+    return (
+      <Select
+        value={value as string || ""}
+        onValueChange={onChange}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Seçiniz" />
+        </SelectTrigger>
+        <SelectContent>
+          {sortedValues.map((pv) => (
+            <SelectItem key={pv.id} value={pv.value}>
+              {pv.displayText || pv.value}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  // Number type
+  if (typeNum === 2) {
+    return (
+      <Input
+        type="number"
+        value={(value as number) || ""}
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        placeholder={definition.unit ? `${definition.name} (${definition.unit})` : definition.name}
+      />
+    );
+  }
+
+  // Default: Text type
+  return (
+    <Input
+      type="text"
+      value={(value as string) || ""}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={definition.name}
+    />
+  );
+}
+
+// Select attribute editor
+interface SelectAttributeEditorProps {
+  definition: AttributeDefinition;
+  value?: Record<string, unknown>;
+  onSetValue: (value: unknown) => void;
+}
+
+function SelectAttributeEditor({ definition, value, onSetValue }: SelectAttributeEditorProps) {
+  const selectedValue = (value?.selected as string) || "";
+
+  // Sort predefined values by displayOrder
+  const sortedValues = useMemo(() => {
+    if (!definition.predefinedValues) return [];
+    return [...definition.predefinedValues].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [definition.predefinedValues]);
+
+  if (!sortedValues.length) {
+    return <p className="text-sm text-muted-foreground">Seçenek tanımlanmamış.</p>;
+  }
+
+  return (
+    <Select
+      value={selectedValue}
+      onValueChange={(val) => onSetValue({ selected: val })}
+    >
+      <SelectTrigger className="w-full md:w-[300px]">
+        <SelectValue placeholder="Seçiniz" />
+      </SelectTrigger>
+      <SelectContent>
+        {sortedValues.map((pv) => (
+          <SelectItem key={pv.id} value={pv.value}>
+            {pv.displayText || pv.value}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// MultiSelect attribute editor
+interface MultiSelectAttributeEditorProps {
+  definition: AttributeDefinition;
+  value?: Record<string, unknown>;
+  onSetValue: (value: unknown) => void;
+}
+
+function MultiSelectAttributeEditor({ definition, value, onSetValue }: MultiSelectAttributeEditorProps) {
+  const selectedValues = (value?.selected as string[]) || [];
+
+  // Sort predefined values by displayOrder
+  const sortedValues = useMemo(() => {
+    if (!definition.predefinedValues) return [];
+    return [...definition.predefinedValues].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [definition.predefinedValues]);
+
+  if (!sortedValues.length) {
+    return <p className="text-sm text-muted-foreground">Seçenek tanımlanmamış.</p>;
+  }
+
+  const toggleValue = (val: string) => {
+    if (selectedValues.includes(val)) {
+      onSetValue({ selected: selectedValues.filter((v) => v !== val) });
+    } else {
+      onSetValue({ selected: [...selectedValues, val] });
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {sortedValues.map((pv) => (
+        <div key={pv.id} className="flex items-center space-x-2">
+          <Checkbox
+            id={`${definition.code}-${pv.id}`}
+            checked={selectedValues.includes(pv.value)}
+            onCheckedChange={() => toggleValue(pv.value)}
+          />
+          <Label
+            htmlFor={`${definition.code}-${pv.id}`}
+            className="text-sm cursor-pointer"
+          >
+            {pv.displayText || pv.value}
+          </Label>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Simple attribute editor (Text, Number, Boolean, Date)
+interface SimpleAttributeEditorProps {
+  definition: AttributeDefinition;
+  value?: Record<string, unknown>;
+  onSetValue: (value: unknown) => void;
+}
+
+function SimpleAttributeEditor({ definition, value, onSetValue }: SimpleAttributeEditorProps) {
+  const typeNum = getAttributeTypeNumber(definition.type);
+  const currentValue = value?.value as string | number | boolean | undefined;
+
+  // Boolean
+  if (typeNum === 5) {
+    return (
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id={definition.code}
+          checked={currentValue as boolean || false}
+          onCheckedChange={(checked) => onSetValue({ value: checked })}
+        />
+        <Label htmlFor={definition.code} className="cursor-pointer">
+          {definition.name}
+        </Label>
+      </div>
+    );
+  }
+
+  // Number
+  if (typeNum === 2) {
+    return (
+      <Input
+        type="number"
+        value={(currentValue as number) || ""}
+        onChange={(e) => onSetValue({ value: parseFloat(e.target.value) || 0 })}
+        placeholder={definition.unit ? `${definition.name} (${definition.unit})` : definition.name}
+        className="w-full md:w-[300px]"
+      />
+    );
+  }
+
+  // Date
+  if (typeNum === 6) {
+    return (
+      <Input
+        type="date"
+        value={(currentValue as string) || ""}
+        onChange={(e) => onSetValue({ value: e.target.value })}
+        className="w-full md:w-[300px]"
+      />
+    );
+  }
+
+  // Default: Text
+  return (
+    <Input
+      type="text"
+      value={(currentValue as string) || ""}
+      onChange={(e) => onSetValue({ value: e.target.value })}
+      placeholder={definition.name}
+      className="w-full md:w-[300px]"
+    />
   );
 }

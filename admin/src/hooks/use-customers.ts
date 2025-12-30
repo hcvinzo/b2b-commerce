@@ -15,7 +15,6 @@ import {
 import {
   CustomerFilters,
   UpdateCustomerData,
-  CustomerAttributeType,
   UpsertCustomerAttributesDto,
 } from "@/types/entities";
 
@@ -26,8 +25,8 @@ export const customerKeys = {
   details: () => [...customerKeys.all, "detail"] as const,
   detail: (id: string) => [...customerKeys.details(), id] as const,
   attributes: (customerId: string) => [...customerKeys.detail(customerId), "attributes"] as const,
-  attributesByType: (customerId: string, type: CustomerAttributeType) =>
-    [...customerKeys.attributes(customerId), type] as const,
+  attributesByDefinition: (customerId: string, attributeDefinitionId: string) =>
+    [...customerKeys.attributes(customerId), attributeDefinitionId] as const,
 };
 
 export function useCustomers(filters: CustomerFilters) {
@@ -145,13 +144,13 @@ export function useDeleteCustomer() {
 // Customer Attributes Hooks
 export function useCustomerAttributes(
   customerId: string,
-  type?: CustomerAttributeType
+  attributeDefinitionId?: string
 ) {
   return useQuery({
-    queryKey: type
-      ? customerKeys.attributesByType(customerId, type)
+    queryKey: attributeDefinitionId
+      ? customerKeys.attributesByDefinition(customerId, attributeDefinitionId)
       : customerKeys.attributes(customerId),
-    queryFn: () => getCustomerAttributes(customerId, type),
+    queryFn: () => getCustomerAttributes(customerId, attributeDefinitionId),
     enabled: !!customerId,
   });
 }

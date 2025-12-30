@@ -56,6 +56,18 @@ export async function logout(): Promise<void> {
   await api.post('/auth/logout')
 }
 
+export interface CheckEmailResponse {
+  available: boolean
+  message: string
+}
+
+export async function checkEmailAvailability(email: string): Promise<CheckEmailResponse> {
+  const response = await api.get<CheckEmailResponse>('/auth/check-email', {
+    params: { email }
+  })
+  return response.data
+}
+
 // Newsletter API
 export interface NewsletterResponse {
   id: string

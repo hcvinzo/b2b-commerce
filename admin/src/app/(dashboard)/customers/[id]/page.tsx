@@ -417,7 +417,7 @@ export default function CustomerDetailPage() {
         </TabsContent>
 
         <TabsContent value="documents">
-          <CustomerDocumentsEditor customerId={id} />
+          <CustomerDocumentsEditor customerId={id} documentUrls={customer.documentUrls} />
         </TabsContent>
 
         <TabsContent value="attributes">

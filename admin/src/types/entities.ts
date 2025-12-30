@@ -879,125 +879,27 @@ export interface RoleFilters {
 // Customer Attribute Types
 // ============================================
 
-// Customer Attribute Type enum (matching backend)
-export type CustomerAttributeType =
-  | "ShareholderOrDirector"
-  | "BusinessPartner"
-  | "ProductCategory"
-  | "BankAccount"
-  | "Collateral"
-  | "PaymentPreference";
-
-export const CustomerAttributeTypeEnum = {
-  ShareholderOrDirector: 1,
-  BusinessPartner: 2,
-  ProductCategory: 3,
-  BankAccount: 4,
-  Collateral: 5,
-  PaymentPreference: 6,
-} as const;
-
-// Customer Attribute
+// Customer Attribute (based on AttributeDefinition)
 export interface CustomerAttribute {
   id: string;
   customerId: string;
-  attributeType: CustomerAttributeType;
-  attributeTypeName: string;
-  displayOrder: number;
-  jsonData: string;
+  attributeDefinitionId: string;
+  attributeCode: string;
+  attributeName: string;
+  value: string; // JSON string containing attribute data
   createdAt: string;
   updatedAt?: string;
 }
 
-// Typed JSON data structures for each attribute type
-export interface ShareholderData {
-  fullName: string;
-  identityNumber: string;
-  sharePercentage: number;
-}
-
-export interface BusinessPartnerData {
-  companyName: string;
-  paymentTerm: string;
-  creditLimitUsd: number;
-}
-
-export interface ProductCategoryData {
-  categories: string[];
-}
-
-export interface BankAccountData {
-  bankName: string;
-  iban: string;
-}
-
-export interface CollateralData {
-  type: string;
-  amount: number;
-  currency: string;
-}
-
-export interface PaymentPreferenceData {
-  preferences: string[];
-}
-
-// DTO for upserting attributes
+// DTO for upserting attributes by definition
 export interface UpsertCustomerAttributesDto {
-  attributeType: CustomerAttributeType;
+  attributeDefinitionId: string;
   items: CustomerAttributeItemDto[];
 }
 
 export interface CustomerAttributeItemDto {
   id?: string;
-  displayOrder: number;
-  jsonData: string;
-}
-
-// ============================================
-// Customer Document Types
-// ============================================
-
-export type CustomerDocumentType =
-  | "TaxCertificate"
-  | "SignatureCircular"
-  | "TradeRegistry"
-  | "PartnershipAgreement"
-  | "AuthorizedIdCopy"
-  | "AuthorizedResidenceDocument";
-
-export interface CustomerDocument {
-  id: string;
-  customerId: string;
-  documentType: CustomerDocumentType;
-  documentTypeName: string;
-  fileName: string;
-  fileType: string;
-  contentUrl: string;
-  fileSize: number;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface CreateCustomerDocumentDto {
-  documentType: CustomerDocumentType;
-  fileName: string;
-  fileType: string;
-  contentUrl: string;
-  fileSize: number;
-}
-
-export interface UpdateCustomerDocumentDto {
-  fileName: string;
-  fileType: string;
-  contentUrl: string;
-  fileSize: number;
-}
-
-export interface FileUploadResponse {
-  url: string;
-  fileName: string;
-  contentType: string;
-  size: number;
+  value: string; // JSON string containing attribute data
 }
 
 // ============================================
