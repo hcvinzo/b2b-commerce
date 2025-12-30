@@ -14,6 +14,28 @@ public class CustomerRepository : GenericRepository<Customer>, ICustomerReposito
     {
     }
 
+    /// <summary>
+    /// Override GetByIdAsync to include Contacts and Addresses
+    /// </summary>
+    public override async Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(c => c.Contacts)
+            .Include(c => c.Addresses)
+                .ThenInclude(a => a.GeoLocation)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Override GetAllAsync to include Contacts for list display
+    /// </summary>
+    public override async Task<IEnumerable<Customer>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .Include(c => c.Contacts)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Customer?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
@@ -58,7 +80,7 @@ public class CustomerRepository : GenericRepository<Customer>, ICustomerReposito
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(c => c.Status == CustomerStatus.Pending || c.Status == CustomerStatus.Applied)
+            .Where(c => c.Status == CustomerStatus.Pending)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
     }

@@ -21,10 +21,7 @@ export async function getCustomers(
   if (filters.page) params.append("pageNumber", filters.page.toString());
   if (filters.pageSize) params.append("pageSize", filters.pageSize.toString());
   if (filters.search) params.append("search", filters.search);
-  if (filters.isActive !== undefined)
-    params.append("isActive", filters.isActive.toString());
-  if (filters.isApproved !== undefined)
-    params.append("isApproved", filters.isApproved.toString());
+  if (filters.status) params.append("status", filters.status);
   if (filters.sortBy) params.append("sortBy", filters.sortBy);
   if (filters.sortOrder) params.append("sortDirection", filters.sortOrder);
 
@@ -49,13 +46,6 @@ export async function activateCustomer(id: string): Promise<void> {
 
 export async function deactivateCustomer(id: string): Promise<void> {
   await apiClient.post(`${CUSTOMERS_BASE}/${id}/deactivate`);
-}
-
-export async function updateCreditLimit(
-  id: string,
-  creditLimit: number
-): Promise<void> {
-  await apiClient.put(`${CUSTOMERS_BASE}/${id}/credit-limit`, { newCreditLimit: creditLimit });
 }
 
 export async function updateCustomer(

@@ -61,11 +61,6 @@ public class CustomerDto
     public string? DocumentUrls { get; set; }
 
     /// <summary>
-    /// Whether customer is active
-    /// </summary>
-    public bool IsActive { get; set; }
-
-    /// <summary>
     /// Customer contacts
     /// </summary>
     public List<CustomerContactDto> Contacts { get; set; } = new();

@@ -6,7 +6,6 @@ import {
   approveCustomer,
   activateCustomer,
   deactivateCustomer,
-  updateCreditLimit,
   updateCustomer,
   deleteCustomer,
   getCustomerAttributes,
@@ -98,27 +97,6 @@ export function useDeactivateCustomer() {
     onError: (error: Error) => {
       toast.error("Error", {
         description: error.message || "Failed to deactivate customer.",
-      });
-    },
-  });
-}
-
-export function useUpdateCreditLimit() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, creditLimit }: { id: string; creditLimit: number }) =>
-      updateCreditLimit(id, creditLimit),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: customerKeys.all });
-      queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
-      toast.success("Credit limit updated", {
-        description: "The customer credit limit has been updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast.error("Error", {
-        description: error.message || "Failed to update credit limit.",
       });
     },
   });

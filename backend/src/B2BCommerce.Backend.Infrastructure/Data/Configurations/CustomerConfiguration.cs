@@ -49,10 +49,6 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.DocumentUrls)
             .HasColumnType("jsonb");
 
-        builder.Property(c => c.IsActive)
-            .IsRequired()
-            .HasDefaultValue(false);
-
         // Audit properties (inherited from BaseEntity, explicitly configured)
         builder.Property(c => c.CreatedAt)
             .IsRequired();
@@ -104,8 +100,6 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.Status);
 
         builder.HasIndex(c => c.UserId);
-
-        builder.HasIndex(c => c.IsActive);
 
         builder.HasIndex(c => c.IsDeleted);
     }

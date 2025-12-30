@@ -98,8 +98,7 @@ public class AuthService : IAuthService
             CustomerId = customer?.Id ?? Guid.Empty,
             Email = user.Email!,
             CustomerTitle = customer?.Title ?? string.Empty,
-            Status = customer?.Status.ToString() ?? string.Empty,
-            IsActive = customer?.IsActive ?? true
+            Status = customer?.Status.ToString() ?? string.Empty
         });
     }
 
@@ -241,6 +240,36 @@ public class AuthService : IAuthService
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
                     }
 
+                    // Save customer attributes within the transaction
+                    if (request.Attributes is not null && request.Attributes.Count > 0)
+                    {
+                        _logger.LogInformation(
+                            "Processing {Count} attribute groups for customer {CustomerId}",
+                            request.Attributes.Count, customer!.Id);
+
+                        foreach (var attributeGroup in request.Attributes)
+                        {
+                            _logger.LogDebug(
+                                "Saving attribute group {AttributeDefinitionId} with {ItemCount} items for customer {CustomerId}",
+                                attributeGroup.AttributeDefinitionId, attributeGroup.Items?.Count ?? 0, customer!.Id);
+
+                            var attributeResult = await _customerAttributeService.UpsertByDefinitionAsync(
+                                customer!.Id,
+                                attributeGroup,
+                                cancellationToken);
+
+                            if (!attributeResult.IsSuccess)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Failed to save attributes for definition {attributeGroup.AttributeDefinitionId}: {attributeResult.ErrorMessage}");
+                            }
+                        }
+
+                        _logger.LogInformation(
+                            "Successfully saved all {Count} attribute groups for customer {CustomerId}",
+                            request.Attributes.Count, customer!.Id);
+                    }
+
                     await transaction.CommitAsync(cancellationToken);
                 }
                 catch
@@ -254,55 +283,6 @@ public class AuthService : IAuthService
             {
                 _logger.LogWarning("User creation failed: {Errors}", userCreationError);
                 return Result<CustomerDto>.Failure($"Failed to create user account: {userCreationError}", "USER_CREATION_FAILED");
-            }
-
-            // Save customer attributes (non-critical, done after main transaction)
-            if (request.Attributes is not null && request.Attributes.Count > 0)
-            {
-                _logger.LogInformation(
-                    "Processing {Count} attribute groups for customer {CustomerId}",
-                    request.Attributes.Count, customer!.Id);
-
-                var successCount = 0;
-                var failCount = 0;
-
-                foreach (var attributeGroup in request.Attributes)
-                {
-                    try
-                    {
-                        _logger.LogDebug(
-                            "Saving attribute group {AttributeDefinitionId} with {ItemCount} items for customer {CustomerId}",
-                            attributeGroup.AttributeDefinitionId, attributeGroup.Items?.Count ?? 0, customer!.Id);
-
-                        var attributeResult = await _customerAttributeService.UpsertByDefinitionAsync(
-                            customer!.Id,
-                            attributeGroup,
-                            cancellationToken);
-
-                        if (!attributeResult.IsSuccess)
-                        {
-                            failCount++;
-                            _logger.LogWarning(
-                                "Failed to save attributes for definition {AttributeDefinitionId} for customer {CustomerId}: {ErrorMessage}",
-                                attributeGroup.AttributeDefinitionId, customer!.Id, attributeResult.ErrorMessage);
-                        }
-                        else
-                        {
-                            successCount++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        failCount++;
-                        // Log but don't fail registration for attribute errors
-                        _logger.LogWarning(ex, "Exception while saving attributes for definition {AttributeDefinitionId} for customer {CustomerId}",
-                            attributeGroup.AttributeDefinitionId, customer!.Id);
-                    }
-                }
-
-                _logger.LogInformation(
-                    "Completed processing attributes for customer {CustomerId}: {SuccessCount} succeeded, {FailCount} failed",
-                    customer!.Id, successCount, failCount);
             }
 
             _logger.LogInformation("Customer {Title} registered successfully with ID {CustomerId}",
@@ -365,8 +345,7 @@ public class AuthService : IAuthService
             CustomerId = customer?.Id ?? Guid.Empty,
             Email = user.Email!,
             CustomerTitle = customer?.Title ?? string.Empty,
-            Status = customer?.Status.ToString() ?? string.Empty,
-            IsActive = customer?.IsActive ?? true
+            Status = customer?.Status.ToString() ?? string.Empty
         });
     }
 
@@ -469,7 +448,7 @@ public class AuthService : IAuthService
         {
             claims.Add(new Claim("customerTitle", customer.Title));
             claims.Add(new Claim("customerStatus", customer.Status.ToString()));
-            claims.Add(new Claim("isActive", customer.IsActive.ToString().ToLower()));
+            claims.Add(new Claim("isActive", (customer.Status == CustomerStatus.Active).ToString().ToLower()));
         }
 
         if (!string.IsNullOrEmpty(user.FirstName))
@@ -517,7 +496,6 @@ public class AuthService : IAuthService
             Status = customer.Status.ToString(),
             UserId = customer.UserId,
             DocumentUrls = customer.DocumentUrls,
-            IsActive = customer.IsActive,
             Contacts = customer.Contacts?.Select(c => new CustomerContactDto
             {
                 Id = c.Id,

@@ -26,12 +26,6 @@ public class OrderValidationService : IOrderValidationService
             return false;
         }
 
-        // Customer must be active
-        if (!customer.IsActive)
-        {
-            return false;
-        }
-
         return true;
     }
 
@@ -67,6 +61,6 @@ public class OrderValidationService : IOrderValidationService
             throw new ArgumentNullException(nameof(customer));
         }
 
-        return customer.Status == CustomerStatus.Active && customer.IsActive;
+        return customer.Status == CustomerStatus.Active;
     }
 }

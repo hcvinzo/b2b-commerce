@@ -39,9 +39,4 @@ public class LoginResponseDto
     /// Customer status
     /// </summary>
     public string Status { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Whether customer is active and approved
-    /// </summary>
-    public bool IsActive { get; set; }
 }

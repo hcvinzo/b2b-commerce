@@ -6,14 +6,14 @@ namespace B2BCommerce.Backend.Domain.Enums;
 public enum CustomerStatus
 {
     /// <summary>
-    /// Initial status when customer registers
+    /// Initial status - customer has applied and is waiting for approval
     /// </summary>
     Pending = 1,
 
     /// <summary>
-    /// Customer has submitted application for review
+    /// Customer is approved and active
     /// </summary>
-    Applied = 2,
+    Active = 2,
 
     /// <summary>
     /// Application rejected by admin
@@ -21,12 +21,7 @@ public enum CustomerStatus
     Rejected = 3,
 
     /// <summary>
-    /// Customer account suspended
+    /// Customer account suspended (any active customer can be suspended)
     /// </summary>
-    Suspended = 4,
-
-    /// <summary>
-    /// Customer is active and approved
-    /// </summary>
-    Active = 5
+    Suspended = 4
 }

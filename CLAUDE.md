@@ -1320,6 +1320,69 @@ catch (Exception ex)
 }
 ```
 
+### Transaction Integrity (All-or-Nothing Principle)
+
+**CRITICAL**: When an operation involves multiple related data changes, ALL changes must be within the same transaction. Never silently swallow exceptions for related data.
+
+```csharp
+// ✅ GOOD - All related operations in one transaction
+await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+try
+{
+    // Create main entity
+    var customer = Customer.Create(title, ...);
+    await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
+    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+    // Create related entities - MUST be in same transaction
+    var contact = CustomerContact.Create(customer.Id, ...);
+    await _unitOfWork.CustomerContacts.AddAsync(contact, cancellationToken);
+    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+    // If any service call fails, throw and rollback everything
+    var attributeResult = await _customerAttributeService.UpsertAsync(customer.Id, attributes, cancellationToken);
+    if (!attributeResult.IsSuccess)
+    {
+        throw new InvalidOperationException($"Failed to save attributes: {attributeResult.ErrorMessage}");
+    }
+
+    await transaction.CommitAsync(cancellationToken);
+}
+catch
+{
+    await transaction.RollbackAsync(cancellationToken);
+    throw;
+}
+
+// ❌ BAD - Silently swallowing exceptions for related data
+try
+{
+    // Main operation succeeds
+    await _unitOfWork.Customers.AddAsync(customer, cancellationToken);
+    await _unitOfWork.SaveChangesAsync(cancellationToken);
+}
+catch { ... }
+
+// Related operation fails but we return success anyway - WRONG!
+try
+{
+    await _customerAttributeService.UpsertAsync(customer.Id, attributes, cancellationToken);
+}
+catch (Exception ex)
+{
+    _logger.LogWarning(ex, "Failed to save attributes");  // Silent failure!
+}
+
+return Result<CustomerDto>.Success(customerDto);  // User thinks everything succeeded!
+```
+
+**Key Rules**:
+1. **Never return success if related data failed to save** - If customer registration includes attributes, failing to save attributes should fail the entire registration
+2. **Use database transactions** - Wrap related operations in `BeginTransactionAsync` / `CommitAsync`
+3. **Check Result.IsSuccess** - When calling services that return `Result<T>`, always check `IsSuccess` and throw on failure within the transaction
+4. **Log failures before throwing** - Always log the error details before re-throwing for debugging
+5. **Non-critical operations** - Only truly optional operations (like sending notification emails) can be done outside the transaction with silent failure
+
 ### Logging
 
 ```csharp
@@ -1408,6 +1471,8 @@ backend/src/
 | Repositories | Only for aggregate roots | For every entity |
 | Soft delete | `HasQueryFilter(e => !e.IsDeleted)` | Manual filtering |
 | Read queries | `AsNoTracking()` | Track read-only entities |
+| Related data | All in one transaction, fail together | Silent failure, return success anyway |
+| Result pattern | Check `IsSuccess`, throw on failure | Ignore failed results |
 
 ---
 

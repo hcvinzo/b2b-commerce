@@ -65,10 +65,17 @@ public class CustomerService : ICustomerService
                 (c.TaxNo != null && c.TaxNo.Contains(searchLower)));
         }
 
-        // Apply active filter
+        // Apply active filter (maps to Status == Active)
         if (isActive.HasValue)
         {
-            customers = customers.Where(c => c.IsActive == isActive.Value);
+            if (isActive.Value)
+            {
+                customers = customers.Where(c => c.Status == CustomerStatus.Active);
+            }
+            else
+            {
+                customers = customers.Where(c => c.Status != CustomerStatus.Active);
+            }
         }
 
         // Apply status filter
@@ -263,7 +270,7 @@ public class CustomerService : ICustomerService
             return Result.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        customer.Activate();
+        customer.SetStatus(CustomerStatus.Active);
         _unitOfWork.Customers.Update(customer);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -280,7 +287,7 @@ public class CustomerService : ICustomerService
             return Result.Failure("Customer not found", "CUSTOMER_NOT_FOUND");
         }
 
-        customer.Deactivate();
+        customer.SetStatus(CustomerStatus.Suspended);
         _unitOfWork.Customers.Update(customer);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -320,13 +327,13 @@ public class CustomerService : ICustomerService
             Status = customer.Status.ToString(),
             UserId = customer.UserId,
             DocumentUrls = customer.DocumentUrls,
-            IsActive = customer.IsActive,
             Contacts = customer.Contacts?.Select(c => new CustomerContactDto
             {
                 Id = c.Id,
                 CustomerId = c.CustomerId,
                 FirstName = c.FirstName,
                 LastName = c.LastName,
+                FullName = $"{c.FirstName} {c.LastName}".Trim(),
                 Email = c.Email,
                 Position = c.Position,
                 DateOfBirth = c.DateOfBirth,

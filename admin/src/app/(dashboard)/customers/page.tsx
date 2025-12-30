@@ -44,8 +44,19 @@ import {
   useActivateCustomer,
   useDeactivateCustomer,
 } from "@/hooks/use-customers";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { CustomerFilters } from "@/types/entities";
+import { formatDate } from "@/lib/utils";
+import { Customer, CustomerFilters, CustomerStatus } from "@/types/entities";
+
+// Helper function to get primary active contact
+function getPrimaryContact(customer: Customer) {
+  if (!customer.contacts || customer.contacts.length === 0) return null;
+  // Find primary and active contact first, otherwise find any active contact, otherwise any contact
+  return (
+    customer.contacts.find((c) => c.isPrimary && c.isActive) ||
+    customer.contacts.find((c) => c.isActive) ||
+    customer.contacts[0]
+  );
+}
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -59,7 +70,7 @@ export default function CustomersPage() {
   const [approveId, setApproveId] = useState<string | null>(null);
   const [toggleId, setToggleId] = useState<{
     id: string;
-    isActive: boolean;
+    status: CustomerStatus;
   } | null>(null);
 
   const { data, isLoading } = useCustomers(filters);
@@ -74,15 +85,7 @@ export default function CustomersPage() {
   const handleStatusChange = (value: string) => {
     setFilters((prev) => ({
       ...prev,
-      isActive: value === "all" ? undefined : value === "active",
-      page: 1,
-    }));
-  };
-
-  const handleApprovalChange = (value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      isApproved: value === "all" ? undefined : value === "approved",
+      status: value === "all" ? undefined : (value as CustomerStatus),
       page: 1,
     }));
   };
@@ -96,12 +99,36 @@ export default function CustomersPage() {
 
   const handleToggle = async () => {
     if (toggleId) {
-      if (toggleId.isActive) {
+      if (toggleId.status === "Active") {
         await deactivateCustomer.mutateAsync(toggleId.id);
       } else {
         await activateCustomer.mutateAsync(toggleId.id);
       }
       setToggleId(null);
+    }
+  };
+
+  const getStatusBadgeVariant = (status: CustomerStatus) => {
+    switch (status) {
+      case "Active":
+        return "default";
+      case "Pending":
+        return "outline";
+      case "Rejected":
+        return "destructive";
+      case "Suspended":
+        return "secondary";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getStatusBadgeClassName = (status: CustomerStatus) => {
+    switch (status) {
+      case "Pending":
+        return "border-yellow-500 text-yellow-600";
+      default:
+        return undefined;
     }
   };
 
@@ -111,7 +138,7 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
           <p className="text-muted-foreground">
-            Manage your dealer accounts and credit limits
+            Manage your dealer accounts
           </p>
         </div>
       </div>
@@ -120,7 +147,7 @@ export default function CustomersPage() {
         <CardHeader className="pb-4">
           <CardTitle>All Customers</CardTitle>
           <CardDescription>
-            View and manage dealer accounts and credit limits
+            View and manage dealer accounts
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -144,13 +171,7 @@ export default function CustomersPage() {
             </div>
             <div className="flex gap-2">
               <Select
-                value={
-                  filters.isActive === undefined
-                    ? "all"
-                    : filters.isActive
-                    ? "active"
-                    : "inactive"
-                }
+                value={filters.status ?? "all"}
                 onValueChange={handleStatusChange}
               >
                 <SelectTrigger className="w-[140px]">
@@ -158,27 +179,10 @@ export default function CustomersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={
-                  filters.isApproved === undefined
-                    ? "all"
-                    : filters.isApproved
-                    ? "approved"
-                    : "pending"
-                }
-                onValueChange={handleApprovalChange}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Approval" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -189,14 +193,11 @@ export default function CustomersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Company</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Contact Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Credit Limit</TableHead>
-                  <TableHead>Available Credit</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Approval</TableHead>
                   <TableHead>Applied</TableHead>
-                  <TableHead>Approved</TableHead>
                   <TableHead className="w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -204,108 +205,103 @@ export default function CustomersPage() {
                 {isLoading ? (
                   [...Array(5)].map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={9}>
+                      <TableCell colSpan={6}>
                         <Skeleton className="h-10 w-full" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : data?.items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-10">
+                    <TableCell colSpan={6} className="text-center py-10">
                       <p className="text-muted-foreground">No customers found</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data?.items.map((customer) => (
-                    <TableRow
-                      key={customer.id}
-                      className="cursor-pointer"
-                      onClick={() => router.push(`/customers/${customer.id}`)}
-                    >
-                      <TableCell>
-                        <div>
+                  data?.items.map((customer) => {
+                    const primaryContact = getPrimaryContact(customer);
+                    return (
+                      <TableRow
+                        key={customer.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/customers/${customer.id}`)}
+                      >
+                        <TableCell>
                           <span className="font-medium">
-                            {customer.companyName}
+                            {customer.title}
                           </span>
-                          <p className="text-sm text-muted-foreground">
-                            {customer.type}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{customer.email}</TableCell>
-                      <TableCell>{formatCurrency(customer.creditLimit, customer.currency)}</TableCell>
-                      <TableCell>{formatCurrency(customer.availableCredit, customer.currency)}</TableCell>
-                      <TableCell>
-                        <Badge variant={customer.isActive ? "default" : "secondary"}>
-                          {customer.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={customer.isApproved ? "default" : "outline"}
-                          className={
-                            customer.isApproved
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                              : "border-yellow-500 text-yellow-600"
-                          }
-                        >
-                          {customer.isApproved ? "Approved" : "Pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(customer.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {customer.approvedAt ? formatDate(customer.approvedAt) : "-"}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/customers/${customer.id}`)}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {!customer.isApproved && (
+                        </TableCell>
+                        <TableCell>
+                          {primaryContact?.fullName || "-"}
+                        </TableCell>
+                        <TableCell>
+                          {primaryContact?.email || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={getStatusBadgeVariant(customer.status)}
+                            className={getStatusBadgeClassName(customer.status)}
+                          >
+                            {customer.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(customer.createdAt)}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => setApproveId(customer.id)}
+                                onClick={() => router.push(`/customers/${customer.id}`)}
                               >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                Approve
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() =>
-                                setToggleId({
-                                  id: customer.id,
-                                  isActive: customer.isActive,
-                                })
-                              }
-                            >
-                              {customer.isActive ? (
-                                <>
+                              <DropdownMenuSeparator />
+                              {customer.status === "Pending" && (
+                                <DropdownMenuItem
+                                  onClick={() => setApproveId(customer.id)}
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Approve
+                                </DropdownMenuItem>
+                              )}
+                              {customer.status === "Active" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    setToggleId({
+                                      id: customer.id,
+                                      status: customer.status,
+                                    })
+                                  }
+                                >
                                   <XCircle className="mr-2 h-4 w-4" />
-                                  Deactivate
-                                </>
-                              ) : (
-                                <>
+                                  Suspend
+                                </DropdownMenuItem>
+                              )}
+                              {customer.status === "Suspended" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    setToggleId({
+                                      id: customer.id,
+                                      status: customer.status,
+                                    })
+                                  }
+                                >
                                   <CheckCircle className="mr-2 h-4 w-4" />
                                   Activate
-                                </>
+                                </DropdownMenuItem>
                               )}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -361,14 +357,14 @@ export default function CustomersPage() {
       <ConfirmDialog
         open={!!toggleId}
         onOpenChange={(open) => !open && setToggleId(null)}
-        title={toggleId?.isActive ? "Deactivate Customer" : "Activate Customer"}
+        title={toggleId?.status === "Active" ? "Suspend Customer" : "Activate Customer"}
         description={
-          toggleId?.isActive
-            ? "Are you sure you want to deactivate this customer? They will not be able to place orders."
+          toggleId?.status === "Active"
+            ? "Are you sure you want to suspend this customer? They will not be able to place orders."
             : "Are you sure you want to activate this customer?"
         }
-        confirmText={toggleId?.isActive ? "Deactivate" : "Activate"}
-        variant={toggleId?.isActive ? "destructive" : "default"}
+        confirmText={toggleId?.status === "Active" ? "Suspend" : "Activate"}
+        variant={toggleId?.status === "Active" ? "destructive" : "default"}
         onConfirm={handleToggle}
         isLoading={activateCustomer.isPending || deactivateCustomer.isPending}
       />

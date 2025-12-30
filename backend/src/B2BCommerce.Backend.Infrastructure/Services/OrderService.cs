@@ -96,11 +96,6 @@ public class OrderService : IOrderService
             return Result<OrderDto>.Failure("Customer is not approved to place orders", "CUSTOMER_NOT_APPROVED");
         }
 
-        if (!customer.IsActive)
-        {
-            return Result<OrderDto>.Failure("Customer account is inactive", "CUSTOMER_INACTIVE");
-        }
-
         if (dto.OrderItems is null || !dto.OrderItems.Any())
         {
             return Result<OrderDto>.Failure("Order must have at least one item", "NO_ORDER_ITEMS");

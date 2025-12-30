@@ -45,6 +45,9 @@ export interface UpdateCategoryDto extends Partial<CreateCategoryDto> {}
 // Product Status
 export type ProductStatus = "Draft" | "Active" | "Inactive";
 
+// Customer Status
+export type CustomerStatus = "Pending" | "Active" | "Suspended" | "Rejected";
+
 // Numeric values for ProductStatus (matching backend)
 export const ProductStatusValues = {
   Draft: 0,
@@ -218,14 +221,16 @@ export interface CustomerAddress {
   id: string;
   customerId: string;
   title: string;
+  fullName?: string;
   addressType: CustomerAddressType;
-  street: string;
-  district?: string;
-  neighborhood?: string;
-  city: string;
-  state?: string;
-  country: string;
-  postalCode: string;
+  address: string;
+  geoLocationId?: string;
+  geoLocationPathName?: string;
+  postalCode?: string;
+  phone?: string;
+  phoneExt?: string;
+  gsm?: string;
+  taxNo?: string;
   isDefault: boolean;
   isActive: boolean;
 }
@@ -233,43 +238,25 @@ export interface CustomerAddress {
 // Customer
 export interface Customer extends BaseEntity {
   // Company Information
-  companyName: string;
-  tradeName: string;
-  taxNumber: string;
-  taxOffice: string;
-  mersisNo?: string;
-  identityNo?: string;
-  tradeRegistryNo?: string;
-
-  // Contact Information
-  email: string;
-  phone: string;
-  mobilePhone?: string;
-  fax?: string;
+  title: string;
+  taxOffice?: string;
+  taxNo?: string;
+  establishmentYear?: number;
   website?: string;
-  contactPersonName: string;
-  contactPersonTitle: string;
 
-  // Credit & Type
-  type: string;
-  priceTier: string;
-  creditLimit: number;
-  usedCredit: number;
-  availableCredit: number;
-  currency: string;
+  // Status
+  status: CustomerStatus;
 
-  // Approval
-  isApproved: boolean;
-  approvedAt?: string;
-  approvedBy?: string;
+  // User association
+  userId?: string;
 
-  // Addresses
+  // Document URLs (JSON)
+  documentUrls?: string;
+
+  // Relations
+  contacts: CustomerContact[];
   addresses: CustomerAddress[];
-
-  // Preferences
-  preferredCurrency: string;
-  preferredLanguage: string;
-  isActive: boolean;
+  attributes: CustomerAttribute[];
 }
 
 export interface Address {
@@ -288,42 +275,36 @@ export interface Address {
 
 export interface CustomerContact {
   id: string;
-  name: string;
-  title?: string;
+  customerId: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
   email?: string;
+  position?: string;
+  dateOfBirth?: string;
+  gender: string;
   phone?: string;
+  phoneExt?: string;
+  gsm?: string;
   isPrimary: boolean;
+  isActive: boolean;
 }
 
 export interface CustomerFilters {
   page?: number;
   pageSize?: number;
   search?: string;
-  isActive?: boolean;
-  isApproved?: boolean;
+  status?: CustomerStatus;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
 
 export interface UpdateCustomerData {
-  // Company Information
-  companyName: string;
-  tradeName: string;
-  taxOffice: string;
-  mersisNo?: string;
-  identityNo?: string;
-  tradeRegistryNo?: string;
-
-  // Contact Information
-  phone: string;
-  mobilePhone?: string;
-  fax?: string;
+  title: string;
+  taxOffice?: string;
+  taxNo?: string;
+  establishmentYear?: number;
   website?: string;
-  contactPersonName: string;
-  contactPersonTitle: string;
-
-  // Preferences
-  preferredLanguage: string;
 }
 
 // Order

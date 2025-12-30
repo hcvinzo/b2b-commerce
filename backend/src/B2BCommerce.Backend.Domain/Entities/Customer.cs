@@ -51,11 +51,6 @@ public class Customer : ExternalEntity, IAggregateRoot
     /// </summary>
     public string? DocumentUrls { get; private set; }
 
-    /// <summary>
-    /// Whether the customer is active
-    /// </summary>
-    public bool IsActive { get; private set; }
-
     // Navigation properties
     private readonly List<CustomerContact> _contacts = new();
     public IReadOnlyCollection<CustomerContact> Contacts => _contacts.AsReadOnly();
@@ -98,8 +93,7 @@ public class Customer : ExternalEntity, IAggregateRoot
             EstablishmentYear = establishmentYear,
             Website = website?.Trim(),
             Status = CustomerStatus.Pending,
-            UserId = userId,
-            IsActive = false // New customers are inactive until approved
+            UserId = userId
         };
 
         // Auto-populate ExternalId for Integration API compatibility
@@ -130,7 +124,6 @@ public class Customer : ExternalEntity, IAggregateRoot
 
         var customer = Create(title, taxOffice, taxNo, establishmentYear, website, userId);
         customer.Status = status;
-        customer.IsActive = status == CustomerStatus.Active;
 
         // Use base class helper for consistent initialization
         InitializeFromExternal(customer, externalId, externalCode);
@@ -193,7 +186,6 @@ public class Customer : ExternalEntity, IAggregateRoot
     public void SetStatus(CustomerStatus status)
     {
         Status = status;
-        IsActive = status == CustomerStatus.Active;
     }
 
     /// <summary>
@@ -228,26 +220,6 @@ public class Customer : ExternalEntity, IAggregateRoot
     public void Suspend()
     {
         SetStatus(CustomerStatus.Suspended);
-    }
-
-    /// <summary>
-    /// Activates the customer
-    /// </summary>
-    public void Activate()
-    {
-        IsActive = true;
-        if (Status != CustomerStatus.Active)
-        {
-            Status = CustomerStatus.Active;
-        }
-    }
-
-    /// <summary>
-    /// Deactivates the customer
-    /// </summary>
-    public void Deactivate()
-    {
-        IsActive = false;
     }
 
     /// <summary>
