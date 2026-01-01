@@ -802,6 +802,21 @@ export interface SetUserRolesDto {
 // Role Management Types
 // ============================================
 
+// UserType enum (matching backend)
+export type UserType = "Admin" | "Customer" | "ApiClient";
+
+export const UserTypeEnum = {
+  Admin: 0,
+  Customer: 1,
+  ApiClient: 2,
+} as const;
+
+export const UserTypeLabels: Record<UserType, string> = {
+  Admin: "Admin",
+  Customer: "Customer",
+  ApiClient: "API Client",
+};
+
 // Role (list view)
 export interface RoleListItem {
   id: string;
@@ -811,6 +826,7 @@ export interface RoleListItem {
   claimCount: number;
   isProtected: boolean;
   isSystemRole: boolean;
+  userType: UserType;
   createdAt: string;
 }
 
@@ -823,6 +839,7 @@ export interface RoleDetail {
   userCount: number;
   isProtected: boolean;
   isSystemRole: boolean;
+  userType: UserType;
   createdAt: string;
 }
 
@@ -830,6 +847,7 @@ export interface RoleDetail {
 export interface CreateRoleDto {
   name: string;
   description?: string;
+  userType?: UserType;
   claims?: string[];
 }
 
@@ -870,6 +888,7 @@ export interface RoleFilters {
   page?: number;
   pageSize?: number;
   search?: string;
+  userType?: UserType;
 }
 
 // ============================================

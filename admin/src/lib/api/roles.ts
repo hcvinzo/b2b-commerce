@@ -24,6 +24,7 @@ export async function getRoles(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.pageSize) params.append("pageSize", String(filters.pageSize));
   if (filters.search) params.append("search", filters.search);
+  if (filters.userType) params.append("userType", filters.userType);
 
   const response = await apiClient.get<PaginatedResponse<RoleListItem>>(
     `${ROLES_BASE}?${params.toString()}`

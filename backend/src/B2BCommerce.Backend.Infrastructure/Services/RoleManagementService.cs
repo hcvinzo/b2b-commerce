@@ -37,6 +37,7 @@ public class RoleManagementService : IRoleManagementService
         int page,
         int pageSize,
         string? search = null,
+        UserType? userType = null,
         CancellationToken cancellationToken = default)
     {
         var query = _roleManager.Roles.AsQueryable();
@@ -47,6 +48,11 @@ public class RoleManagementService : IRoleManagementService
             query = query.Where(r =>
                 (r.Name != null && r.Name.ToLower().Contains(searchLower)) ||
                 (r.Description != null && r.Description.ToLower().Contains(searchLower)));
+        }
+
+        if (userType.HasValue)
+        {
+            query = query.Where(r => r.UserType == userType.Value);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -72,6 +78,7 @@ public class RoleManagementService : IRoleManagementService
                 ClaimCount = claims.Count,
                 IsProtected = AdminPermissionScopes.ProtectedRoles.Contains(role.Name!, StringComparer.OrdinalIgnoreCase),
                 IsSystemRole = AdminPermissionScopes.SystemRoles.Contains(role.Name!, StringComparer.OrdinalIgnoreCase),
+                UserType = role.UserType,
                 CreatedAt = role.CreatedAt
             });
         }
@@ -107,6 +114,7 @@ public class RoleManagementService : IRoleManagementService
             UserCount = userCount,
             IsProtected = AdminPermissionScopes.ProtectedRoles.Contains(role.Name!, StringComparer.OrdinalIgnoreCase),
             IsSystemRole = AdminPermissionScopes.SystemRoles.Contains(role.Name!, StringComparer.OrdinalIgnoreCase),
+            UserType = role.UserType,
             CreatedAt = role.CreatedAt
         };
 
@@ -151,7 +159,7 @@ public class RoleManagementService : IRoleManagementService
         }
 
         // Create the role
-        var role = new ApplicationRole(dto.Name, dto.Description);
+        var role = new ApplicationRole(dto.Name, dto.Description, dto.UserType);
 
         var createResult = await _roleManager.CreateAsync(role);
         if (!createResult.Succeeded)

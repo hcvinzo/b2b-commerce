@@ -26,6 +26,7 @@ import { PermissionsEditor } from "@/components/roles/permissions-editor";
 import { RoleUsers } from "@/components/roles/role-users";
 import { useRole, useUpdateRole } from "@/hooks/use-roles";
 import { type RoleFormData } from "@/lib/validations/role";
+import { UserTypeLabels } from "@/types/entities";
 import { formatDateTime } from "@/lib/utils";
 
 export default function RoleDetailPage() {
@@ -86,6 +87,11 @@ export default function RoleDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold tracking-tight">{role.name}</h1>
+              <Badge
+                variant={role.userType === "Admin" ? "default" : "outline"}
+              >
+                {UserTypeLabels[role.userType]}
+              </Badge>
               {role.isProtected && (
                 <Badge variant="outline">
                   <Shield className="mr-1 h-3 w-3" />
@@ -108,7 +114,13 @@ export default function RoleDetailPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Type</CardDescription>
+            <CardTitle className="text-2xl">{UserTypeLabels[role.userType]}</CardTitle>
+          </CardHeader>
+        </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Users</CardDescription>

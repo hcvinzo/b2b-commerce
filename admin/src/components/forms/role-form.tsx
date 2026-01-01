@@ -16,6 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { roleSchema, type RoleFormData } from "@/lib/validations/role";
 
 interface RoleFormProps {
@@ -40,6 +47,7 @@ export function RoleForm({
     defaultValues: {
       name: "",
       description: "",
+      userType: "Admin",
       ...defaultValues,
     },
   });
@@ -73,6 +81,36 @@ export function RoleForm({
             </FormItem>
           )}
         />
+
+        {!isEdit && (
+          <FormField
+            control={form.control}
+            name="userType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>User Type *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Customer">Customer</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Admin roles are for back-office users. Customer roles are for dealer/customer users.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

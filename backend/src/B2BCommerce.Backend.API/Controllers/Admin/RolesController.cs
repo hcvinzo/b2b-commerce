@@ -1,6 +1,7 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.DTOs.Roles;
 using B2BCommerce.Backend.Application.Interfaces.Services;
+using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -38,9 +39,10 @@ public class RolesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null,
+        [FromQuery] UserType? userType = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _roleManagementService.GetAllRolesAsync(page, pageSize, search, cancellationToken);
+        var result = await _roleManagementService.GetAllRolesAsync(page, pageSize, search, userType, cancellationToken);
 
         if (!result.IsSuccess)
         {

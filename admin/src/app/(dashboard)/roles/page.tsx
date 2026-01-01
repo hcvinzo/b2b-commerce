@@ -50,13 +50,20 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { RoleForm } from "@/components/forms/role-form";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useRoles,
   useCreateRole,
   useUpdateRole,
   useDeleteRole,
 } from "@/hooks/use-roles";
 import { type RoleFormData } from "@/lib/validations/role";
-import { type RoleListItem, type RoleFilters } from "@/types/entities";
+import { type RoleListItem, type RoleFilters, type UserType, UserTypeLabels } from "@/types/entities";
 import { formatDateTime } from "@/lib/utils";
 
 export default function RolesPage() {
@@ -103,6 +110,7 @@ export default function RolesPage() {
       await createRole.mutateAsync({
         name: formData.name,
         description: formData.description || undefined,
+        userType: formData.userType,
       });
     }
     setIsFormOpen(false);
@@ -166,6 +174,25 @@ export default function RolesPage() {
                 <Search className="h-4 w-4" />
               </Button>
             </div>
+            <Select
+              value={filters.userType || "all"}
+              onValueChange={(value) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  userType: value === "all" ? undefined : (value as UserType),
+                  page: 1,
+                }))
+              }
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="Customer">Customer</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="icon"
@@ -191,6 +218,7 @@ export default function RolesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-center">Users</TableHead>
                     <TableHead className="text-center">Permissions</TableHead>
@@ -220,6 +248,14 @@ export default function RolesPage() {
                             </Badge>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={role.userType === "Admin" ? "default" : "outline"}
+                          className="text-xs"
+                        >
+                          {UserTypeLabels[role.userType]}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {role.description || "-"}

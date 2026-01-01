@@ -1,5 +1,6 @@
 using B2BCommerce.Backend.Application.Common;
 using B2BCommerce.Backend.Application.DTOs.Roles;
+using B2BCommerce.Backend.Domain.Enums;
 
 namespace B2BCommerce.Backend.Application.Interfaces.Services;
 
@@ -17,6 +18,7 @@ public interface IRoleManagementService
         int page,
         int pageSize,
         string? search = null,
+        UserType? userType = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

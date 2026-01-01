@@ -645,6 +645,124 @@ API → Infrastructure → Application → Domain
 
 ---
 
+## Identity & User Management
+
+### User Types
+
+The system supports three types of users, defined in `UserType` enum:
+
+| UserType | Description | Authentication |
+|----------|-------------|----------------|
+| `Admin` | Admin panel users (internal staff) | JWT via Admin API |
+| `Customer` | Dealer portal users (B2B customers) | JWT via Main API |
+| `ApiClient` | External system integrations | API Key via Integration API |
+
+### Customer-User Relationship (Multi-User Dealers)
+
+Each dealer (Customer) can have **multiple users**. The relationship is managed through `ApplicationUser.CustomerId`:
+
+```
+AspNetUsers (Identity Table)
+├── Id: Guid (PK)
+├── Email: string
+├── FirstName: string
+├── LastName: string
+├── CustomerId: Guid? ──────────────► Customers.Id (FK)
+├── UserType: int (0=Admin, 1=Customer, 2=ApiClient)
+├── IsActive: bool
+└── ...
+
+Customers (Domain Entity)
+├── Id: Guid (PK)
+├── Title: string
+├── TaxNo: string
+├── Status: CustomerStatus
+└── ... (no UserId - removed)
+```
+
+**Key Points**:
+- **One-to-Many**: One Customer can have many Users
+- **FK on User side**: `ApplicationUser.CustomerId` holds the relationship
+- **UserType filter**: Always filter by `UserType == Customer` when querying customer users
+- **No navigation on Customer**: Query users via `UserManager`, not Customer entity
+
+**Querying Customer Users**:
+```csharp
+// Get all users for a customer
+var users = _userManager.Users
+    .Where(u => u.CustomerId == customerId && u.UserType == UserType.Customer);
+```
+
+### Customer Roles
+
+Customer roles are distinguished from admin roles by `ApplicationRole.UserType`:
+
+```csharp
+public class ApplicationRole : IdentityRole<Guid>
+{
+    public string? Description { get; set; }
+    public UserType UserType { get; set; } = UserType.Admin;  // Links role to user type
+}
+```
+
+**Seeded Customer Roles**:
+
+| Role Name | Description | Permissions |
+|-----------|-------------|-------------|
+| `CustomerAdmin` | Bayi Yöneticisi | `customer:*` (all) |
+| `CustomerPurchasing` | Satın Alma | Orders, catalog, prices |
+| `CustomerAccounting` | Muhasebe | Orders read, balance, profile |
+| `CustomerEmployee` | Çalışan | Catalog read, orders read |
+
+**Permission Scopes** (`CustomerPermissionScopes`):
+```csharp
+public static class CustomerPermissionScopes
+{
+    public const string All = "customer:*";
+    public const string UsersRead = "customer:users:read";
+    public const string UsersWrite = "customer:users:write";
+    public const string OrdersRead = "customer:orders:read";
+    public const string OrdersCreate = "customer:orders:create";
+    public const string ProfileRead = "customer:profile:read";
+    // ... etc
+}
+```
+
+### Customer User Management API
+
+**Admin Panel Endpoints** (`/api/admin/customers/{customerId}/users`):
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/users` | List users for customer |
+| GET | `/users/{userId}` | Get user details |
+| POST | `/users` | Create user for customer |
+| PUT | `/users/{userId}` | Update user |
+| POST | `/users/{userId}/activate` | Activate user |
+| POST | `/users/{userId}/deactivate` | Deactivate user |
+| PUT | `/users/{userId}/roles` | Set user roles |
+| GET | `/api/admin/customer-roles` | Get available customer roles |
+
+**Service**: `ICustomerUserService` / `CustomerUserService`
+
+### Registration Flow
+
+When a dealer registers:
+1. `Customer` entity is created with status `Pending`
+2. `ApplicationUser` is created with:
+   - `CustomerId` = new customer's ID
+   - `UserType` = `UserType.Customer`
+   - Role = `CustomerAdmin` (full access)
+
+```csharp
+// In AuthService.RegisterAsync
+user.CustomerId = customer.Id;
+user.UserType = UserType.Customer;
+await _userManager.AddToRoleAsync(user, "CustomerAdmin");
+```
+
+---
+
 ## Domain Layer Rules
 
 ### Base Classes

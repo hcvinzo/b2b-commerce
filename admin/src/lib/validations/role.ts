@@ -14,6 +14,7 @@ export const roleSchema = z.object({
     .max(200, "Description cannot exceed 200 characters")
     .optional()
     .or(z.literal("")),
+  userType: z.enum(["Admin", "Customer"]).optional(),
   claims: z.array(z.string()).optional(),
 });
 

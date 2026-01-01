@@ -1,3 +1,5 @@
+using B2BCommerce.Backend.Domain.Enums;
+
 namespace B2BCommerce.Backend.Application.DTOs.Roles;
 
 /// <summary>
@@ -12,5 +14,6 @@ public class RoleListDto
     public int ClaimCount { get; set; }
     public bool IsProtected { get; set; }
     public bool IsSystemRole { get; set; }
+    public UserType UserType { get; set; }
     public DateTime CreatedAt { get; set; }
 }
