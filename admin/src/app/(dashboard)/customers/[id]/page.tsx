@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2, Mail, Phone, MapPin, User, Globe, Calendar } from "lucide-react";
+import { ArrowLeft, Building2, Mail, Phone, MapPin, User, Users, Globe, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import { CustomerAttributesEditor } from "@/components/customers/customer-attributes-editor";
 import { CustomerDocumentsEditor } from "@/components/customers/customer-documents-editor";
+import { CustomerUsersTab } from "@/components/customers/customer-users-tab";
 import { Customer, CustomerContact } from "@/types/entities";
 
 // Helper function to get primary active contact
@@ -122,6 +123,7 @@ export default function CustomerDetailPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="addresses">Addresses</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -279,6 +281,10 @@ export default function CustomerDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="users">
+          <CustomerUsersTab customerId={id} />
         </TabsContent>
 
         <TabsContent value="contacts">

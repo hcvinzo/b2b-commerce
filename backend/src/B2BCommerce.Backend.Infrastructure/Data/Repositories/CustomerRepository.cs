@@ -69,13 +69,6 @@ public class CustomerRepository : GenericRepository<Customer>, ICustomerReposito
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<Customer?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _dbSet
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
-    }
-
     public async Task<IEnumerable<Customer>> GetPendingCustomersAsync(CancellationToken cancellationToken = default)
     {
         return await _dbSet

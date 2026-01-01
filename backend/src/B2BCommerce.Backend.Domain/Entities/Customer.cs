@@ -41,11 +41,6 @@ public class Customer : ExternalEntity, IAggregateRoot
     public CustomerStatus Status { get; private set; }
 
     /// <summary>
-    /// FK to the ASP.NET Identity User associated with this customer
-    /// </summary>
-    public Guid? UserId { get; private set; }
-
-    /// <summary>
     /// Document URLs stored as JSON array (e.g., tax certificate, signature circular)
     /// Format: [{"type": "TaxCertificate", "url": "https://..."}, ...]
     /// </summary>
@@ -77,8 +72,7 @@ public class Customer : ExternalEntity, IAggregateRoot
         string? taxOffice = null,
         string? taxNo = null,
         int? establishmentYear = null,
-        string? website = null,
-        Guid? userId = null)
+        string? website = null)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -92,8 +86,7 @@ public class Customer : ExternalEntity, IAggregateRoot
             TaxNo = taxNo?.Trim(),
             EstablishmentYear = establishmentYear,
             Website = website?.Trim(),
-            Status = CustomerStatus.Pending,
-            UserId = userId
+            Status = CustomerStatus.Pending
         };
 
         // Auto-populate ExternalId for Integration API compatibility
@@ -114,7 +107,6 @@ public class Customer : ExternalEntity, IAggregateRoot
         int? establishmentYear = null,
         string? website = null,
         CustomerStatus status = CustomerStatus.Active,
-        Guid? userId = null,
         string? externalCode = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -122,7 +114,7 @@ public class Customer : ExternalEntity, IAggregateRoot
             throw new ArgumentException("External ID is required", nameof(externalId));
         }
 
-        var customer = Create(title, taxOffice, taxNo, establishmentYear, website, userId);
+        var customer = Create(title, taxOffice, taxNo, establishmentYear, website);
         customer.Status = status;
 
         // Use base class helper for consistent initialization
@@ -220,14 +212,6 @@ public class Customer : ExternalEntity, IAggregateRoot
     public void Suspend()
     {
         SetStatus(CustomerStatus.Suspended);
-    }
-
-    /// <summary>
-    /// Sets the user ID associated with this customer
-    /// </summary>
-    public void SetUserId(Guid? userId)
-    {
-        UserId = userId;
     }
 
     /// <summary>

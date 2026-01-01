@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IAdminUserService, AdminUserService>();
         services.AddScoped<IRoleManagementService, RoleManagementService>();
+        services.AddScoped<ICustomerUserService, CustomerUserService>();
         services.AddScoped<IGeoLocationTypeService, GeoLocationTypeService>();
         services.AddScoped<IGeoLocationService, GeoLocationService>();
 

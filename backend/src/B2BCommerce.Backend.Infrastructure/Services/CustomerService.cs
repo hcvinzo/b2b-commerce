@@ -325,7 +325,6 @@ public class CustomerService : ICustomerService
             EstablishmentYear = customer.EstablishmentYear,
             Website = customer.Website,
             Status = customer.Status.ToString(),
-            UserId = customer.UserId,
             DocumentUrls = customer.DocumentUrls,
             Contacts = customer.Contacts?.Select(c => new CustomerContactDto
             {

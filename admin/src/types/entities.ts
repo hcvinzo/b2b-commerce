@@ -247,9 +247,6 @@ export interface Customer extends BaseEntity {
   // Status
   status: CustomerStatus;
 
-  // User association
-  userId?: string;
-
   // Document URLs (JSON)
   documentUrls?: string;
 
@@ -1186,4 +1183,73 @@ export interface GeoLocationFilters {
   isActive?: boolean;
   sortBy?: string;
   sortDirection?: "asc" | "desc";
+}
+
+// ============================================
+// Customer User Types (Dealer Multi-User)
+// ============================================
+
+// Customer user role
+export interface CustomerUserRole {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+// Customer user (list view)
+export interface CustomerUserListItem {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  fullName: string;
+  roles: CustomerUserRole[];
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+// Customer user (detailed view)
+export interface CustomerUser {
+  id: string;
+  customerId: string;
+  customerTitle: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  fullName: string;
+  phoneNumber?: string;
+  roles: CustomerUserRole[];
+  isActive: boolean;
+  emailConfirmed: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+// DTOs for Customer User operations
+export interface CreateCustomerUserDto {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  roleIds: string[];
+  temporaryPassword?: string;
+  sendWelcomeEmail?: boolean;
+}
+
+export interface UpdateCustomerUserDto {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+}
+
+export interface SetCustomerUserRolesDto {
+  roleIds: string[];
+}
+
+// Filters for customer user list
+export interface CustomerUserFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
 }

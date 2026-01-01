@@ -234,10 +234,8 @@ public class AuthService : IAuthService
                             throw new InvalidOperationException($"User creation failed: {userCreationError}");
                         }
 
-                        // Link user to customer
-                        customer.SetUserId(user.Id);
-                        _unitOfWork.Customers.Update(customer);
-                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                        // Assign CustomerAdmin role to the first user (dealer admin)
+                        await _userManager.AddToRoleAsync(user, "CustomerAdmin");
                     }
 
                     // Save customer attributes within the transaction
@@ -531,7 +529,6 @@ public class AuthService : IAuthService
             EstablishmentYear = customer.EstablishmentYear,
             Website = customer.Website,
             Status = customer.Status.ToString(),
-            UserId = customer.UserId,
             DocumentUrls = customer.DocumentUrls,
             Contacts = customer.Contacts?.Select(c => new CustomerContactDto
             {

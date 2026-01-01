@@ -37,8 +37,11 @@ public class DatabaseSeeder
             // Ensure database is created and migrations applied
             await _context.Database.MigrateAsync();
 
-            // Seed roles
+            // Seed admin roles
             await SeedRolesAsync();
+
+            // Seed customer roles
+            await SeedCustomerRolesAsync();
 
             // Seed admin user
             await SeedAdminUserAsync();
@@ -66,11 +69,11 @@ public class DatabaseSeeder
 
     private async Task SeedRolesAsync()
     {
+        // Admin roles (UserType.Admin is the default)
         var roles = new[]
         {
-            new ApplicationRole("Admin", "Full system access"),
-            new ApplicationRole("SalesRep", "Sales representative with order and customer management"),
-            new ApplicationRole("Customer", "B2B customer account")
+            new ApplicationRole("Admin", "Full system access", UserType.Admin),
+            new ApplicationRole("SalesRep", "Sales representative with order and customer management", UserType.Admin)
         };
 
         foreach (var role in roles)
@@ -79,6 +82,70 @@ public class DatabaseSeeder
             {
                 await _roleManager.CreateAsync(role);
                 _logger.LogInformation("Created role: {RoleName}", role.Name);
+            }
+        }
+    }
+
+    private async Task SeedCustomerRolesAsync()
+    {
+        // Customer roles with their permissions
+        var customerRoles = new[]
+        {
+            new
+            {
+                Role = new ApplicationRole("CustomerAdmin", "Bayi Yöneticisi - Full dealer access", UserType.Customer),
+                Permissions = new[] { CustomerPermissionScopes.All }
+            },
+            new
+            {
+                Role = new ApplicationRole("CustomerPurchasing", "Satın Alma - Purchasing and order management", UserType.Customer),
+                Permissions = new[]
+                {
+                    CustomerPermissionScopes.OrdersRead,
+                    CustomerPermissionScopes.OrdersCreate,
+                    CustomerPermissionScopes.OrdersEdit,
+                    CustomerPermissionScopes.CatalogRead,
+                    CustomerPermissionScopes.PricesRead,
+                    CustomerPermissionScopes.AddressesRead
+                }
+            },
+            new
+            {
+                Role = new ApplicationRole("CustomerAccounting", "Muhasebe - Accounting and finance", UserType.Customer),
+                Permissions = new[]
+                {
+                    CustomerPermissionScopes.OrdersRead,
+                    CustomerPermissionScopes.BalanceRead,
+                    CustomerPermissionScopes.ProfileRead,
+                    CustomerPermissionScopes.AddressesRead
+                }
+            },
+            new
+            {
+                Role = new ApplicationRole("CustomerEmployee", "Çalışan - Basic employee access", UserType.Customer),
+                Permissions = new[]
+                {
+                    CustomerPermissionScopes.CatalogRead,
+                    CustomerPermissionScopes.OrdersRead
+                }
+            }
+        };
+
+        foreach (var item in customerRoles)
+        {
+            if (!await _roleManager.RoleExistsAsync(item.Role.Name!))
+            {
+                var result = await _roleManager.CreateAsync(item.Role);
+                if (result.Succeeded)
+                {
+                    // Add permissions as claims
+                    foreach (var permission in item.Permissions)
+                    {
+                        await _roleManager.AddClaimAsync(item.Role, new System.Security.Claims.Claim("permission", permission));
+                    }
+                    _logger.LogInformation("Created customer role: {RoleName} with {PermissionCount} permissions",
+                        item.Role.Name, item.Permissions.Length);
+                }
             }
         }
     }
@@ -535,12 +602,8 @@ public class DatabaseSeeder
         var result = await _userManager.CreateAsync(customerUser, customerPassword);
         if (result.Succeeded)
         {
-            // Link user to customer
-            customer.SetUserId(customerUser.Id);
-            _context.Customers.Update(customer);
-            await _context.SaveChangesAsync();
-
-            await _userManager.AddToRoleAsync(customerUser, "Customer");
+            // Assign CustomerAdmin role (will be created by SeedCustomerRolesAsync)
+            await _userManager.AddToRoleAsync(customerUser, "CustomerAdmin");
             _logger.LogInformation("Created sample customer: {Email} (Company: {Company})",
                 customerEmail, customer.Title);
         }

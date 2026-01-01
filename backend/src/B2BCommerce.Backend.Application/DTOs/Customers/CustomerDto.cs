@@ -51,11 +51,6 @@ public class CustomerDto
     public string Status { get; set; } = string.Empty;
 
     /// <summary>
-    /// Associated user ID
-    /// </summary>
-    public Guid? UserId { get; set; }
-
-    /// <summary>
     /// Document URLs (JSON array)
     /// </summary>
     public string? DocumentUrls { get; set; }

@@ -34,11 +34,6 @@ public interface ICustomerRepository : IGenericRepository<Customer>
     Task<IEnumerable<Customer>> GetByStatusAsync(CustomerStatus status, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a customer by user ID
-    /// </summary>
-    Task<Customer?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets all pending customers (awaiting approval)
     /// </summary>
     Task<IEnumerable<Customer>> GetPendingCustomersAsync(CancellationToken cancellationToken = default);

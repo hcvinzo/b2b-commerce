@@ -75,14 +75,24 @@ public static class AdminPermissionScopes
     public const string ReportsExport = "reports:export";
 
     /// <summary>
-    /// System role names that cannot be deleted
+    /// System role names for admin users that cannot be deleted
     /// </summary>
-    public static readonly string[] SystemRoles = { "Admin", "SalesRep", "Customer" };
+    public static readonly string[] SystemAdminRoles = { "Admin", "SalesRep" };
+
+    /// <summary>
+    /// System role names for customer users that cannot be deleted
+    /// </summary>
+    public static readonly string[] SystemCustomerRoles = { "CustomerAdmin", "CustomerPurchasing", "CustomerAccounting", "CustomerEmployee" };
+
+    /// <summary>
+    /// All system role names that cannot be deleted
+    /// </summary>
+    public static readonly string[] SystemRoles = SystemAdminRoles.Concat(SystemCustomerRoles).ToArray();
 
     /// <summary>
     /// Protected role names that have special handling
     /// </summary>
-    public static readonly string[] ProtectedRoles = { "Admin" };
+    public static readonly string[] ProtectedRoles = { "Admin", "CustomerAdmin" };
 
     /// <summary>
     /// Checks if a scope value is valid

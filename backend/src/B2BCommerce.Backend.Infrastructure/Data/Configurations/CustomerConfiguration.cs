@@ -44,8 +44,6 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasMaxLength(20)
             .HasDefaultValue(CustomerStatus.Pending);
 
-        builder.Property(c => c.UserId);
-
         builder.Property(c => c.DocumentUrls)
             .HasColumnType("jsonb");
 
@@ -98,8 +96,6 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.Title);
 
         builder.HasIndex(c => c.Status);
-
-        builder.HasIndex(c => c.UserId);
 
         builder.HasIndex(c => c.IsDeleted);
     }

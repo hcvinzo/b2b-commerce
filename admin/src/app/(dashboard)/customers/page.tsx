@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Eye, MoreHorizontal, CheckCircle, XCircle } from "lucide-react";
+import { Search, Eye, MoreHorizontal, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,7 @@ export default function CustomersPage() {
     status: CustomerStatus;
   } | null>(null);
 
-  const { data, isLoading } = useCustomers(filters);
+  const { data, isLoading, isFetching, refetch } = useCustomers(filters);
   const approveCustomer = useApproveCustomer();
   const activateCustomer = useActivateCustomer();
   const deactivateCustomer = useDeactivateCustomer();
@@ -185,6 +185,14 @@ export default function CustomersPage() {
                   <SelectItem value="Rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
             </div>
           </div>
 
