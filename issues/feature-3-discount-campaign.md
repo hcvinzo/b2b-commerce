@@ -79,7 +79,7 @@ So that I can run promotional activities to increase sales within controlled lim
 | Volume discount | 10% off when buying 10+ units |
 | Budget-controlled | 15% off until ₺50,000 total discount given |
 
-### Admin Panel Features (Future Issue)
+### Admin Panel Features
 - Campaign list with status, date range, and usage stats
 - Campaign create/edit form with date picker
 - Discount rule builder with product/category/brand selector
@@ -90,5 +90,5 @@ So that I can run promotional activities to increase sales within controlled lim
 - Create entity classes, repository classes, and migration files for new tables
 - Follow the project's database standards and Clean Architecture patterns
 - Campaign status transitions should be handled via domain methods
-- Create background job for auto-activation and auto-ending of campaigns
+- Background job for auto-activation and auto-ending of campaigns will be implemented later
 - Discount resolution service should support batch queries for product listings

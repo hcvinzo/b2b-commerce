@@ -66,6 +66,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ApiKeyIpWhitelist> ApiKeyIpWhitelist => Set<ApiKeyIpWhitelist>();
     public DbSet<ApiKeyUsageLog> ApiKeyUsageLogs => Set<ApiKeyUsageLog>();
 
+    // Campaign Discount entities
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+    public DbSet<DiscountRule> DiscountRules => Set<DiscountRule>();
+    public DbSet<DiscountRuleProduct> DiscountRuleProducts => Set<DiscountRuleProduct>();
+    public DbSet<DiscountRuleCategory> DiscountRuleCategories => Set<DiscountRuleCategory>();
+    public DbSet<DiscountRuleBrand> DiscountRuleBrands => Set<DiscountRuleBrand>();
+    public DbSet<DiscountRuleCustomer> DiscountRuleCustomers => Set<DiscountRuleCustomer>();
+    public DbSet<DiscountRuleCustomerTier> DiscountRuleCustomerTiers => Set<DiscountRuleCustomerTier>();
+    public DbSet<CampaignUsage> CampaignUsages => Set<CampaignUsage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

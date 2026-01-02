@@ -74,6 +74,9 @@ public static class DependencyInjection
         // Newsletter Repository
         services.AddScoped<INewsletterSubscriptionRepository, NewsletterSubscriptionRepository>();
 
+        // Campaign Repository
+        services.AddScoped<ICampaignRepository, CampaignRepository>();
+
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -93,6 +96,10 @@ public static class DependencyInjection
         services.AddScoped<IGeoLocationTypeService, GeoLocationTypeService>();
         services.AddScoped<IGeoLocationService, GeoLocationService>();
         services.AddScoped<IParameterService, ParameterService>();
+
+        // Campaign Services
+        services.AddScoped<ICampaignService, CampaignService>();
+        services.AddScoped<ICampaignDiscountService, CampaignDiscountService>();
 
         // Integration Services
         services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();
