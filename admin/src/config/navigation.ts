@@ -19,6 +19,7 @@ import {
   Library,
   MapPin,
   Settings2,
+  Percent,
   type LucideIcon,
 } from "lucide-react";
 
@@ -115,6 +116,15 @@ export const navigation: NavGroup[] = [
           { title: "Pending Approval", url: "/orders/pending", badge: 5 },
           { title: "Processing", url: "/orders/processing" },
           { title: "Completed", url: "/orders/completed" },
+        ],
+      },
+      {
+        title: "Campaigns",
+        url: "/campaigns",
+        icon: Percent,
+        items: [
+          { title: "All Campaigns", url: "/campaigns" },
+          { title: "New Campaign", url: "/campaigns/new" },
         ],
       },
       {

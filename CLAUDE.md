@@ -1246,6 +1246,112 @@ public class ProductService : IProductService
 }
 ```
 
+### EF Core Owned Types and Concurrency (CRITICAL)
+
+**COMMON MISTAKE**: EF Core concurrency errors occur when modifying entities that have **owned types** (like Money value objects) or **collections**. Fetching the parent entity causes EF Core to track the owned types, and subsequent modifications can cause concurrency conflicts.
+
+**Problem Pattern**:
+```csharp
+// ❌ BAD - Causes concurrency errors with owned types
+public async Task<Result> AddCategoriesToRuleAsync(Guid campaignId, Guid ruleId, IEnumerable<Guid> categoryIds, ...)
+{
+    // This tracks the Campaign entity AND all its owned Money properties
+    var campaign = await _campaignRepository.GetByIdAsync(campaignId, ct);  // Tracks entity!
+    if (campaign is null) return Result.Failure("Not found");
+
+    // Later when saving child/junction records, EF Core detects "changes" to the tracked
+    // owned types even though we didn't modify them, causing DbUpdateConcurrencyException
+    await _unitOfWork.SaveChangesAsync(ct);  // BOOM! Concurrency exception
+}
+```
+
+**Error Message**: `Database operation expected to affect 1 row(s) but actually affected 0 row(s)` with `DbUpdateConcurrencyException`
+
+**Root Cause**: When an entity has owned types (configured with `OwnsOne`), EF Core tracks them as part of the parent entity. Any `SaveChangesAsync` call may detect phantom changes to these owned types, causing concurrency conflicts.
+
+**Solution Pattern**: Use `AsNoTracking()` for validation queries and direct DbContext operations for modifications:
+
+```csharp
+// ✅ GOOD - Bypass entity tracking entirely
+public async Task<Result> AddCategoriesToRuleAsync(Guid campaignId, Guid ruleId, IEnumerable<Guid> categoryIds, ...)
+{
+    // 1. Validate using AsNoTracking queries (no tracking!)
+    var ruleCampaignId = await _context.DiscountRules
+        .AsNoTracking()  // Critical: don't track
+        .Where(r => r.Id == ruleId && !r.IsDeleted)
+        .Select(r => (Guid?)r.CampaignId)  // Select only what you need
+        .FirstOrDefaultAsync(ct);
+
+    if (ruleCampaignId is null || ruleCampaignId != campaignId)
+        return Result.Failure("Not found");
+
+    // 2. Modify junction tables directly (no parent entity tracking)
+    var existing = await _context.DiscountRuleCategories
+        .Where(c => c.DiscountRuleId == ruleId)
+        .ToListAsync(ct);
+    _context.DiscountRuleCategories.RemoveRange(existing);
+
+    var newCategories = categoryIds.Select(id => DiscountRuleCategory.Create(ruleId, id));
+    await _context.DiscountRuleCategories.AddRangeAsync(newCategories, ct);
+
+    await _unitOfWork.SaveChangesAsync(ct);  // Works without concurrency issues!
+    return Result.Success();
+}
+```
+
+**Repository Methods for Bypassing Tracking**:
+
+When you need to modify child records or junction tables without touching the parent:
+
+```csharp
+// In repository interface
+public interface ICampaignRepository : IGenericRepository<Campaign>
+{
+    // Validation without tracking
+    Task<CampaignStatus?> GetStatusAsync(Guid id, CancellationToken ct);
+    Task<Guid?> GetRuleCampaignIdAsync(Guid ruleId, CancellationToken ct);
+
+    // Direct junction table operations
+    Task ReplaceRuleCategoriesAsync(Guid ruleId, IEnumerable<DiscountRuleCategory> categories, CancellationToken ct);
+    Task ReplaceRuleBrandsAsync(Guid ruleId, IEnumerable<DiscountRuleBrand> brands, CancellationToken ct);
+}
+
+// In repository implementation
+public async Task<CampaignStatus?> GetStatusAsync(Guid id, CancellationToken ct)
+{
+    return await _dbSet
+        .AsNoTracking()  // Never track for read-only validation
+        .Where(c => c.Id == id && !c.IsDeleted)
+        .Select(c => (CampaignStatus?)c.Status)
+        .FirstOrDefaultAsync(ct);
+}
+
+public async Task ReplaceRuleCategoriesAsync(Guid ruleId, IEnumerable<DiscountRuleCategory> categories, CancellationToken ct)
+{
+    // Hard delete existing (junction tables don't use soft delete)
+    var existing = await _context.DiscountRuleCategories
+        .Where(c => c.DiscountRuleId == ruleId)
+        .ToListAsync(ct);
+    _context.DiscountRuleCategories.RemoveRange(existing);
+
+    // Add new
+    await _context.DiscountRuleCategories.AddRangeAsync(categories, ct);
+}
+```
+
+**Key Rules**:
+1. **Use `AsNoTracking()` for validation** - When you only need to check if something exists or get a value for validation
+2. **Select only needed fields** - Use `.Select()` to project only the fields you need, avoiding owned type tracking
+3. **Direct DbContext operations for junction tables** - Don't load the parent entity just to modify its collections
+4. **Add dedicated repository methods** - Create specific methods like `GetStatusAsync`, `ReplaceRuleCategoriesAsync` that handle this pattern
+
+**Entities with Owned Types in this codebase**:
+- `Campaign` - has `TotalBudgetLimit`, `PerCustomerBudgetLimit`, `TotalDiscountUsed` (all Money)
+- `DiscountRule` - has Money properties
+- `Product` - has `ListPrice`, tiered prices (Money)
+- `Order` - has multiple Money properties
+- `Customer` - has credit/balance properties (Money)
+
 ---
 
 ## API Layer Rules
@@ -1636,6 +1742,7 @@ backend/src/
 | Read queries | `AsNoTracking()` | Track read-only entities |
 | Related data | All in one transaction, fail together | Silent failure, return success anyway |
 | Result pattern | Check `IsSuccess`, throw on failure | Ignore failed results |
+| **EF Core owned types** | `AsNoTracking()` + direct DbContext ops | Load parent entity to modify children |
 
 ---
 

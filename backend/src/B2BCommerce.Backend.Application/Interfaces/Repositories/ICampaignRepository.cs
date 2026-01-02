@@ -90,4 +90,74 @@ public interface ICampaignRepository : IGenericRepository<Campaign>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Discount rule with targets</returns>
     Task<DiscountRule?> GetDiscountRuleWithTargetsAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a discount rule directly
+    /// </summary>
+    /// <param name="rule">Discount rule to add</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task AddDiscountRuleAsync(DiscountRule rule, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets campaign status without tracking (for validation only)
+    /// </summary>
+    /// <param name="id">Campaign ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Campaign status if found, null otherwise</returns>
+    Task<CampaignStatus?> GetStatusAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a discount rule's campaign ID without tracking (for validation)
+    /// </summary>
+    Task<Guid?> GetRuleCampaignIdAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets existing category IDs for a discount rule
+    /// </summary>
+    Task<List<Guid>> GetRuleCategoryIdsAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets existing brand IDs for a discount rule
+    /// </summary>
+    Task<List<Guid>> GetRuleBrandIdsAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets existing customer IDs for a discount rule
+    /// </summary>
+    Task<List<Guid>> GetRuleCustomerIdsAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets existing product IDs for a discount rule
+    /// </summary>
+    Task<List<Guid>> GetRuleProductIdsAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets existing customer tier values for a discount rule
+    /// </summary>
+    Task<List<PriceTier>> GetRuleCustomerTiersAsync(Guid ruleId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces category targets for a discount rule (removes existing, adds new)
+    /// </summary>
+    Task ReplaceRuleCategoriesAsync(Guid ruleId, IEnumerable<DiscountRuleCategory> categories, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces brand targets for a discount rule (removes existing, adds new)
+    /// </summary>
+    Task ReplaceRuleBrandsAsync(Guid ruleId, IEnumerable<DiscountRuleBrand> brands, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces customer targets for a discount rule (removes existing, adds new)
+    /// </summary>
+    Task ReplaceRuleCustomersAsync(Guid ruleId, IEnumerable<DiscountRuleCustomer> customers, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces product targets for a discount rule (removes existing, adds new)
+    /// </summary>
+    Task ReplaceRuleProductsAsync(Guid ruleId, IEnumerable<DiscountRuleProduct> products, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces customer tier targets for a discount rule (removes existing, adds new)
+    /// </summary>
+    Task ReplaceRuleCustomerTiersAsync(Guid ruleId, IEnumerable<DiscountRuleCustomerTier> tiers, CancellationToken cancellationToken = default);
 }

@@ -296,7 +296,7 @@ public class CampaignService : ICampaignService
             campaign.Schedule();
             campaign.UpdatedBy = updatedBy;
 
-            _campaignRepository.Update(campaign);
+            // Note: Don't call Update() as the entity is already tracked by EF Core
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Campaign scheduled: {CampaignId}", id);
@@ -324,7 +324,7 @@ public class CampaignService : ICampaignService
             campaign.Activate();
             campaign.UpdatedBy = updatedBy;
 
-            _campaignRepository.Update(campaign);
+            // Note: Don't call Update() as the entity is already tracked by EF Core
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Campaign activated: {CampaignId}", id);
@@ -352,7 +352,7 @@ public class CampaignService : ICampaignService
             campaign.Pause();
             campaign.UpdatedBy = updatedBy;
 
-            _campaignRepository.Update(campaign);
+            // Note: Don't call Update() as the entity is already tracked by EF Core
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Campaign paused: {CampaignId}", id);
@@ -380,7 +380,7 @@ public class CampaignService : ICampaignService
             campaign.Cancel();
             campaign.UpdatedBy = updatedBy;
 
-            _campaignRepository.Update(campaign);
+            // Note: Don't call Update() as the entity is already tracked by EF Core
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Campaign cancelled: {CampaignId}", id);
@@ -398,13 +398,20 @@ public class CampaignService : ICampaignService
     {
         try
         {
-            var campaign = await _campaignRepository.GetWithRulesAsync(campaignId, cancellationToken);
+            // Check if campaign exists and is in valid status (without tracking to avoid concurrency issues)
+            var campaignStatus = await _campaignRepository.GetStatusAsync(campaignId, cancellationToken);
 
-            if (campaign is null)
+            if (campaignStatus is null)
             {
                 return Result<DiscountRuleDto>.Failure("Campaign not found");
             }
 
+            if (campaignStatus != CampaignStatus.Draft)
+            {
+                return Result<DiscountRuleDto>.Failure($"Cannot add rules to campaign in {campaignStatus} status. Campaign must be in Draft status.");
+            }
+
+            // Create the rule and add it directly via DbContext to avoid tracking issues
             var rule = DiscountRule.Create(
                 campaignId,
                 dto.DiscountType,
@@ -416,7 +423,6 @@ public class CampaignService : ICampaignService
                 dto.MinQuantity);
 
             rule.CreatedBy = createdBy;
-            campaign.AddDiscountRule(rule);
 
             // Add targets based on type
             if (dto.ProductIds?.Any() == true && dto.ProductTargetType == ProductTargetType.SpecificProducts)
@@ -459,7 +465,9 @@ public class CampaignService : ICampaignService
                 }
             }
 
-            _campaignRepository.Update(campaign);
+            // Add the rule directly to the DbContext instead of through the Campaign collection
+            // This avoids tracking issues with the Campaign's owned types
+            await _campaignRepository.AddDiscountRuleAsync(rule, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Discount rule added to campaign: {CampaignId} - {RuleId}", campaignId, rule.Id);
@@ -504,7 +512,7 @@ public class CampaignService : ICampaignService
 
             rule.UpdatedBy = updatedBy;
 
-            _campaignRepository.Update(campaign);
+            // Note: Don't call Update() as the entities are already tracked by EF Core
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Discount rule updated: {RuleId}", ruleId);
@@ -540,7 +548,7 @@ public class CampaignService : ICampaignService
 
             rule.MarkAsDeleted(deletedBy);
 
-            _campaignRepository.Update(campaign);
+            // Note: Don't call Update() as the entities are already tracked by EF Core
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Discount rule removed from campaign: {CampaignId} - {RuleId}", campaignId, ruleId);
@@ -558,25 +566,33 @@ public class CampaignService : ICampaignService
     {
         try
         {
-            var rule = await _campaignRepository.GetDiscountRuleWithTargetsAsync(ruleId, cancellationToken);
+            // Validate rule belongs to campaign without tracking
+            var ruleCampaignId = await _campaignRepository.GetRuleCampaignIdAsync(ruleId, cancellationToken);
 
-            if (rule is null || rule.CampaignId != campaignId)
+            if (ruleCampaignId is null || ruleCampaignId != campaignId)
             {
                 return Result.Failure("Discount rule not found");
             }
 
+            // Filter to valid products that exist
+            var validProductIds = new List<Guid>();
             foreach (var productId in productIds)
             {
-                var product = await _productRepository.GetByIdAsync(productId, cancellationToken);
-                if (product is not null)
+                var exists = await _productRepository.AnyAsync(p => p.Id == productId, cancellationToken);
+                if (exists)
                 {
-                    rule.AddProduct(productId);
+                    validProductIds.Add(productId);
                 }
             }
 
+            // Create new junction entities
+            var products = validProductIds.Select(productId => DiscountRuleProduct.Create(ruleId, productId)).ToList();
+
+            // Replace all targets (removes existing, adds new)
+            await _campaignRepository.ReplaceRuleProductsAsync(ruleId, products, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Products added to discount rule: {RuleId}", ruleId);
+            _logger.LogInformation("Products set for discount rule: {RuleId}", ruleId);
 
             return Result.Success();
         }
@@ -591,25 +607,33 @@ public class CampaignService : ICampaignService
     {
         try
         {
-            var rule = await _campaignRepository.GetDiscountRuleWithTargetsAsync(ruleId, cancellationToken);
+            // Validate rule belongs to campaign without tracking
+            var ruleCampaignId = await _campaignRepository.GetRuleCampaignIdAsync(ruleId, cancellationToken);
 
-            if (rule is null || rule.CampaignId != campaignId)
+            if (ruleCampaignId is null || ruleCampaignId != campaignId)
             {
                 return Result.Failure("Discount rule not found");
             }
 
+            // Filter to valid categories that exist
+            var validCategoryIds = new List<Guid>();
             foreach (var categoryId in categoryIds)
             {
-                var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
-                if (category is not null)
+                var exists = await _categoryRepository.AnyAsync(c => c.Id == categoryId, cancellationToken);
+                if (exists)
                 {
-                    rule.AddCategory(categoryId);
+                    validCategoryIds.Add(categoryId);
                 }
             }
 
+            // Create new junction entities
+            var categories = validCategoryIds.Select(categoryId => DiscountRuleCategory.Create(ruleId, categoryId)).ToList();
+
+            // Replace all targets (removes existing, adds new)
+            await _campaignRepository.ReplaceRuleCategoriesAsync(ruleId, categories, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Categories added to discount rule: {RuleId}", ruleId);
+            _logger.LogInformation("Categories set for discount rule: {RuleId}", ruleId);
 
             return Result.Success();
         }
@@ -624,25 +648,33 @@ public class CampaignService : ICampaignService
     {
         try
         {
-            var rule = await _campaignRepository.GetDiscountRuleWithTargetsAsync(ruleId, cancellationToken);
+            // Validate rule belongs to campaign without tracking
+            var ruleCampaignId = await _campaignRepository.GetRuleCampaignIdAsync(ruleId, cancellationToken);
 
-            if (rule is null || rule.CampaignId != campaignId)
+            if (ruleCampaignId is null || ruleCampaignId != campaignId)
             {
                 return Result.Failure("Discount rule not found");
             }
 
+            // Filter to valid brands that exist
+            var validBrandIds = new List<Guid>();
             foreach (var brandId in brandIds)
             {
-                var brand = await _brandRepository.GetByIdAsync(brandId, cancellationToken);
-                if (brand is not null)
+                var exists = await _brandRepository.AnyAsync(b => b.Id == brandId, cancellationToken);
+                if (exists)
                 {
-                    rule.AddBrand(brandId);
+                    validBrandIds.Add(brandId);
                 }
             }
 
+            // Create new junction entities
+            var brands = validBrandIds.Select(brandId => DiscountRuleBrand.Create(ruleId, brandId)).ToList();
+
+            // Replace all targets (removes existing, adds new)
+            await _campaignRepository.ReplaceRuleBrandsAsync(ruleId, brands, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Brands added to discount rule: {RuleId}", ruleId);
+            _logger.LogInformation("Brands set for discount rule: {RuleId}", ruleId);
 
             return Result.Success();
         }
@@ -657,25 +689,33 @@ public class CampaignService : ICampaignService
     {
         try
         {
-            var rule = await _campaignRepository.GetDiscountRuleWithTargetsAsync(ruleId, cancellationToken);
+            // Validate rule belongs to campaign without tracking
+            var ruleCampaignId = await _campaignRepository.GetRuleCampaignIdAsync(ruleId, cancellationToken);
 
-            if (rule is null || rule.CampaignId != campaignId)
+            if (ruleCampaignId is null || ruleCampaignId != campaignId)
             {
                 return Result.Failure("Discount rule not found");
             }
 
+            // Filter to valid customers that exist
+            var validCustomerIds = new List<Guid>();
             foreach (var customerId in customerIds)
             {
-                var customer = await _customerRepository.GetByIdAsync(customerId, cancellationToken);
-                if (customer is not null)
+                var exists = await _customerRepository.AnyAsync(c => c.Id == customerId, cancellationToken);
+                if (exists)
                 {
-                    rule.AddCustomer(customerId);
+                    validCustomerIds.Add(customerId);
                 }
             }
 
+            // Create new junction entities
+            var customers = validCustomerIds.Select(customerId => DiscountRuleCustomer.Create(ruleId, customerId)).ToList();
+
+            // Replace all targets (removes existing, adds new)
+            await _campaignRepository.ReplaceRuleCustomersAsync(ruleId, customers, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Customers added to discount rule: {RuleId}", ruleId);
+            _logger.LogInformation("Customers set for discount rule: {RuleId}", ruleId);
 
             return Result.Success();
         }
@@ -690,21 +730,22 @@ public class CampaignService : ICampaignService
     {
         try
         {
-            var rule = await _campaignRepository.GetDiscountRuleWithTargetsAsync(ruleId, cancellationToken);
+            // Validate rule belongs to campaign without tracking
+            var ruleCampaignId = await _campaignRepository.GetRuleCampaignIdAsync(ruleId, cancellationToken);
 
-            if (rule is null || rule.CampaignId != campaignId)
+            if (ruleCampaignId is null || ruleCampaignId != campaignId)
             {
                 return Result.Failure("Discount rule not found");
             }
 
-            foreach (var tier in tiers)
-            {
-                rule.AddCustomerTier(tier);
-            }
+            // Create new junction entities
+            var tierEntities = tiers.Select(tier => DiscountRuleCustomerTier.Create(ruleId, tier)).ToList();
 
+            // Replace all targets (removes existing, adds new)
+            await _campaignRepository.ReplaceRuleCustomerTiersAsync(ruleId, tierEntities, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Customer tiers added to discount rule: {RuleId}", ruleId);
+            _logger.LogInformation("Customer tiers set for discount rule: {RuleId}", ruleId);
 
             return Result.Success();
         }

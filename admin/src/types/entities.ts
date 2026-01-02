@@ -1361,3 +1361,260 @@ export interface ParameterFilters {
   parameterType?: ParameterType;
   category?: string;
 }
+
+// ============================================
+// Campaign Discount Types
+// ============================================
+
+// Campaign Status enum (matching backend)
+export type CampaignStatus = "Draft" | "Scheduled" | "Active" | "Paused" | "Ended" | "Cancelled";
+
+export const CampaignStatusEnum = {
+  Draft: 0,
+  Scheduled: 1,
+  Active: 2,
+  Paused: 3,
+  Ended: 4,
+  Cancelled: 5,
+} as const;
+
+export const CampaignStatusLabels: Record<CampaignStatus, string> = {
+  Draft: "Draft",
+  Scheduled: "Scheduled",
+  Active: "Active",
+  Paused: "Paused",
+  Ended: "Ended",
+  Cancelled: "Cancelled",
+};
+
+// Discount Type enum (matching backend)
+export type DiscountType = "Percentage" | "FixedAmount";
+
+export const DiscountTypeEnum = {
+  Percentage: 1,
+  FixedAmount: 2,
+} as const;
+
+export const DiscountTypeLabels: Record<DiscountType, string> = {
+  Percentage: "Percentage",
+  FixedAmount: "Fixed Amount",
+};
+
+// Product Target Type enum (matching backend)
+export type ProductTargetType = "AllProducts" | "SpecificProducts" | "Categories" | "Brands";
+
+export const ProductTargetTypeEnum = {
+  AllProducts: 1,
+  SpecificProducts: 2,
+  Categories: 3,
+  Brands: 4,
+} as const;
+
+export const ProductTargetTypeLabels: Record<ProductTargetType, string> = {
+  AllProducts: "All Products",
+  SpecificProducts: "Specific Products",
+  Categories: "Categories",
+  Brands: "Brands",
+};
+
+// Customer Target Type enum (matching backend)
+export type CustomerTargetType = "AllCustomers" | "SpecificCustomers" | "CustomerTiers";
+
+export const CustomerTargetTypeEnum = {
+  AllCustomers: 1,
+  SpecificCustomers: 2,
+  CustomerTiers: 3,
+} as const;
+
+export const CustomerTargetTypeLabels: Record<CustomerTargetType, string> = {
+  AllCustomers: "All Customers",
+  SpecificCustomers: "Specific Customers",
+  CustomerTiers: "Customer Tiers",
+};
+
+// Price Tier enum (matching backend)
+export type PriceTier = "Tier1" | "Tier2" | "Tier3" | "Tier4" | "Tier5";
+
+export const PriceTierEnum = {
+  Tier1: 1,
+  Tier2: 2,
+  Tier3: 3,
+  Tier4: 4,
+  Tier5: 5,
+} as const;
+
+export const PriceTierLabels: Record<PriceTier, string> = {
+  Tier1: "Tier 1",
+  Tier2: "Tier 2",
+  Tier3: "Tier 3",
+  Tier4: "Tier 4",
+  Tier5: "Tier 5",
+};
+
+// Discount Rule Target DTOs
+export interface DiscountRuleProductDto {
+  productId: string;
+  productName?: string;
+  productSku?: string;
+}
+
+export interface DiscountRuleCategoryDto {
+  categoryId: string;
+  categoryName?: string;
+}
+
+export interface DiscountRuleBrandDto {
+  brandId: string;
+  brandName?: string;
+}
+
+export interface DiscountRuleCustomerDto {
+  customerId: string;
+  customerTitle?: string;
+}
+
+export interface DiscountRuleCustomerTierDto {
+  priceTier: PriceTier;
+}
+
+// Discount Rule (detailed view)
+export interface DiscountRule {
+  id: string;
+  campaignId: string;
+  discountType: DiscountType;
+  discountValue: number;
+  maxDiscountAmount?: number;
+  productTargetType: ProductTargetType;
+  customerTargetType: CustomerTargetType;
+  minOrderAmount?: number;
+  minQuantity?: number;
+  products: DiscountRuleProductDto[];
+  categories: DiscountRuleCategoryDto[];
+  brands: DiscountRuleBrandDto[];
+  customers: DiscountRuleCustomerDto[];
+  customerTiers: DiscountRuleCustomerTierDto[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// Campaign (list view)
+export interface CampaignListItem {
+  id: string;
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  status: CampaignStatus;
+  priority: number;
+  totalBudgetLimitAmount?: number;
+  totalBudgetLimitCurrency?: string;
+  totalDiscountUsedAmount: number;
+  totalDiscountUsedCurrency: string;
+  totalUsageCount: number;
+  totalUsageLimit?: number;
+  discountRuleCount: number;
+  externalCode?: string;
+  externalId?: string;
+  lastSyncedAt?: string;
+  createdAt: string;
+}
+
+// Campaign (detailed view)
+export interface Campaign extends ExternalEntity {
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  status: CampaignStatus;
+  priority: number;
+  totalBudgetLimitAmount?: number;
+  totalBudgetLimitCurrency?: string;
+  totalUsageLimit?: number;
+  perCustomerBudgetLimitAmount?: number;
+  perCustomerBudgetLimitCurrency?: string;
+  perCustomerUsageLimit?: number;
+  totalDiscountUsedAmount: number;
+  totalDiscountUsedCurrency: string;
+  totalUsageCount: number;
+  discountRules: DiscountRule[];
+}
+
+// Campaign Usage Stats
+export interface CampaignUsageStats {
+  campaignId: string;
+  campaignName: string;
+  totalUsageCount: number;
+  totalDiscountUsedAmount: number;
+  currency: string;
+  totalBudgetLimit?: number;
+  totalUsageLimit?: number;
+  remainingBudget?: number;
+  remainingUsageCount?: number;
+}
+
+// DTOs for Campaign operations
+export interface CreateCampaignDto {
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  priority?: number;
+  totalBudgetLimitAmount?: number;
+  totalUsageLimit?: number;
+  perCustomerBudgetLimitAmount?: number;
+  perCustomerUsageLimit?: number;
+  currency?: string;
+  externalId?: string;
+  externalCode?: string;
+}
+
+export interface UpdateCampaignDto {
+  name?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  priority?: number;
+  totalBudgetLimitAmount?: number;
+  totalUsageLimit?: number;
+  perCustomerBudgetLimitAmount?: number;
+  perCustomerUsageLimit?: number;
+  currency?: string;
+}
+
+// DTOs for Discount Rule operations
+export interface CreateDiscountRuleDto {
+  discountType: DiscountType;
+  discountValue: number;
+  maxDiscountAmount?: number;
+  productTargetType: ProductTargetType;
+  customerTargetType: CustomerTargetType;
+  minOrderAmount?: number;
+  minQuantity?: number;
+  productIds?: string[];
+  categoryIds?: string[];
+  brandIds?: string[];
+  customerIds?: string[];
+  customerTiers?: PriceTier[];
+}
+
+export interface UpdateDiscountRuleDto {
+  discountType?: DiscountType;
+  discountValue?: number;
+  maxDiscountAmount?: number;
+  productTargetType?: ProductTargetType;
+  customerTargetType?: CustomerTargetType;
+  minOrderAmount?: number;
+  minQuantity?: number;
+}
+
+// Filters for campaign list
+export interface CampaignFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: CampaignStatus;
+  startDateFrom?: string;
+  startDateTo?: string;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+}
