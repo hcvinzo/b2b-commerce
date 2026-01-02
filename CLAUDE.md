@@ -693,17 +693,32 @@ var users = _userManager.Users
     .Where(u => u.CustomerId == customerId && u.UserType == UserType.Customer);
 ```
 
-### Customer Roles
+### Role-UserType Relationship
 
-Customer roles are distinguished from admin roles by `ApplicationRole.UserType`:
+Roles are linked to user types via `ApplicationRole.UserType`. This ensures roles can only be assigned to users of the matching type.
 
 ```csharp
 public class ApplicationRole : IdentityRole<Guid>
 {
     public string? Description { get; set; }
     public UserType UserType { get; set; } = UserType.Admin;  // Links role to user type
+    public bool IsSystemRole { get; set; }   // System roles cannot be renamed
+    public bool IsProtected { get; set; }    // Protected roles have all permissions
 }
 ```
+
+**Key Constraints**:
+- Roles with `UserType = Admin` can only be assigned to admin users
+- Roles with `UserType = Customer` can only be assigned to customer/dealer users
+- `UserType` is set at role creation and **cannot be changed** after creation
+- `IsSystemRole` prevents name changes (description can still be edited)
+- `IsProtected` grants all permissions (e.g., SuperAdmin role)
+
+**Admin Panel Role Management**:
+- List page: Filter by UserType dropdown, UserType badge in table
+- Create dialog: UserType selector (Admin/Customer options)
+- Detail page: UserType badge in header, Type info card
+- Edit dialog: UserType field hidden (cannot change after creation)
 
 **Seeded Customer Roles**:
 
@@ -713,6 +728,36 @@ public class ApplicationRole : IdentityRole<Guid>
 | `CustomerPurchasing` | Satın Alma | Orders, catalog, prices |
 | `CustomerAccounting` | Muhasebe | Orders read, balance, profile |
 | `CustomerEmployee` | Çalışan | Catalog read, orders read |
+
+**Frontend Types** (`admin/src/types/entities.ts`):
+```typescript
+export type UserType = "Admin" | "Customer" | "ApiClient";
+
+export const UserTypeLabels: Record<UserType, string> = {
+  Admin: "Admin",
+  Customer: "Customer",
+  ApiClient: "API Client",
+};
+
+export interface RoleListItem {
+  id: string;
+  name: string;
+  description?: string;
+  userCount: number;
+  claimCount: number;
+  isProtected: boolean;
+  isSystemRole: boolean;
+  userType: UserType;
+  createdAt: string;
+}
+
+export interface RoleFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  userType?: UserType;  // Filter roles by user type
+}
+```
 
 **Permission Scopes** (`CustomerPermissionScopes`):
 ```csharp

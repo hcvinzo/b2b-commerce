@@ -77,6 +77,9 @@ public static class DependencyInjection
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        // Memory Cache (for ParameterService)
+        services.AddMemoryCache();
+
         // Application Services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProductService, ProductService>();
@@ -89,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerUserService, CustomerUserService>();
         services.AddScoped<IGeoLocationTypeService, GeoLocationTypeService>();
         services.AddScoped<IGeoLocationService, GeoLocationService>();
+        services.AddScoped<IParameterService, ParameterService>();
 
         // Integration Services
         services.AddScoped<IApiKeyGenerator, ApiKeyGenerator>();

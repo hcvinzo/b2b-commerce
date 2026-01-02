@@ -1,4 +1,5 @@
 using B2BCommerce.Backend.Domain.Entities;
+using B2BCommerce.Backend.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -36,6 +37,14 @@ public class SystemConfigurationConfiguration : IEntityTypeConfiguration<SystemC
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(sc => sc.ParameterType)
+            .IsRequired()
+            .HasDefaultValue(ParameterType.System);
+
+        builder.Property(sc => sc.ValueType)
+            .IsRequired()
+            .HasDefaultValue(ParameterValueType.String);
+
         // Audit properties
         builder.Property(sc => sc.CreatedAt)
             .IsRequired();
@@ -63,6 +72,8 @@ public class SystemConfigurationConfiguration : IEntityTypeConfiguration<SystemC
             .HasFilter("\"IsDeleted\" = false");
 
         builder.HasIndex(sc => sc.Category);
+
+        builder.HasIndex(sc => sc.ParameterType);
 
         builder.HasIndex(sc => sc.IsDeleted);
     }

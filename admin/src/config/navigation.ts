@@ -18,6 +18,7 @@ import {
   Shield,
   Library,
   MapPin,
+  Settings2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -180,6 +181,11 @@ export const navigation: NavGroup[] = [
         title: "Geo Locations",
         url: "/geo-locations",
         icon: MapPin,
+      },
+      {
+        title: "Parameters",
+        url: "/parameters",
+        icon: Settings2,
       },
       {
         title: "Settings",

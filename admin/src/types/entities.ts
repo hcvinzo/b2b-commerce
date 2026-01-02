@@ -1272,3 +1272,92 @@ export interface CustomerUserFilters {
   pageSize?: number;
   search?: string;
 }
+
+// ============================================
+// Parameter Types (System Configuration)
+// ============================================
+
+// Parameter Type enum (matching backend)
+export type ParameterType = "System" | "Business";
+
+export const ParameterTypeEnum = {
+  System: 0,
+  Business: 1,
+} as const;
+
+export const ParameterTypeLabels: Record<ParameterType, string> = {
+  System: "System",
+  Business: "Business",
+};
+
+// Parameter Value Type enum (matching backend)
+export type ParameterValueType = "String" | "Number" | "Boolean" | "DateTime" | "Json";
+
+export const ParameterValueTypeEnum = {
+  String: 0,
+  Number: 1,
+  Boolean: 2,
+  DateTime: 3,
+  Json: 4,
+} as const;
+
+export const ParameterValueTypeLabels: Record<ParameterValueType, string> = {
+  String: "String",
+  Number: "Number",
+  Boolean: "Boolean",
+  DateTime: "Date/Time",
+  Json: "JSON",
+};
+
+// Parameter (list view)
+export interface ParameterListItem {
+  id: string;
+  key: string;
+  value: string;
+  category: string;
+  description?: string;
+  parameterType: ParameterType;
+  valueType: ParameterValueType;
+  isEditable: boolean;
+}
+
+// Parameter (detailed view)
+export interface ParameterDetail {
+  id: string;
+  key: string;
+  value: string;
+  category: string;
+  description?: string;
+  parameterType: ParameterType;
+  valueType: ParameterValueType;
+  isEditable: boolean;
+  createdAt: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+// DTOs for Parameter operations
+export interface CreateParameterDto {
+  key: string;
+  value: string;
+  description?: string;
+  parameterType: ParameterType;
+  valueType: ParameterValueType;
+  isEditable?: boolean;
+}
+
+export interface UpdateParameterDto {
+  value?: string;
+  description?: string;
+  isEditable?: boolean;
+}
+
+// Filters for parameter list
+export interface ParameterFilters {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  parameterType?: ParameterType;
+  category?: string;
+}
