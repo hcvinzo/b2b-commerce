@@ -41,6 +41,11 @@ public interface IUnitOfWork : IDisposable
     IShipmentRepository Shipments { get; }
 
     /// <summary>
+    /// Gets the currency repository
+    /// </summary>
+    ICurrencyRepository Currencies { get; }
+
+    /// <summary>
     /// Gets the currency rate repository
     /// </summary>
     ICurrencyRateRepository CurrencyRates { get; }

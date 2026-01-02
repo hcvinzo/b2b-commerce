@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IShipmentRepository, ShipmentRepository>();
+        services.AddScoped<ICurrencyRepository, CurrencyRepository>();
         services.AddScoped<ICurrencyRateRepository, CurrencyRateRepository>();
 
         // Integration Repositories
@@ -96,6 +97,7 @@ public static class DependencyInjection
         services.AddScoped<IGeoLocationTypeService, GeoLocationTypeService>();
         services.AddScoped<IGeoLocationService, GeoLocationService>();
         services.AddScoped<IParameterService, ParameterService>();
+        services.AddScoped<ICurrencyService, CurrencyService>();
 
         // Campaign Services
         services.AddScoped<ICampaignService, CampaignService>();

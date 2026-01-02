@@ -20,6 +20,7 @@ import {
   MapPin,
   Settings2,
   Percent,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 
@@ -166,6 +167,11 @@ export const navigation: NavGroup[] = [
         title: "Payments",
         url: "/payments",
         icon: CreditCard,
+      },
+      {
+        title: "Currencies",
+        url: "/currencies",
+        icon: Coins,
       },
     ],
   },

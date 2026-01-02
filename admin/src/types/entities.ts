@@ -1618,3 +1618,52 @@ export interface CampaignFilters {
   sortBy?: string;
   sortDirection?: "asc" | "desc";
 }
+
+// ============================================
+// Currency Types
+// ============================================
+
+// Currency (list view)
+export interface CurrencyListItem {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  decimalPlaces: number;
+  isDefault: boolean;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
+// Currency (detailed view)
+export interface Currency extends BaseEntity {
+  code: string;
+  name: string;
+  symbol: string;
+  decimalPlaces: number;
+  isDefault: boolean;
+  isActive: boolean;
+  displayOrder: number;
+}
+
+// DTOs for Currency operations
+export interface CreateCurrencyDto {
+  code: string;
+  name: string;
+  symbol: string;
+  decimalPlaces?: number;
+  displayOrder?: number;
+}
+
+export interface UpdateCurrencyDto {
+  name: string;
+  symbol: string;
+  decimalPlaces: number;
+  displayOrder: number;
+}
+
+// Filters for currency list
+export interface CurrencyFilters {
+  activeOnly?: boolean;
+}

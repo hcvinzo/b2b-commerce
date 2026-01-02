@@ -42,6 +42,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<SystemConfiguration> SystemConfigurations => Set<SystemConfiguration>();
+    public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
     public DbSet<NewsletterSubscription> NewsletterSubscriptions => Set<NewsletterSubscription>();
 

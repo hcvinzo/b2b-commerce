@@ -516,10 +516,26 @@ All list pages should wrap content in a Card component with filters, table, and 
 
 **Key points**:
 - Wrap filters, table, and pagination in `Card` > `CardContent`
+- **REQUIRED**: Add a refresh button (RefreshCw icon) in the filter bar to reload data
 - Add `cursor-pointer` class to `TableRow`
 - Add `onClick` handler to navigate to detail page
 - Add `onClick={(e) => e.stopPropagation()}` to the dropdown menu cell to prevent row click when using dropdown
 - Use `useRouter` from `next/navigation` for navigation
+
+**Refresh button pattern**:
+```tsx
+import { RefreshCw } from "lucide-react";
+
+// In filter bar
+<Button
+  variant="outline"
+  size="icon"
+  onClick={() => refetch()}
+  disabled={isFetching}
+>
+  <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+</Button>
+```
 
 **Pages following this pattern**:
 - `/products` - Products list

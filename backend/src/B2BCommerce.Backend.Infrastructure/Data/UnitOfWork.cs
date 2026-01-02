@@ -21,6 +21,7 @@ public class UnitOfWork : IUnitOfWork
     private IBrandRepository? _brands;
     private IPaymentRepository? _payments;
     private IShipmentRepository? _shipments;
+    private ICurrencyRepository? _currencies;
     private ICurrencyRateRepository? _currencyRates;
 
     // Integration repositories
@@ -74,6 +75,9 @@ public class UnitOfWork : IUnitOfWork
 
     public IShipmentRepository Shipments =>
         _shipments ??= new ShipmentRepository(_context);
+
+    public ICurrencyRepository Currencies =>
+        _currencies ??= new CurrencyRepository(_context);
 
     public ICurrencyRateRepository CurrencyRates =>
         _currencyRates ??= new CurrencyRateRepository(_context);
