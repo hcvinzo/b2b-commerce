@@ -219,7 +219,7 @@ export default function RegisterStep4Page() {
     if (existing && existing.length > 0) {
       return existing.map(b => ({ banka_adi: b.bankName || '', iban: b.iban || '' }))
     }
-    return Array(6).fill(null).map(() => ({ banka_adi: '', iban: '' }))
+    return [{ banka_adi: '', iban: '' }]
   })
 
   const [teminatValues, setTeminatValues] = useState<CompositeAttributeValue[]>(() => {
@@ -231,7 +231,7 @@ export default function RegisterStep4Page() {
         para_birimi: c.currency || 'TRY'
       }))
     }
-    return Array(3).fill(null).map(() => ({ teminat_turu: '', tutar: 0, para_birimi: 'TRY' }))
+    return [{ teminat_turu: '', tutar: 0, para_birimi: 'TRY' }]
   })
 
   // Load composite attribute definitions
@@ -279,25 +279,7 @@ export default function RegisterStep4Page() {
         )
       } catch (error) {
         console.error('Failed to load attributes:', error)
-        // Fallback fields
-        setBankAccountFields([
-          { code: 'banka_adi', name: 'Banka Adı', type: 'text', placeholder: 'Banka Adı' },
-          { code: 'iban', name: 'IBAN', type: 'text', placeholder: 'TR00 0000 0000 0000 0000 0000 00' },
-        ])
-        setTeminatFields([
-          { code: 'teminat_turu', name: 'Teminat Türü', type: 'select', placeholder: 'Seçiniz', options: [
-            { value: 'cek', label: 'Çek' },
-            { value: 'senet', label: 'Senet' },
-            { value: 'teminat_mektubu', label: 'Teminat Mektubu' },
-            { value: 'ipotek', label: 'İpotek' },
-          ]},
-          { code: 'tutar', name: 'Tutar', type: 'number', placeholder: '0' },
-          { code: 'para_birimi', name: 'Para Birimi', type: 'select', placeholder: 'TRY', options: [
-            { value: 'TRY', label: 'TRY' },
-            { value: 'USD', label: 'USD' },
-            { value: 'EUR', label: 'EUR' },
-          ]},
-        ])
+        // Leave fields empty - form will show loading state or error
       } finally {
         setIsLoadingAttributes(false)
       }
@@ -524,7 +506,7 @@ export default function RegisterStep4Page() {
                       fields={bankAccountFields}
                       values={bankAccountValues}
                       onChange={setBankAccountValues}
-                      minRows={6}
+                      minRows={1}
                       maxRows={10}
                       addButtonText="Banka Hesabı Ekle"
                     />
@@ -545,7 +527,7 @@ export default function RegisterStep4Page() {
                       fields={teminatFields}
                       values={teminatValues}
                       onChange={setTeminatValues}
-                      minRows={3}
+                      minRows={1}
                       maxRows={10}
                       addButtonText="Teminat Ekle"
                     />

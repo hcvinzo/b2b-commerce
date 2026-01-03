@@ -105,12 +105,7 @@ export default function RegisterStep2Page() {
         setCompositeFields(fields)
       } catch (error) {
         console.error('Failed to load composite attribute:', error)
-        // Fallback to default fields if API fails
-        setCompositeFields([
-          { code: 'ad_soyad', name: 'Adı Soyadı', type: 'text', placeholder: 'Adı Soyadı' },
-          { code: 'kimlik_no', name: 'T.C. Kimlik No', type: 'tc_kimlik', placeholder: 'T.C. Kimlik No', maxLength: 11 },
-          { code: 'ortaklik_payi', name: 'Pay Oranı (%)', type: 'number', placeholder: '%', min: 0, max: 100 },
-        ])
+        // Leave fields empty - form will show loading state or error
       } finally {
         setIsLoadingAttribute(false)
       }

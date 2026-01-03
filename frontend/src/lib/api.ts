@@ -231,4 +231,39 @@ export async function getChildAttributes(parentId: string): Promise<AttributeDef
   return response.data
 }
 
+// Currency API functions
+
+export interface Currency {
+  id: string
+  code: string
+  name: string
+  symbol: string
+  isDefault: boolean
+  isActive: boolean
+}
+
+/**
+ * Get all active currencies (public endpoint)
+ */
+export async function getActiveCurrencies(): Promise<Currency[]> {
+  const response = await api.get<Currency[]>('/currencies')
+  return response.data
+}
+
+/**
+ * Get currency by code (public endpoint)
+ */
+export async function getCurrencyByCode(code: string): Promise<Currency> {
+  const response = await api.get<Currency>(`/currencies/by-code/${code}`)
+  return response.data
+}
+
+/**
+ * Get the default currency (public endpoint)
+ */
+export async function getDefaultCurrency(): Promise<Currency> {
+  const response = await api.get<Currency>('/currencies/default')
+  return response.data
+}
+
 export { api }

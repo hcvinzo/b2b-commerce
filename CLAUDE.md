@@ -824,6 +824,121 @@ await _userManager.AddToRoleAsync(user, "CustomerAdmin");
 
 ---
 
+## Currency Management
+
+### Overview
+
+The system supports multi-currency operations with:
+- **Currency** entity - Manages available currencies (ISO 4217 codes)
+- **CurrencyRate** entity - Stores exchange rates between currency pairs
+- Integration with product pricing (prices stored with currency)
+
+### Currency Entity
+
+```csharp
+public class Currency : BaseEntity
+{
+    public string Code { get; }           // ISO 4217 code (USD, EUR, TRY)
+    public string Name { get; }           // Display name
+    public string Symbol { get; }         // Currency symbol (₺, $, €)
+    public int DecimalPlaces { get; }     // Decimal precision (usually 2)
+    public bool IsDefault { get; }        // System default currency
+    public bool IsActive { get; }         // Available for selection
+    public int DisplayOrder { get; }      // Sort order in dropdowns
+    public RateManagementMode RateManagementMode { get; }  // Manual or TCMB
+}
+
+public enum RateManagementMode
+{
+    Manual = 1,  // Rates entered manually
+    TCMB = 2     // Rates from Turkish Central Bank (future)
+}
+```
+
+### Currency Rate Entity
+
+```csharp
+public class CurrencyRate : BaseEntity
+{
+    public string FromCurrency { get; }   // Source currency code
+    public string ToCurrency { get; }     // Target currency code
+    public decimal Rate { get; }          // Exchange rate value
+    public DateTime EffectiveDate { get; } // When rate becomes effective
+    public bool IsActive { get; }         // Rate currently in use
+}
+```
+
+### Admin API Endpoints
+
+**Currencies** (`/api/admin/currencies`):
+- `GET /` - List all currencies
+- `GET /{id}` - Get currency by ID
+- `GET /code/{code}` - Get currency by ISO code
+- `GET /default` - Get default currency
+- `POST /` - Create currency
+- `PUT /{id}` - Update currency
+- `DELETE /{id}` - Delete currency
+- `POST /{id}/activate` - Activate currency
+- `POST /{id}/deactivate` - Deactivate currency
+- `POST /{id}/set-default` - Set as default currency
+
+**Currency Rates** (`/api/admin/currency-rates`):
+- `GET /` - List rates (filters: fromCurrency, toCurrency, activeOnly)
+- `GET /{id}` - Get rate by ID
+- `POST /` - Create exchange rate
+- `PUT /{id}` - Update rate
+- `DELETE /{id}` - Delete rate
+- `POST /{id}/activate` - Activate rate
+- `POST /{id}/deactivate` - Deactivate rate
+
+### Admin Panel Integration
+
+**Currency Management Pages**:
+- `/currencies` - Manage currencies (code, name, symbol, rate mode)
+- `/currency-rates` - Manage exchange rates (from/to, rate, effective date)
+
+**Product Form Integration**:
+The product form dynamically loads currencies from the API instead of hardcoding options:
+
+```tsx
+// In product-form.tsx
+const { data: currencies } = useCurrencies({ activeOnly: true });
+const { data: defaultCurrency } = useDefaultCurrency();
+
+// Currency dropdown shows active currencies from API
+<Select value={field.value || defaultCurrencyCode}>
+  <SelectContent>
+    {activeCurrencies.map((currency) => (
+      <SelectItem key={currency.id} value={currency.code}>
+        {currency.code} - {currency.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+**Key Hooks**:
+- `useCurrencies(filters)` - List currencies
+- `useDefaultCurrency()` - Get system default currency
+- `useCurrencyRates(filters)` - List exchange rates
+- `useCreateCurrencyRate()` - Create new rate
+- `useUpdateCurrencyRate()` - Update existing rate
+
+### PostgreSQL Date/Time Handling
+
+**CRITICAL**: When saving DateTime values to PostgreSQL `timestamp with time zone` columns, ensure the DateTimeKind is set to UTC:
+
+```csharp
+// In service layer, before saving
+DateTime? effectiveDate = dto.EffectiveDate.HasValue
+    ? DateTime.SpecifyKind(dto.EffectiveDate.Value, DateTimeKind.Utc)
+    : null;
+```
+
+This prevents errors like: "Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone'"
+
+---
+
 ## Domain Layer Rules
 
 ### Base Classes

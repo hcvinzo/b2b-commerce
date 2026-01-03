@@ -35,6 +35,7 @@ import { productSchema, type ProductFormData, type ProductFormInput } from "@/li
 import { useCategories } from "@/hooks/use-categories";
 import { useBrands } from "@/hooks/use-brands";
 import { useProductTypes } from "@/hooks/use-product-types";
+import { useCurrencies, useDefaultCurrency } from "@/hooks/use-currencies";
 import { ProductImageManager } from "./product-image-manager";
 import { ProductAttributesForm } from "./product-attributes-form";
 import { ProductAttributeValueInput } from "@/types/entities";
@@ -57,8 +58,14 @@ export function ProductForm({
   const { data: categories } = useCategories();
   const { data: brandsData } = useBrands({ isActive: true });
   const { data: productTypesData } = useProductTypes(true);
+  const { data: currencies } = useCurrencies({ activeOnly: true });
+  const { data: defaultCurrency } = useDefaultCurrency();
   const brands = brandsData?.items || [];
   const productTypes = productTypesData || [];
+  const activeCurrencies = currencies || [];
+
+  // Get default currency code for initial form value
+  const defaultCurrencyCode = defaultCurrency?.code || "TRY";
 
   const form = useForm<ProductFormInput>({
     resolver: zodResolver(productSchema),
@@ -70,7 +77,7 @@ export function ProductForm({
       brandId: "",
       productTypeId: "",
       listPrice: 0,
-      listPriceCurrency: "TRY",
+      listPriceCurrency: defaultCurrencyCode,
       dealerPrice: 0,
       tier1Price: undefined,
       tier2Price: undefined,
@@ -96,6 +103,13 @@ export function ProductForm({
   });
 
   const watchProductTypeId = form.watch("productTypeId");
+
+  // Update currency to default when it loads and form doesn't have a currency set
+  useEffect(() => {
+    if (defaultCurrency && !defaultValues?.listPriceCurrency) {
+      form.setValue("listPriceCurrency", defaultCurrency.code);
+    }
+  }, [defaultCurrency, defaultValues?.listPriceCurrency, form]);
 
   // Show toast when form has validation errors
   useEffect(() => {
@@ -342,16 +356,26 @@ export function ProductForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Currency</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || "TRY"}>
+                        <Select onValueChange={field.onChange} value={field.value || defaultCurrencyCode}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select currency" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="TRY">TRY</SelectItem>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="EUR">EUR</SelectItem>
+                            {activeCurrencies.length > 0 ? (
+                              activeCurrencies.map((currency) => (
+                                <SelectItem key={currency.id} value={currency.code}>
+                                  {currency.code} - {currency.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <>
+                                <SelectItem value="TRY">TRY - Turkish Lira</SelectItem>
+                                <SelectItem value="USD">USD - US Dollar</SelectItem>
+                                <SelectItem value="EUR">EUR - Euro</SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />

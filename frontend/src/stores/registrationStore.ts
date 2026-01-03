@@ -30,22 +30,15 @@ const initialState = {
     isletmeYapisi: '',
     ciro: [{}],
     musteriKitlesi: [{}],
-    isOrtaklari: [{}, {}, {}, {}],
+    isOrtaklari: [{}],
     satilanUrunKategorileri: [],
     calismaKosullari: [],
   },
   bankingDocuments: {
     bankAccounts: [
       { bankName: '', iban: '' },
-      { bankName: '', iban: '' },
-      { bankName: '', iban: '' },
-      { bankName: '', iban: '' },
-      { bankName: '', iban: '' },
-      { bankName: '', iban: '' },
     ],
     collaterals: [
-      { type: '', amount: 0, currency: 'TRY' as const },
-      { type: '', amount: 0, currency: 'TRY' as const },
       { type: '', amount: 0, currency: 'TRY' as const },
     ],
     documents: {},

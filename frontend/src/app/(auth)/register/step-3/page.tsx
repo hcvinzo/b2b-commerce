@@ -72,7 +72,7 @@ export default function RegisterStep3Page() {
   const [isOrtaklariValues, setIsOrtaklariValues] = useState<CompositeAttributeValue[]>(() => {
     const existing = operationalDetails.isOrtaklari
     if (existing && existing.length > 0) return existing as CompositeAttributeValue[]
-    return [{}, {}, {}, {}]
+    return [{}]
   })
 
   // Load composite attribute definitions
@@ -138,23 +138,7 @@ export default function RegisterStep3Page() {
         )
       } catch (error) {
         console.error('Failed to load composite attributes:', error)
-        // Set fallback fields
-        setCiroFields([
-          { code: 'gecen_yil_cirosu', name: 'Geçen Yıl Cirosu', type: 'number', placeholder: 'Tutar' },
-          { code: 'bu_yil_hedeflenen', name: 'Bu Yıl Hedeflenen', type: 'number', placeholder: 'Tutar' },
-          { code: 'para_birimi', name: 'Para Birimi', type: 'text', placeholder: 'TRY' },
-        ])
-        setMusteriKitlesiFields([
-          { code: 'devlet_kamu', name: 'Devlet & Kamu', type: 'number', placeholder: '%', min: 0, max: 100 },
-          { code: 'kurumsal', name: 'Kurumsal', type: 'number', placeholder: '%', min: 0, max: 100 },
-          { code: 'bayi', name: 'Bayi', type: 'number', placeholder: '%', min: 0, max: 100 },
-          { code: 'perakende', name: 'Perakende', type: 'number', placeholder: '%', min: 0, max: 100 },
-        ])
-        setIsOrtaklariFields([
-          { code: 'sirket_adi', name: 'Şirket Adı', type: 'text', placeholder: 'Şirket Adı' },
-          { code: 'calisma_kosulu', name: 'Çalışma Koşulu', type: 'text', placeholder: 'Seçiniz' },
-          { code: 'limit_usd', name: 'Limit (USD)', type: 'number', placeholder: '0' },
-        ])
+        // Leave fields empty - form will show loading state or error
       } finally {
         setIsLoadingAttributes(false)
       }
