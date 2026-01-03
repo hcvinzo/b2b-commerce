@@ -88,7 +88,8 @@ public class CurrencyService : ICurrencyService
                 dto.Name,
                 dto.Symbol,
                 dto.DecimalPlaces,
-                dto.DisplayOrder);
+                dto.DisplayOrder,
+                dto.RateManagementMode);
 
             await _unitOfWork.Currencies.AddAsync(currency, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -115,7 +116,7 @@ public class CurrencyService : ICurrencyService
                 return Result<CurrencyDto>.Failure($"Currency with ID {id} not found", "NOT_FOUND");
             }
 
-            currency.Update(dto.Name, dto.Symbol, dto.DecimalPlaces, dto.DisplayOrder);
+            currency.Update(dto.Name, dto.Symbol, dto.DecimalPlaces, dto.DisplayOrder, dto.RateManagementMode);
 
             _unitOfWork.Currencies.Update(currency);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -261,6 +262,7 @@ public class CurrencyService : ICurrencyService
             IsDefault = currency.IsDefault,
             IsActive = currency.IsActive,
             DisplayOrder = currency.DisplayOrder,
+            RateManagementMode = currency.RateManagementMode,
             CreatedAt = currency.CreatedAt,
             UpdatedAt = currency.UpdatedAt
         };
@@ -278,6 +280,7 @@ public class CurrencyService : ICurrencyService
             IsDefault = currency.IsDefault,
             IsActive = currency.IsActive,
             DisplayOrder = currency.DisplayOrder,
+            RateManagementMode = currency.RateManagementMode,
             CreatedAt = currency.CreatedAt
         };
     }

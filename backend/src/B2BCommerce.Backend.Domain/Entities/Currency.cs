@@ -1,4 +1,5 @@
 using B2BCommerce.Backend.Domain.Common;
+using B2BCommerce.Backend.Domain.Enums;
 using B2BCommerce.Backend.Domain.Exceptions;
 
 namespace B2BCommerce.Backend.Domain.Entities;
@@ -43,6 +44,11 @@ public class Currency : BaseEntity, IAggregateRoot
     /// </summary>
     public int DisplayOrder { get; private set; }
 
+    /// <summary>
+    /// How exchange rates are managed for this currency (Manual or TCMB)
+    /// </summary>
+    public RateManagementMode RateManagementMode { get; private set; }
+
     private Currency() // For EF Core
     {
         Code = string.Empty;
@@ -58,7 +64,8 @@ public class Currency : BaseEntity, IAggregateRoot
         string name,
         string symbol,
         int decimalPlaces = 2,
-        int displayOrder = 0)
+        int displayOrder = 0,
+        RateManagementMode rateManagementMode = RateManagementMode.Manual)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -93,14 +100,15 @@ public class Currency : BaseEntity, IAggregateRoot
             DecimalPlaces = decimalPlaces,
             IsDefault = false,
             IsActive = true,
-            DisplayOrder = displayOrder
+            DisplayOrder = displayOrder,
+            RateManagementMode = rateManagementMode
         };
     }
 
     /// <summary>
     /// Updates the currency details
     /// </summary>
-    public void Update(string name, string symbol, int decimalPlaces, int displayOrder)
+    public void Update(string name, string symbol, int decimalPlaces, int displayOrder, RateManagementMode rateManagementMode)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -121,6 +129,7 @@ public class Currency : BaseEntity, IAggregateRoot
         Symbol = symbol.Trim();
         DecimalPlaces = decimalPlaces;
         DisplayOrder = displayOrder;
+        RateManagementMode = rateManagementMode;
     }
 
     /// <summary>

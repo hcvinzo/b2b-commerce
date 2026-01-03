@@ -98,6 +98,7 @@ public static class DependencyInjection
         services.AddScoped<IGeoLocationService, GeoLocationService>();
         services.AddScoped<IParameterService, ParameterService>();
         services.AddScoped<ICurrencyService, CurrencyService>();
+        services.AddScoped<ICurrencyRateService, CurrencyRateService>();
 
         // Campaign Services
         services.AddScoped<ICampaignService, CampaignService>();

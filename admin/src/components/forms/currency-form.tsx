@@ -16,7 +16,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   currencySchema,
+  rateManagementModeOptions,
   type CurrencyFormData,
 } from "@/lib/validations/currency";
 
@@ -45,6 +53,7 @@ export function CurrencyForm({
       symbol: "",
       decimalPlaces: 2,
       displayOrder: 0,
+      rateManagementMode: "Manual",
       ...defaultValues,
     },
   });
@@ -146,6 +155,37 @@ export function CurrencyForm({
                 </FormControl>
                 <FormDescription>
                   Order in which the currency appears in lists
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="rateManagementMode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Rate Management Mode *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select rate management mode" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {rateManagementModeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  How exchange rates are managed for this currency
                 </FormDescription>
                 <FormMessage />
               </FormItem>

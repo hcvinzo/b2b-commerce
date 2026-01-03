@@ -1623,6 +1623,14 @@ export interface CampaignFilters {
 // Currency Types
 // ============================================
 
+// Rate Management Mode
+export type RateManagementMode = "Manual" | "TCMB";
+
+export const RateManagementModeValues = {
+  Manual: 1,
+  TCMB: 2,
+} as const;
+
 // Currency (list view)
 export interface CurrencyListItem {
   id: string;
@@ -1633,6 +1641,7 @@ export interface CurrencyListItem {
   isDefault: boolean;
   isActive: boolean;
   displayOrder: number;
+  rateManagementMode: RateManagementMode;
   createdAt: string;
 }
 
@@ -1645,6 +1654,7 @@ export interface Currency extends BaseEntity {
   isDefault: boolean;
   isActive: boolean;
   displayOrder: number;
+  rateManagementMode: RateManagementMode;
 }
 
 // DTOs for Currency operations
@@ -1654,6 +1664,7 @@ export interface CreateCurrencyDto {
   symbol: string;
   decimalPlaces?: number;
   displayOrder?: number;
+  rateManagementMode?: RateManagementMode;
 }
 
 export interface UpdateCurrencyDto {
@@ -1661,9 +1672,57 @@ export interface UpdateCurrencyDto {
   symbol: string;
   decimalPlaces: number;
   displayOrder: number;
+  rateManagementMode: RateManagementMode;
 }
 
 // Filters for currency list
 export interface CurrencyFilters {
+  activeOnly?: boolean;
+}
+
+// ============================================
+// Currency Rate Types
+// ============================================
+
+// Currency Rate (list view)
+export interface CurrencyRateListItem {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  effectiveDate: string;
+  isActive: boolean;
+  updatedAt?: string;
+}
+
+// Currency Rate (detailed view)
+export interface CurrencyRate {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  effectiveDate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// DTOs for Currency Rate operations
+export interface CreateCurrencyRateDto {
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  effectiveDate?: string;
+}
+
+export interface UpdateCurrencyRateDto {
+  rate: number;
+  effectiveDate?: string;
+}
+
+// Filters for currency rate list
+export interface CurrencyRateFilters {
+  fromCurrency?: string;
+  toCurrency?: string;
   activeOnly?: boolean;
 }

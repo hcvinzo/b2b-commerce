@@ -21,6 +21,7 @@ import {
   Settings2,
   Percent,
   Coins,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -172,6 +173,11 @@ export const navigation: NavGroup[] = [
         title: "Currencies",
         url: "/currencies",
         icon: Coins,
+      },
+      {
+        title: "Exchange Rates",
+        url: "/currency-rates",
+        icon: TrendingUp,
       },
     ],
   },

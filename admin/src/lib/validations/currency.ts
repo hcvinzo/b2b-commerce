@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const rateManagementModeOptions = [
+  { value: "Manual", label: "Manual Entry" },
+  { value: "TCMB", label: "TCMB (Turkish Central Bank)" },
+] as const;
+
 export const currencySchema = z.object({
   code: z
     .string()
@@ -23,6 +28,7 @@ export const currencySchema = z.object({
     .number()
     .int("Display order must be a whole number")
     .min(0, "Display order cannot be negative"),
+  rateManagementMode: z.enum(["Manual", "TCMB"]),
 });
 
 export type CurrencyFormData = z.infer<typeof currencySchema>;

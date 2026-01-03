@@ -1,3 +1,5 @@
+using B2BCommerce.Backend.Domain.Enums;
+
 namespace B2BCommerce.Backend.Application.DTOs.Currencies;
 
 /// <summary>
@@ -44,6 +46,11 @@ public class CurrencyListDto
     /// Display order for UI sorting
     /// </summary>
     public int DisplayOrder { get; set; }
+
+    /// <summary>
+    /// How exchange rates are managed for this currency
+    /// </summary>
+    public RateManagementMode RateManagementMode { get; set; }
 
     /// <summary>
     /// Date created

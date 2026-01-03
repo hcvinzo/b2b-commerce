@@ -100,6 +100,7 @@ export default function CurrenciesPage() {
           symbol: formData.symbol,
           decimalPlaces: formData.decimalPlaces,
           displayOrder: formData.displayOrder,
+          rateManagementMode: formData.rateManagementMode,
         },
       });
     } else {
@@ -109,6 +110,7 @@ export default function CurrenciesPage() {
         symbol: formData.symbol,
         decimalPlaces: formData.decimalPlaces,
         displayOrder: formData.displayOrder,
+        rateManagementMode: formData.rateManagementMode,
       });
     }
     setIsFormOpen(false);
@@ -215,6 +217,7 @@ export default function CurrenciesPage() {
                     <TableHead className="text-center">Symbol</TableHead>
                     <TableHead className="text-center">Decimals</TableHead>
                     <TableHead className="text-center">Order</TableHead>
+                    <TableHead className="text-center">Rate Mode</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="w-[70px]"></TableHead>
                   </TableRow>
@@ -242,6 +245,11 @@ export default function CurrenciesPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         {currency.displayOrder}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">
+                          {currency.rateManagementMode === "TCMB" ? "TCMB" : "Manual"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
@@ -351,6 +359,7 @@ export default function CurrenciesPage() {
                     symbol: editingCurrency.symbol,
                     decimalPlaces: editingCurrency.decimalPlaces,
                     displayOrder: editingCurrency.displayOrder,
+                    rateManagementMode: editingCurrency.rateManagementMode,
                   }
                 : undefined
             }
